@@ -460,9 +460,11 @@ function registerIpcHandlers() {
   ipcMain.handle('window:set-fullscreen', (event, fullscreen: unknown) => {
     const window = BrowserWindow.fromWebContents(event.sender);
     if (!window) {
-      return;
+      return false;
     }
-    window.setFullScreen(fullscreen === true);
+    const nextFullscreen = fullscreen === true;
+    window.setFullScreen(nextFullscreen);
+    return nextFullscreen;
   });
 }
 

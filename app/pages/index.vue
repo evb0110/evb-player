@@ -20,6 +20,7 @@ const volume = ref(1);
 const lastVolume = ref(1);
 const playbackRate = ref(1);
 const isFullscreen = ref(false);
+const lastKeyboardEvent = ref('');
 let removeWindowFullscreenListener: (() => void) | null = null;
 
 const currentCourse = library.currentCourse;
@@ -171,6 +172,7 @@ function seekTo(position: number) {
 
 function skip(seconds: number) {
   const media = mediaRef.value;
+  lastKeyboardEvent.value = `skip:${seconds}/${media?.currentTime ?? 'none'}/${media?.duration ?? 'none'}`;
   if (!media) {
     return;
   }
@@ -262,7 +264,7 @@ async function toggleFullscreen() {
 
   const api = import.meta.client ? window.courseShelf : null;
   if (api) {
-    await api.setWindowFullscreen(!isFullscreen.value);
+    isFullscreen.value = await api.setWindowFullscreen(!isFullscreen.value);
     return;
   }
 
@@ -333,10 +335,19 @@ function handleFullscreenChange() {
   isFullscreen.value = Boolean(document.fullscreenElement);
 }
 
+function syncFullscreenDocumentClass(fullscreen: boolean) {
+  if (!import.meta.client) {
+    return;
+  }
+  document.documentElement.classList.toggle('course-shelf-fullscreen', fullscreen);
+  document.body.classList.toggle('course-shelf-fullscreen', fullscreen);
+}
+
 function handleKeyboard(event: KeyboardEvent) {
   if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
     return;
   }
+  lastKeyboardEvent.value = `${event.key}/${event.code}`;
   const target = event.target;
   if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable)) {
     return;
@@ -409,6 +420,8 @@ watch(() => currentLesson.value?.id, async () => {
   mediaRef.value?.load();
 });
 
+watch(isFullscreen, syncFullscreenDocumentClass);
+
 onMounted(async () => {
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   document.addEventListener('keydown', handleKeyboard);
@@ -417,6 +430,7 @@ onMounted(async () => {
       isFullscreen.value = fullscreen;
     });
   }
+  syncFullscreenDocumentClass(isFullscreen.value);
   await library.load();
 });
 
@@ -425,6 +439,7 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeyboard);
   removeWindowFullscreenListener?.();
   removeWindowFullscreenListener = null;
+  syncFullscreenDocumentClass(false);
 });
 </script>
 
@@ -619,6 +634,7 @@ onUnmounted(() => {
 
                 <div class="player-topline">
                   <span>{{ currentLesson?.kind === 'audio' ? 'AUDIO' : 'VIDEO' }}</span>
+                  <span v-if="lastKeyboardEvent">{{ lastKeyboardEvent }}</span>
                   <button v-if="currentLesson?.kind === 'video'" class="player-icon-button" type="button" :title="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen">
                     <UIcon :name="isFullscreen ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'" />
                   </button>

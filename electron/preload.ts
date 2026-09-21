@@ -15,7 +15,7 @@ const api: ICourseShelfApi = {
   getCourseProgress: (courseId: string) => ipcRenderer.invoke('progress:get', courseId) as Promise<TCourseProgress>,
   saveLessonProgress: (payload: ISaveLessonProgressPayload) => ipcRenderer.invoke('progress:save', payload) as Promise<void>,
   clearCourseProgress: (courseId: string) => ipcRenderer.invoke('progress:clear', courseId) as Promise<void>,
-  setWindowFullscreen: (fullscreen: boolean) => ipcRenderer.invoke('window:set-fullscreen', fullscreen) as Promise<void>,
+  setWindowFullscreen: (fullscreen: boolean) => ipcRenderer.invoke('window:set-fullscreen', fullscreen) as Promise<boolean>,
   onWindowFullscreenChanged: (listener: (fullscreen: boolean) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, fullscreen: unknown) => listener(fullscreen === true);
     ipcRenderer.on('window:fullscreen-changed', handler);

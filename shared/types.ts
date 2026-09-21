@@ -56,6 +56,6 @@ export interface ICourseShelfApi {
   getCourseProgress(courseId: string): Promise<TCourseProgress>;
   saveLessonProgress(payload: ISaveLessonProgressPayload): Promise<void>;
   clearCourseProgress(courseId: string): Promise<void>;
-  setWindowFullscreen(fullscreen: boolean): Promise<void>;
+  setWindowFullscreen(fullscreen: boolean): Promise<boolean>;
   onWindowFullscreenChanged(listener: (fullscreen: boolean) => void): () => void;
 }
