@@ -5,14 +5,20 @@ files:
   - dist-electron/**
   - .output/public/**
   - package.json
+  - resources/icon.png
 directories:
   output: release
 mac:
+  icon: resources/icon.icns
   category: public.app-category.education
   target:
     - dmg
   artifactName: Course-Shelf-${version}-${arch}.${ext}
   hardenedRuntime: false
   gatekeeperAssess: false
+win:
+  icon: resources/icon.ico
+linux:
+  icon: resources/icon.png
 extraMetadata:
   main: dist-electron/electron/main.js

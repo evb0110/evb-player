@@ -20,6 +20,7 @@ const execFileAsync = promisify(execFile);
 const MEDIA_SCHEME = 'course-media';
 const RENDERER_SCHEME = 'course-shelf';
 const DEV_SERVER_URL = process.env.COURSE_SHELF_DEV_SERVER_URL?.trim();
+const appIconPath = join(app.getAppPath(), 'resources', 'icon.png');
 const mediaRoots = new Set<string>();
 const stateFilePath = () => join(app.getPath('userData'), 'course-shelf-state.json');
 
@@ -345,6 +346,7 @@ function createWindow() {
     minWidth: 1040,
     minHeight: 700,
     title: 'Course Shelf',
+    icon: appIconPath,
     backgroundColor: '#101214',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: {x: 16, y: 14},
@@ -465,6 +467,9 @@ function registerIpcHandlers() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'darwin') {
+    app.dock?.setIcon(appIconPath);
+  }
   protocol.handle(MEDIA_SCHEME, handleMediaRequest);
   protocol.handle(RENDERER_SCHEME, handleRendererRequest);
   registerIpcHandlers();

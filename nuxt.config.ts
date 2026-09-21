@@ -8,6 +8,7 @@ export default defineNuxtConfig({
     baseURL: process.env.COURSE_SHELF_DEV_SERVER_URL ? '/' : './',
     head: {
       title: 'Course Shelf',
+      link: [{rel: 'icon', type: 'image/png', href: './favicon.png'}],
       meta: [
         {name: 'viewport', content: 'width=device-width, initial-scale=1'},
         {name: 'theme-color', content: '#101214'},
