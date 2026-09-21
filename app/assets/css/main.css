@@ -596,6 +596,21 @@ button:disabled {
   gap: 24px;
 }
 
+.course-layout.course-layout-theater {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.course-layout-theater .player-column {
+  max-width: 1240px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.course-layout-theater .playlist-panel {
+  position: static;
+  max-height: 480px;
+}
+
 .player-column {
   min-width: 0;
 }
@@ -609,6 +624,10 @@ button:disabled {
   outline: none;
   background: #08090a;
   box-shadow: 0 22px 70px rgb(0 0 0 / 25%);
+}
+
+.player-stage-controls-hidden {
+  cursor: none;
 }
 
 .player-stage:fullscreen {
@@ -738,6 +757,8 @@ button:disabled {
   font-weight: 800;
   letter-spacing: 0.14em;
   pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+  z-index: 2;
 }
 
 .player-icon-button {
@@ -775,6 +796,21 @@ button:disabled {
   left: 0;
   padding: 42px 16px 14px;
   background: linear-gradient(transparent, rgb(0 0 0 / 78%));
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+  z-index: 3;
+}
+
+.player-stage-controls-hidden .player-topline {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.player-stage-controls-hidden .player-controls {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
 }
 
 .seek-range,
@@ -841,8 +877,11 @@ button:disabled {
 .volume-icon {
   width: 15px;
   height: 15px;
-  margin-left: 8px;
   color: rgb(255 255 255 / 65%);
+}
+
+.player-volume-button {
+  margin-left: 4px;
 }
 
 .volume-range {

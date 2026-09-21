@@ -35,4 +35,11 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 - Course tabs and recently opened folders are retained.
 - Progress is stored in `~/Library/Application Support/Course Shelf/course-shelf-state.json`.
 
+### Keyboard shortcuts
+
+- `Space` or `K`: play/pause; `J`/`L`: seek 10 seconds; `←`/`→`: seek 5 seconds.
+- `↑`/`↓`: volume; `M`: mute; `F`: fullscreen; `T`: theater mode.
+- `0`–`9`, `Home`, `End`: seek; `Shift+N`/`Shift+P`: next/previous lesson.
+- `<`/`>`: playback speed; `,`/`.`: frame step while paused.
+
 The main process owns the local media protocol and progress file. The renderer never receives Node.js access or arbitrary filesystem APIs.

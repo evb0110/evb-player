@@ -20,6 +20,10 @@ const volume = ref(1);
 const lastVolume = ref(1);
 const playbackRate = ref(1);
 const isFullscreen = ref(false);
+const isTheaterMode = ref(false);
+const areControlsVisible = ref(true);
+const isPlayerFocused = ref(false);
+let controlsHideTimer: ReturnType<typeof setTimeout> | null = null;
 let removeWindowFullscreenListener: (() => void) | null = null;
 
 const currentCourse = library.currentCourse;
@@ -58,6 +62,7 @@ const watchedCount = computed(() => {
 
 const courseProgress = computed(() => currentCourse.value ? library.progressPercent(currentCourse.value) : 0);
 const mediaDuration = computed(() => loadedDuration.value || currentLesson.value?.duration || 0);
+const volumeIcon = computed(() => volume.value === 0 ? 'i-lucide-volume-x' : volume.value < 0.5 ? 'i-lucide-volume-1' : 'i-lucide-volume-2');
 const currentProgress = computed(() => {
   const course = currentCourse.value;
   const lesson = currentLesson.value;
@@ -152,6 +157,7 @@ function togglePlayback() {
   if (!media) {
     return;
   }
+  showPlayerControls();
   if (media.paused) {
     void media.play();
   } else {
@@ -250,6 +256,62 @@ function setPlaybackRate(event: Event) {
   setPlaybackRateValue(Number(input.value));
 }
 
+function clearControlsHideTimer() {
+  if (controlsHideTimer !== null) {
+    clearTimeout(controlsHideTimer);
+    controlsHideTimer = null;
+  }
+}
+
+function scheduleControlsHide() {
+  clearControlsHideTimer();
+  if (!isPlaying.value || isPlayerFocused.value) {
+    return;
+  }
+  controlsHideTimer = setTimeout(() => {
+    controlsHideTimer = null;
+    if (isPlaying.value && !isPlayerFocused.value) {
+      areControlsVisible.value = false;
+    }
+  }, 2200);
+}
+
+function showPlayerControls() {
+  areControlsVisible.value = true;
+  scheduleControlsHide();
+}
+
+function handlePlayerPointerEnter() {
+  showPlayerControls();
+}
+
+function handlePlayerPointerMove() {
+  showPlayerControls();
+}
+
+function handlePlayerPointerLeave() {
+  scheduleControlsHide();
+}
+
+function handlePlayerFocusIn() {
+  isPlayerFocused.value = document.activeElement !== playerStageRef.value;
+  showPlayerControls();
+}
+
+function handlePlayerFocusOut(event: FocusEvent) {
+  const nextTarget = event.relatedTarget;
+  if (nextTarget instanceof Node && playerStageRef.value?.contains(nextTarget)) {
+    return;
+  }
+  isPlayerFocused.value = false;
+  scheduleControlsHide();
+}
+
+function toggleTheaterMode() {
+  isTheaterMode.value = !isTheaterMode.value;
+  showPlayerControls();
+}
+
 async function toggleFullscreen() {
   if (currentLesson.value?.kind !== 'video') {
     return;
@@ -317,15 +379,18 @@ function handleTimeUpdate() {
 
 function handlePlay() {
   isPlaying.value = true;
+  showPlayerControls();
 }
 
 function handlePause() {
   isPlaying.value = false;
+  showPlayerControls();
   void saveCurrentProgress();
 }
 
 async function handleEnded() {
   isPlaying.value = false;
+  showPlayerControls();
   await saveCurrentProgress(true);
 }
 
@@ -355,51 +420,68 @@ function handleKeyboard(event: KeyboardEvent) {
   }
 
   const key = event.key.toLowerCase();
+  const code = event.code.toLowerCase();
+  const isSpace = key === ' ' || code === 'space';
+  const isKey = (letter: string) => key === letter || code === `key${letter}`;
+  const isArrowLeft = key === 'arrowleft' || key === 'left' || code === 'arrowleft' || code === 'left';
+  const isArrowRight = key === 'arrowright' || key === 'right' || code === 'arrowright' || code === 'right';
+  const isArrowUp = key === 'arrowup' || key === 'up' || code === 'arrowup' || code === 'up';
+  const isArrowDown = key === 'arrowdown' || key === 'down' || code === 'arrowdown' || code === 'down';
+  const isHome = key === 'home' || code === 'home';
+  const isEnd = key === 'end' || code === 'end';
+  const isComma = key === ',' || code === 'comma';
+  const isPeriod = key === '.' || code === 'period';
+  const isLessThan = key === '<' || (isComma && event.shiftKey);
+  const isGreaterThan = key === '>' || (isPeriod && event.shiftKey);
+  const isEscape = key === 'escape' || code === 'escape';
+  const digitMatch = /^digit([0-9])$/u.exec(code);
+  const digit = !event.shiftKey ? digitMatch?.[1] ?? (/^[0-9]$/u.test(key) ? key : null) : null;
   let handled = true;
-  if (event.code === 'Space' || key === 'k') {
-    event.preventDefault();
+  if (isSpace || isKey('k')) {
     togglePlayback();
-  } else if (key === 'j') {
+  } else if (isKey('j')) {
     skip(-10);
-  } else if (key === 'l') {
+  } else if (isKey('l')) {
     skip(10);
-  } else if (key === 'arrowleft') {
+  } else if (isArrowLeft) {
     skip(-5);
-  } else if (key === 'arrowright') {
+  } else if (isArrowRight) {
     skip(5);
-  } else if (key === 'arrowup') {
+  } else if (isArrowUp) {
     adjustVolume(0.05);
-  } else if (key === 'arrowdown') {
+  } else if (isArrowDown) {
     adjustVolume(-0.05);
-  } else if (key === 'm') {
+  } else if (isKey('m')) {
     toggleMute();
-  } else if (key === 'f') {
+  } else if (isKey('f')) {
     void toggleFullscreen();
-  } else if (key === 'home') {
+  } else if (isHome) {
     seekTo(0);
-  } else if (key === 'end') {
+  } else if (isEnd) {
     const media = mediaRef.value;
     if (media?.duration) {
       seekTo(media.duration);
     }
-  } else if (/^[0-9]$/u.test(key)) {
+  } else if (digit !== null) {
     const media = mediaRef.value;
     if (media?.duration) {
-      seekTo(media.duration * Number(key) / 10);
+      seekTo(media.duration * Number(digit) / 10);
     }
-  } else if (key === 'n' && event.shiftKey) {
+  } else if (isKey('n') && event.shiftKey) {
     navigateLesson(1);
-  } else if (key === 'p' && event.shiftKey) {
+  } else if (isKey('p') && event.shiftKey) {
     navigateLesson(-1);
-  } else if (key === '>') {
+  } else if (isKey('t')) {
+    toggleTheaterMode();
+  } else if (isGreaterThan) {
     adjustPlaybackRate(1);
-  } else if (key === '<') {
+  } else if (isLessThan) {
     adjustPlaybackRate(-1);
-  } else if (key === ',' && !event.shiftKey) {
+  } else if (isComma && !event.shiftKey) {
     frameStep(-1);
-  } else if (key === '.' && !event.shiftKey) {
+  } else if (isPeriod && !event.shiftKey) {
     frameStep(1);
-  } else if (key === 'escape' && isFullscreen.value) {
+  } else if (isEscape && isFullscreen.value) {
     void toggleFullscreen();
   } else {
     handled = false;
@@ -407,6 +489,7 @@ function handleKeyboard(event: KeyboardEvent) {
 
   if (handled) {
     event.preventDefault();
+    showPlayerControls();
   }
 }
 
@@ -414,6 +497,7 @@ watch(() => currentLesson.value?.id, async () => {
   currentTime.value = 0;
   loadedDuration.value = currentLesson.value?.duration ?? 0;
   isPlaying.value = false;
+  showPlayerControls();
   await nextTick();
   mediaRef.value?.load();
 });
@@ -433,6 +517,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  clearControlsHideTimer();
   document.removeEventListener('fullscreenchange', handleFullscreenChange);
   document.removeEventListener('keydown', handleKeyboard);
   removeWindowFullscreenListener?.();
@@ -584,14 +669,23 @@ onUnmounted(() => {
             <div class="course-stat"><strong>{{ formatBytes(currentCourse.totalBytes) }}</strong><span>on disk</span></div>
           </div>
 
-          <div v-if="currentCourse.lessons.length" class="course-layout">
+          <div v-if="currentCourse.lessons.length" class="course-layout" :class="{ 'course-layout-theater': isTheaterMode }">
             <div class="player-column">
               <div
                 ref="playerStageRef"
                 class="player-stage"
-                :class="{ 'player-stage-window-fullscreen': isFullscreen }"
+                :class="{
+                  'player-stage-window-fullscreen': isFullscreen,
+                  'player-stage-controls-hidden': !areControlsVisible,
+                }"
                 tabindex="0"
                 @dblclick="toggleFullscreen"
+                @focusin="handlePlayerFocusIn"
+                @focusout="handlePlayerFocusOut"
+                @pointerenter="handlePlayerPointerEnter"
+                @pointerleave="handlePlayerPointerLeave"
+                @pointermove="handlePlayerPointerMove"
+                @pointerdown="showPlayerControls"
               >
                 <video
                   v-if="currentLesson?.kind === 'video'"
@@ -644,6 +738,7 @@ onUnmounted(() => {
                     min="0"
                     step="0.1"
                     type="range"
+                    aria-label="Seek"
                     :value="currentTime"
                     @input="setSeek"
                   >
@@ -663,8 +758,10 @@ onUnmounted(() => {
                       <span class="player-time">{{ formatDuration(currentTime) }} / {{ formatDuration(mediaDuration) }}</span>
                     </div>
                     <div class="player-control-group">
-                      <UIcon class="volume-icon" name="i-lucide-volume-2" />
-                      <input class="volume-range" max="1" min="0" step="0.05" type="range" :value="volume" @input="setVolume">
+                      <button class="player-icon-button player-volume-button" type="button" :aria-label="volume === 0 ? 'Unmute' : 'Mute'" :title="volume === 0 ? 'Unmute' : 'Mute'" @click="toggleMute">
+                        <UIcon class="volume-icon" :name="volumeIcon" />
+                      </button>
+                      <input class="volume-range" max="1" min="0" step="0.05" type="range" aria-label="Volume" :value="volume" @input="setVolume">
                       <select class="speed-select" :value="playbackRate" aria-label="Playback speed" @change="setPlaybackRate">
                         <option :value="0.75">0.75×</option>
                         <option :value="1">1×</option>
