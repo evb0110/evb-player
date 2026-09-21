@@ -1,0 +1,36 @@
+{
+  "name": "course-shelf",
+  "productName": "Course Shelf",
+  "version": "0.1.0",
+  "description": "A private local course and media player for macOS.",
+  "author": "Eugene Barsky",
+  "main": "dist-electron/electron/main.js",
+  "private": true,
+  "scripts": {
+    "dev": "tsx scripts/dev.ts",
+    "dev:web": "nuxi dev --host 127.0.0.1",
+    "build": "pnpm run build:web && pnpm run build:electron",
+    "build:web": "nuxi generate && node scripts/patch-static-output.mjs",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "start": "pnpm run build && electron .",
+    "package:mac": "pnpm run build && CSC_IDENTITY_AUTO_DISCOVERY=false pnpm exec electron-builder --mac",
+    "typecheck": "nuxi typecheck && tsc -p tsconfig.electron.json --noEmit"
+  },
+  "dependencies": {
+    "@vueuse/core": "^14.4.0",
+    "es-toolkit": "^1.52.0"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.93",
+    "@nuxt/ui": "4.11.1",
+    "@types/node": "^24.0.0",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "nuxt": "4.5.2",
+    "tsx": "^4.23.13",
+    "typescript": "^6.0.3",
+    "vue": "3.5.42",
+    "vue-tsc": "^3.3.11"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

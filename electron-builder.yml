@@ -1,0 +1,18 @@
+appId: net.course-shelf.app
+productName: Course Shelf
+asar: true
+files:
+  - dist-electron/**
+  - .output/public/**
+  - package.json
+directories:
+  output: release
+mac:
+  category: public.app-category.education
+  target:
+    - dmg
+  artifactName: Course-Shelf-${version}-${arch}.${ext}
+  hardenedRuntime: false
+  gatekeeperAssess: false
+extraMetadata:
+  main: dist-electron/electron/main.js
