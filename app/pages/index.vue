@@ -20,7 +20,6 @@ const volume = ref(1);
 const lastVolume = ref(1);
 const playbackRate = ref(1);
 const isFullscreen = ref(false);
-const lastKeyboardEvent = ref('');
 let removeWindowFullscreenListener: (() => void) | null = null;
 
 const currentCourse = library.currentCourse;
@@ -172,7 +171,6 @@ function seekTo(position: number) {
 
 function skip(seconds: number) {
   const media = mediaRef.value;
-  lastKeyboardEvent.value = `skip:${seconds}/${media?.currentTime ?? 'none'}/${media?.duration ?? 'none'}`;
   if (!media) {
     return;
   }
@@ -347,9 +345,9 @@ function handleKeyboard(event: KeyboardEvent) {
   if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
     return;
   }
-  lastKeyboardEvent.value = `${event.key}/${event.code}`;
   const target = event.target;
-  if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable)) {
+  const isRangeControl = target instanceof HTMLInputElement && target.type === 'range';
+  if ((target instanceof HTMLInputElement && !isRangeControl) || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable)) {
     return;
   }
   if (target instanceof HTMLButtonElement && (event.code === 'Space' || event.key === 'Enter')) {
@@ -634,7 +632,6 @@ onUnmounted(() => {
 
                 <div class="player-topline">
                   <span>{{ currentLesson?.kind === 'audio' ? 'AUDIO' : 'VIDEO' }}</span>
-                  <span v-if="lastKeyboardEvent">{{ lastKeyboardEvent }}</span>
                   <button v-if="currentLesson?.kind === 'video'" class="player-icon-button" type="button" :title="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen">
                     <UIcon :name="isFullscreen ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'" />
                   </button>
