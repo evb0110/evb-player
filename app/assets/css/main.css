@@ -809,7 +809,6 @@ button:disabled {
   gap: 12px;
   flex-wrap: wrap;
   padding: 23px 3px 20px;
-  border-bottom: 1px solid var(--shell-border);
 }
 
 .lesson-heading > div:first-child {
@@ -852,69 +851,11 @@ button:disabled {
   letter-spacing: 0.14em;
 }
 
-.lesson-navigation {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 16px 3px 0;
-}
-
 .progress-reset-dialog-copy {
   margin: 0;
   color: var(--shell-text-muted);
   font-size: 13px;
   line-height: 1.6;
-}
-
-.lesson-nav-button {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 105px;
-  padding: 8px 0;
-  border: 0;
-  color: var(--shell-text-muted);
-  background: transparent;
-  text-align: left;
-  max-width: 48%;
-}
-
-.lesson-nav-button:last-child {
-  text-align: right;
-}
-
-.lesson-nav-button:hover:not(:disabled) {
-  color: var(--shell-text);
-}
-
-.lesson-nav-button .iconify {
-  width: 16px;
-  height: 16px;
-}
-
-.lesson-nav-button span {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.lesson-nav-button small {
-  color: var(--shell-text-subtle);
-  font-size: 10px;
-}
-
-.lesson-nav-button strong {
-  color: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.lesson-nav-next {
-  margin-left: auto;
 }
 
 .playlist-panel {

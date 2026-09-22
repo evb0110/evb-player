@@ -274,7 +274,7 @@
                       <button
                         class="player-icon-button"
                         type="button"
-                        title="Previous track"
+                        :title="previousLesson ? `Previous: ${previousLesson.title} (Shift+P)` : 'Previous track'"
                         aria-label="Previous track"
                         :disabled="!hasPreviousLesson"
                         @click="navigateLesson(-1)"
@@ -284,7 +284,7 @@
                       <button
                         class="player-icon-button"
                         type="button"
-                        title="Next track"
+                        :title="nextLesson ? `Next: ${nextLesson.title} (Shift+N)` : 'Next track'"
                         aria-label="Next track"
                         :disabled="!hasNextLesson"
                         @click="navigateLesson(1)"
@@ -334,17 +334,6 @@
                   />
                   <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" variant="ghost" @click="currentLesson && requestLessonProgressReset(currentLesson)" />
                 </div>
-              </div>
-
-              <div class="lesson-navigation">
-                <button class="lesson-nav-button" type="button" :disabled="!hasPreviousLesson" @click="navigateLesson(-1)">
-                  <UIcon name="i-lucide-arrow-left" />
-                  <span><small>Previous</small><strong>{{ previousLesson?.title ?? 'First lesson' }}</strong></span>
-                </button>
-                <button class="lesson-nav-button lesson-nav-next" type="button" :disabled="!hasNextLesson" @click="navigateLesson(1)">
-                  <span><small>Up next</small><strong>{{ nextLesson?.title ?? 'Last lesson' }}</strong></span>
-                  <UIcon name="i-lucide-arrow-right" />
-                </button>
               </div>
             </div>
 
