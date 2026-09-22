@@ -31,6 +31,15 @@ const appIconPath = join(app.getAppPath(), 'resources', 'icon.png');
 const mediaRoots = new Set<string>();
 const authorizedCourseRoots = new Set<string>();
 const stateFilePath = () => join(app.getPath('userData'), 'course-shelf-state.json');
+
+// Source runs get their own name and profile so they never share progress,
+// storage, or the single-instance lock with the installed app.
+if (!app.isPackaged) {
+  const devAppName = 'Course Shelf Dev';
+  app.setName(devAppName);
+  app.setPath('userData', join(app.getPath('appData'), devAppName));
+}
+
 const singleInstanceLock = app.requestSingleInstanceLock();
 
 let storedState: IStoredState | null = null;

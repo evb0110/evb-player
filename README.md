@@ -42,6 +42,7 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 - Show in Finder is available in each Library card and the course heading, and reveals the course folder without changing playback.
 - Missing or unsupported media shows an explanation, a retry button, and an option to open the file in the default media app. Opening another folder does not interrupt the active lesson unless the new course opens successfully.
 - Progress is stored in `~/Library/Application Support/Course Shelf/course-shelf-state.json`.
+- `pnpm dev` and `pnpm start` run as "Course Shelf Dev" with a separate profile in `~/Library/Application Support/Course Shelf Dev/`, so they run alongside the installed app without sharing its progress or settings.
 
 ### Keyboard shortcuts
 
