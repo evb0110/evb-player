@@ -79,7 +79,7 @@ button:disabled {
   align-items: center;
   height: 60px;
   gap: 16px;
-  padding: 0 28px 0 88px;
+  padding: 0 28px;
   border-bottom: 1px solid var(--shell-border);
   background: rgb(16 18 20 / 88%);
   backdrop-filter: blur(18px);
@@ -664,6 +664,11 @@ button:disabled {
   height: 100%;
   object-fit: contain;
   background: #08090a;
+  transform-origin: center;
+}
+
+.media-element-rotated {
+  transform: rotate(var(--media-rotation)) scale(var(--media-rotation-scale));
 }
 
 .audio-stage {

@@ -178,27 +178,113 @@ async function collectMediaFiles(directory: string): Promise<string[]> {
   return files;
 }
 
-async function readDurationMap(filePaths: string[]) {
+interface IMediaMetadata {
+  duration: number | null;
+  pixelWidth: number | null;
+  pixelHeight: number | null;
+}
+
+async function readMediaMetadataMap(filePaths: string[]) {
   if (filePaths.length === 0) {
-    return new Map<string, number>();
+    return new Map<string, IMediaMetadata>();
   }
 
   try {
-    const result = await execFileAsync('mdls', ['-raw', '-name', 'kMDItemDurationSeconds', ...filePaths], {
+    const result = await execFileAsync('mdls', [
+      '-raw',
+      '-name', 'kMDItemDurationSeconds',
+      '-name', 'kMDItemPixelWidth',
+      '-name', 'kMDItemPixelHeight',
+      ...filePaths,
+    ], {
       maxBuffer: 1024 * 1024,
     });
     const values = result.stdout.split('\0').map((value) => value.trim());
-    const durations = new Map<string, number>();
+    const metadata = new Map<string, IMediaMetadata>();
     filePaths.forEach((filePath, index) => {
-      const value = Number(values[index]);
-      if (Number.isFinite(value) && value > 0) {
-        durations.set(filePath, value);
-      }
+      const offset = index * 3;
+      const duration = Number(values[offset]);
+      const pixelWidth = Number(values[offset + 1]);
+      const pixelHeight = Number(values[offset + 2]);
+      metadata.set(filePath, {
+        duration: Number.isFinite(duration) && duration > 0 ? duration : null,
+        pixelWidth: Number.isFinite(pixelWidth) && pixelWidth > 0 ? pixelWidth : null,
+        pixelHeight: Number.isFinite(pixelHeight) && pixelHeight > 0 ? pixelHeight : null,
+      });
     });
-    return durations;
+    return metadata;
   } catch {
-    return new Map<string, number>();
+    return new Map<string, IMediaMetadata>();
   }
+}
+
+const ffprobeCandidates = [
+  process.env.FFPROBE_PATH,
+  '/opt/homebrew/bin/ffprobe',
+  '/usr/local/bin/ffprobe',
+  '/opt/local/bin/ffprobe',
+  'ffprobe',
+].filter((candidate): candidate is string => Boolean(candidate));
+
+let resolvedFfprobePath: string | null | undefined;
+
+async function resolveFfprobePath() {
+  if (resolvedFfprobePath !== undefined) {
+    return resolvedFfprobePath;
+  }
+
+  for (const candidate of ffprobeCandidates) {
+    try {
+      await execFileAsync(candidate, ['-version'], {maxBuffer: 64 * 1024, timeout: 5000});
+      resolvedFfprobePath = candidate;
+      return candidate;
+    } catch {
+      // Try the next known installation location.
+    }
+  }
+
+  resolvedFfprobePath = null;
+  return null;
+}
+
+function normalizeVideoRotation(rotation: number) {
+  const normalized = ((rotation % 360) + 360) % 360;
+  const signed = normalized > 180 ? normalized - 360 : normalized;
+  return Math.abs(signed) === 90 ? signed : 0;
+}
+
+async function readVideoRotationMap(filePaths: string[]) {
+  const videoPaths = filePaths.filter((filePath) => MEDIA_TYPES[extname(filePath).toLowerCase()] === 'video');
+  const ffprobePath = await resolveFfprobePath();
+  const rotations = new Map<string, number>();
+  if (!ffprobePath || videoPaths.length === 0) {
+    return rotations;
+  }
+
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < videoPaths.length) {
+      const filePath = videoPaths[nextIndex++];
+      try {
+        const result = await execFileAsync(ffprobePath, [
+          '-v', 'error',
+          '-select_streams', 'v:0',
+          '-show_entries', 'stream_side_data=rotation',
+          '-of', 'default=noprint_wrappers=1:nokey=1',
+          filePath,
+        ], {maxBuffer: 64 * 1024, timeout: 15000});
+        const rotation = normalizeVideoRotation(Number(result.stdout.trim()));
+        if (rotation !== 0) {
+          rotations.set(filePath, rotation);
+        }
+      } catch {
+        // Media without probeable rotation metadata stays unmodified.
+      }
+    }
+  };
+
+  await Promise.all(Array.from({length: Math.min(4, videoPaths.length)}, () => worker()));
+  return rotations;
 }
 
 async function scanCourse(folderPath: string): Promise<ICourse> {
@@ -211,13 +297,15 @@ async function scanCourse(folderPath: string): Promise<ICourse> {
   mediaRoots.add(rootPath);
   const courseId = courseIdForPath(rootPath);
   const filePaths = (await collectMediaFiles(rootPath)).sort((left, right) => left.localeCompare(right, undefined, {numeric: true}));
-  const durationMap = await readDurationMap(filePaths);
+  const mediaMetadataMap = await readMediaMetadataMap(filePaths);
+  const rotationMap = await readVideoRotationMap(filePaths);
   const lessons: IMediaLesson[] = filePaths.map((filePath, index) => {
     const fileName = basename(filePath);
     const relativePath = relative(rootPath, filePath).split(sep).join('/');
     const parentPath = dirname(relativePath);
     const {sequence, title} = titleForFile(fileName);
     const fileStats = statSync(filePath);
+    const metadata = mediaMetadataMap.get(filePath);
     return {
       id: lessonIdForPath(courseId, relativePath),
       sequence: sequence || index + 1,
@@ -228,7 +316,10 @@ async function scanCourse(folderPath: string): Promise<ICourse> {
       kind: MEDIA_TYPES[extname(fileName).toLowerCase()],
       mediaUrl: mediaUrlForPath(filePath),
       bytes: fileStats.size,
-      duration: durationMap.get(filePath) ?? null,
+      duration: metadata?.duration ?? null,
+      sourceWidth: metadata?.pixelWidth ?? null,
+      sourceHeight: metadata?.pixelHeight ?? null,
+      rotation: rotationMap.get(filePath) ?? 0,
     };
   });
 
@@ -433,8 +524,6 @@ function createWindow() {
     title: 'Course Shelf',
     icon: appIconPath,
     backgroundColor: '#101214',
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: {x: 16, y: 14},
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

@@ -21,6 +21,8 @@ const error = library.error;
 const search = ref('');
 const mediaRef = ref<HTMLVideoElement | HTMLAudioElement | null>(null);
 const playerStageRef = ref<HTMLElement | null>(null);
+const mediaRotation = ref(0);
+const mediaRotationScale = ref(1);
 const isPlaying = ref(false);
 const currentTime = ref(0);
 const loadedDuration = ref(0);
@@ -44,6 +46,12 @@ let isProgressPersistenceSuspended = false;
 
 const currentCourse = library.currentCourse;
 const currentLesson = library.currentLesson;
+
+const mediaElementStyle = computed(() => ({
+  // Chromium applies the MP4 display matrix in the opposite direction from CSS transforms.
+  '--media-rotation': `${mediaRotation.value}deg`,
+  '--media-rotation-scale': String(mediaRotationScale.value),
+}));
 
 const filteredLessons = computed(() => {
   const course = currentCourse.value;
@@ -506,6 +514,34 @@ async function toggleFullscreen() {
   }
 }
 
+function updateMediaRotation() {
+  const lesson = currentLesson.value;
+  const hasLandscapeSource = !lesson
+    || lesson.sourceWidth === null
+    || lesson.sourceHeight === null
+    || lesson.sourceWidth > lesson.sourceHeight;
+  mediaRotation.value = lesson?.kind === 'video' && hasLandscapeSource ? lesson.rotation : 0;
+  mediaRotationScale.value = 1;
+}
+
+function syncMediaRotationScale() {
+  const stage = playerStageRef.value;
+  const media = mediaRef.value;
+  if (!stage || mediaRotation.value === 0 || !(media instanceof HTMLVideoElement) || media.videoWidth <= 0 || media.videoHeight <= 0) {
+    mediaRotationScale.value = 1;
+    return;
+  }
+
+  const stageAspect = stage.clientWidth / stage.clientHeight;
+  const displayedAspect = media.videoWidth / media.videoHeight;
+  if (!Number.isFinite(stageAspect) || stageAspect <= 0 || !Number.isFinite(displayedAspect) || displayedAspect <= 0) {
+    mediaRotationScale.value = 1;
+    return;
+  }
+
+  mediaRotationScale.value = Math.min(stageAspect, 1 / displayedAspect);
+}
+
 async function saveCurrentProgress(completed = false) {
   if (isProgressPersistenceSuspended) {
     return;
@@ -539,6 +575,8 @@ function handleLoadedMetadata(event: Event) {
   if (!media) {
     return;
   }
+  updateMediaRotation();
+  syncMediaRotationScale();
   loadedDuration.value = Number.isFinite(media.duration) ? media.duration : 0;
   media.volume = volume.value;
   media.muted = volume.value === 0;
@@ -706,6 +744,7 @@ function handleKeyboard(event: KeyboardEvent) {
 watch(() => currentLesson.value?.id, async (lessonId) => {
   const requestId = ++lessonLoadRequest;
   isProgressPersistenceSuspended = false;
+  updateMediaRotation();
   currentTime.value = 0;
   loadedDuration.value = currentLesson.value?.duration ?? 0;
   isPlaying.value = false;
@@ -732,6 +771,7 @@ watch(isFullscreen, syncFullscreenDocumentClass);
 onMounted(async () => {
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   document.addEventListener('keydown', handleKeyboard);
+  window.addEventListener('resize', syncMediaRotationScale);
   if (import.meta.client && window.courseShelf) {
     removeWindowFullscreenListener = window.courseShelf.onWindowFullscreenChanged((fullscreen) => {
       isFullscreen.value = fullscreen;
@@ -745,6 +785,7 @@ onUnmounted(() => {
   clearControlsHideTimer();
   document.removeEventListener('fullscreenchange', handleFullscreenChange);
   document.removeEventListener('keydown', handleKeyboard);
+  window.removeEventListener('resize', syncMediaRotationScale);
   removeWindowFullscreenListener?.();
   removeWindowFullscreenListener = null;
   syncFullscreenDocumentClass(false);
@@ -921,6 +962,8 @@ onUnmounted(() => {
                   ref="mediaRef"
                   :key="currentLesson.id"
                   class="media-element"
+                  :class="{ 'media-element-rotated': mediaRotation !== 0 }"
+                  :style="mediaElementStyle"
                   preload="metadata"
                   :src="currentLesson.mediaUrl"
                   @click="togglePlayback"

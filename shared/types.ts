@@ -11,6 +11,9 @@ export interface IMediaLesson {
   mediaUrl: string;
   bytes: number;
   duration: number | null;
+  sourceWidth: number | null;
+  sourceHeight: number | null;
+  rotation: number;
 }
 
 export interface ICourse {

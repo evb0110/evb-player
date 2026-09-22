@@ -20,5 +20,18 @@ win:
   icon: resources/icon.ico
 linux:
   icon: resources/icon.png
+dmg:
+  # Keep the Finder layout stable across machines. The background dimensions are
+  # 600x450, so the coordinates below are in the same logical coordinate space.
+  background: resources/dmg-background.png
+  icon: null
+  iconSize: 128
+  contents:
+    - x: 160
+      y: 185
+    - x: 440
+      y: 185
+      type: link
+      path: /Applications
 extraMetadata:
   main: dist-electron/electron/main.js
