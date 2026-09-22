@@ -3,6 +3,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   ssr: false,
   devtools: {enabled: false},
+  colorMode: {preference: 'dark', fallback: 'dark'},
   compatibilityDate: '2026-09-22',
   app: {
     baseURL: process.env.COURSE_SHELF_DEV_SERVER_URL ? '/' : './',

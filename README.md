@@ -30,12 +30,15 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 - Videos and common audio formats are supported.
 - The folder is scanned recursively and lessons are sorted by numeric filename prefixes such as `0001.`.
 - The player supports play/pause, ten-second skip, seeking, volume, playback speed, and fullscreen for video.
+- Volume and playback speed are remembered between launches. Theater mode expands the player; the keyboard button lists available shortcuts.
 - Playback position is saved while a lesson is watched.
 - Lessons can be manually marked complete; ended lessons are completed automatically and advance to the next lesson when available.
 - Progress can be reset for the current lesson or the entire course; reset removes saved positions and completion state without touching media files.
 - Clicking a playlist row or the in-player previous/next buttons switches lessons and starts playback.
-- Course tabs and recently opened folders are retained.
+- Several courses can be open in tabs. Recent folders and the last opened course are restored on launch.
 - Use the × beside a folder in the sidebar to remove it from the collection and close its tab. Media files and saved progress are kept; opening the folder again restores its progress.
+- The Library tab shows recent courses with quick reopen and removal. Removal offers an Undo action.
+- Missing or unsupported media shows an explanation, a retry button, and an option to open the file in the default media app. Opening another folder does not interrupt the active lesson unless the new course opens successfully.
 - Progress is stored in `~/Library/Application Support/Course Shelf/course-shelf-state.json`.
 
 ### Keyboard shortcuts

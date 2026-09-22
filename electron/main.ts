@@ -1,7 +1,7 @@
 import {app, BrowserWindow, dialog, ipcMain, net, protocol, session, shell} from 'electron';
 import {createHash} from 'node:crypto';
-import {createReadStream, statSync} from 'node:fs';
-import {access, mkdir, readdir, readFile, realpath, stat, writeFile, rename} from 'node:fs/promises';
+import {createReadStream} from 'node:fs';
+import {access, copyFile, mkdir, readdir, readFile, realpath, rename, stat, unlink, writeFile} from 'node:fs/promises';
 import {basename, dirname, extname, join, relative, resolve, sep} from 'node:path';
 import {execFile} from 'node:child_process';
 import {Readable} from 'node:stream';
@@ -9,13 +9,19 @@ import {promisify} from 'node:util';
 import {pathToFileURL} from 'node:url';
 import type {
   ICourse,
-  ILessonProgress,
   IMediaLesson,
   IRecentCourse,
-  ISaveLessonProgressPayload,
   TMediaKind,
   TCourseProgress,
 } from '../shared/types';
+import {
+  createDefaultState,
+  isPlainRecord,
+  isStoredIdentifier,
+  sanitizeLessonProgress,
+  sanitizeStoredState,
+  type IStoredState,
+} from './state';
 
 const execFileAsync = promisify(execFile);
 const MEDIA_SCHEME = 'course-media';
@@ -23,22 +29,36 @@ const RENDERER_SCHEME = 'course-shelf';
 const DEV_SERVER_URL = process.env.COURSE_SHELF_DEV_SERVER_URL?.trim();
 const appIconPath = join(app.getAppPath(), 'resources', 'icon.png');
 const mediaRoots = new Set<string>();
+const authorizedCourseRoots = new Set<string>();
 const stateFilePath = () => join(app.getPath('userData'), 'course-shelf-state.json');
-
-interface IStoredState {
-  recentCourses: IRecentCourse[];
-  progress: Record<string, TCourseProgress>;
-  lastCoursePath: string | null;
-}
-
-const DEFAULT_STATE: IStoredState = {
-  recentCourses: [],
-  progress: {},
-  lastCoursePath: null,
-};
+const singleInstanceLock = app.requestSingleInstanceLock();
 
 let storedState: IStoredState | null = null;
+let stateLoadPromise: Promise<IStoredState> | null = null;
+let stateMutationQueue = Promise.resolve();
 let writeQueue = Promise.resolve();
+let pendingWriteCount = 0;
+let writeSequence = 0;
+let quitFlushStarted = false;
+let mainWindow: BrowserWindow | null = null;
+
+if (!singleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    const window = mainWindow ?? BrowserWindow.getAllWindows()[0];
+    if (!window || window.isDestroyed()) {
+      return;
+    }
+    if (window.isMinimized()) {
+      window.restore();
+    }
+    if (!window.isVisible()) {
+      window.show();
+    }
+    window.focus();
+  });
+}
 
 const MEDIA_TYPES: Record<string, TMediaKind> = {
   '.aac': 'audio',
@@ -118,40 +138,145 @@ function titleForFile(fileName: string) {
   };
 }
 
-async function ensureState() {
+function errorCode(error: unknown) {
+  if (!error || typeof error !== 'object' || !('code' in error)) {
+    return undefined;
+  }
+  const code = error.code;
+  return typeof code === 'string' ? code : undefined;
+}
+
+async function readStoredStateFile(filePath: string) {
+  try {
+    const rawState = await readFile(filePath, 'utf8');
+    return sanitizeStoredState(JSON.parse(rawState) as unknown);
+  } catch (error) {
+    if (error instanceof SyntaxError || errorCode(error) === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function ensureState() {
   if (storedState) {
+    return Promise.resolve(storedState);
+  }
+  if (stateLoadPromise) {
+    return stateLoadPromise;
+  }
+
+  stateLoadPromise = (async () => {
+    const primaryState = await readStoredStateFile(stateFilePath());
+    if (primaryState) {
+      storedState = primaryState;
+      return storedState;
+    }
+
+    const backupState = await readStoredStateFile(`${stateFilePath()}.bak`);
+    storedState = backupState ?? createDefaultState();
     return storedState;
+  })().catch((error: unknown) => {
+    stateLoadPromise = null;
+    throw error;
+  });
+  return stateLoadPromise;
+}
+
+function cloneStoredState(state: IStoredState): IStoredState {
+  const progress = Object.create(null) as Record<string, TCourseProgress>;
+  for (const [courseId, courseProgress] of Object.entries(state.progress)) {
+    const clonedCourseProgress = Object.create(null) as TCourseProgress;
+    for (const [lessonId, lessonProgress] of Object.entries(courseProgress)) {
+      clonedCourseProgress[lessonId] = {...lessonProgress};
+    }
+    progress[courseId] = clonedCourseProgress;
+  }
+  return {
+    recentCourses: state.recentCourses.map((course) => ({...course})),
+    progress,
+    lastCoursePath: state.lastCoursePath,
+  };
+}
+
+async function writeStateSnapshot() {
+  const state = await ensureState();
+  const statePath = stateFilePath();
+  const temporaryPath = `${statePath}.${process.pid}.${++writeSequence}.tmp`;
+  await mkdir(dirname(statePath), {recursive: true});
+  try {
+    await writeFile(temporaryPath, JSON.stringify(state, null, 2), {encoding: 'utf8', mode: 0o600});
+    await rename(temporaryPath, statePath);
+  } catch (error) {
+    try {
+      await unlink(temporaryPath);
+    } catch {
+      // The original error is the useful one for the caller.
+    }
+    throw error;
   }
 
   try {
-    const rawState = await readFile(stateFilePath(), 'utf8');
-    const parsed = JSON.parse(rawState) as Partial<IStoredState>;
-    storedState = {
-      recentCourses: Array.isArray(parsed.recentCourses) ? parsed.recentCourses : [],
-      progress: parsed.progress && typeof parsed.progress === 'object' ? parsed.progress : {},
-      lastCoursePath: typeof parsed.lastCoursePath === 'string' ? parsed.lastCoursePath : null,
-    };
-  } catch {
-    storedState = {...DEFAULT_STATE};
+    await copyFile(statePath, `${statePath}.bak`);
+  } catch (error) {
+    if (errorCode(error) !== 'ENOENT') {
+      // The primary snapshot is already committed and remains usable.
+    }
   }
-
-  return storedState;
 }
 
 function persistState() {
-  writeQueue = writeQueue.then(async () => {
-    const state = await ensureState();
-    const directory = dirname(stateFilePath());
-    await mkdir(directory, {recursive: true});
-    const temporaryPath = `${stateFilePath()}.tmp`;
-    await writeFile(temporaryPath, JSON.stringify(state, null, 2), 'utf8');
-    await rename(temporaryPath, stateFilePath());
+  pendingWriteCount += 1;
+  const nextWrite = writeQueue.then(writeStateSnapshot, writeStateSnapshot);
+  const settledWrite = nextWrite.finally(() => {
+    pendingWriteCount -= 1;
   });
-  return writeQueue;
+  writeQueue = settledWrite.catch(() => undefined);
+  return settledWrite;
 }
 
-async function collectMediaFiles(directory: string): Promise<string[]> {
-  const entries = await readdir(directory, {withFileTypes: true});
+function updateState(mutator: (state: IStoredState) => boolean | void) {
+  const nextMutation = stateMutationQueue.then(async () => {
+    const currentState = await ensureState();
+    const nextState = cloneStoredState(currentState);
+    if (mutator(nextState) === false) {
+      return;
+    }
+    const previousState = storedState;
+    storedState = nextState;
+    try {
+      await persistState();
+    } catch (error) {
+      storedState = previousState;
+      throw error;
+    }
+  });
+  stateMutationQueue = nextMutation.catch(() => undefined);
+  return nextMutation;
+}
+
+async function drainStateWrites() {
+  for (;;) {
+    const mutationsAtStart = stateMutationQueue;
+    await mutationsAtStart;
+    const queueAtStart = writeQueue;
+    await queueAtStart;
+    if (mutationsAtStart === stateMutationQueue && queueAtStart === writeQueue) {
+      return;
+    }
+  }
+}
+
+async function collectMediaFiles(directory: string, isRoot = false): Promise<string[]> {
+  let entries;
+  try {
+    entries = await readdir(directory, {withFileTypes: true});
+  } catch (error) {
+    if (isRoot) {
+      throw error;
+    }
+    return [];
+  }
   const files: string[] = [];
 
   for (const entry of entries) {
@@ -183,22 +308,49 @@ async function readDurationMap(filePaths: string[]) {
     return new Map<string, number>();
   }
 
-  try {
-    const result = await execFileAsync('mdls', ['-raw', '-name', 'kMDItemDurationSeconds', ...filePaths], {
-      maxBuffer: 1024 * 1024,
-    });
-    const values = result.stdout.split('\0').map((value) => value.trim());
-    const durations = new Map<string, number>();
-    filePaths.forEach((filePath, index) => {
-      const value = Number(values[index]);
-      if (Number.isFinite(value) && value > 0) {
-        durations.set(filePath, value);
-      }
-    });
-    return durations;
-  } catch {
-    return new Map<string, number>();
+  const durations = new Map<string, number>();
+  const batchSize = 64;
+  for (let index = 0; index < filePaths.length; index += batchSize) {
+    const batch = filePaths.slice(index, index + batchSize);
+    try {
+      const result = await execFileAsync('mdls', ['-raw', '-name', 'kMDItemDurationSeconds', ...batch], {
+        maxBuffer: 4 * 1024 * 1024,
+        timeout: 30_000,
+      });
+      const values = result.stdout.split('\0').map((value) => value.trim());
+      batch.forEach((filePath, batchIndex) => {
+        const value = Number(values[batchIndex]);
+        if (Number.isFinite(value) && value > 0) {
+          durations.set(filePath, value);
+        }
+      });
+    } catch {
+      // A missing metadata record or one failing batch must not hide the course.
+    }
   }
+  return durations;
+}
+
+async function collectFileStats(filePaths: string[]) {
+  const fileStats = new Map<string, Awaited<ReturnType<typeof stat>>>();
+  const batchSize = 256;
+  for (let index = 0; index < filePaths.length; index += batchSize) {
+    const batch = filePaths.slice(index, index + batchSize);
+    const results = await Promise.all(batch.map(async (filePath) => {
+      try {
+        const fileStats = await stat(filePath);
+        return fileStats.isFile() ? {filePath, fileStats} : null;
+      } catch {
+        return null;
+      }
+    }));
+    for (const result of results) {
+      if (result) {
+        fileStats.set(result.filePath, result.fileStats);
+      }
+    }
+  }
+  return fileStats;
 }
 
 async function scanCourse(folderPath: string): Promise<ICourse> {
@@ -209,15 +361,21 @@ async function scanCourse(folderPath: string): Promise<ICourse> {
   }
 
   mediaRoots.add(rootPath);
+  authorizedCourseRoots.add(rootPath);
   const courseId = courseIdForPath(rootPath);
-  const filePaths = (await collectMediaFiles(rootPath)).sort((left, right) => left.localeCompare(right, undefined, {numeric: true}));
-  const durationMap = await readDurationMap(filePaths);
-  const lessons: IMediaLesson[] = filePaths.map((filePath, index) => {
+  const filePaths = (await collectMediaFiles(rootPath, true)).sort((left, right) => left.localeCompare(right, undefined, {numeric: true}));
+  const fileStats = await collectFileStats(filePaths);
+  const scannableFilePaths = filePaths.filter((filePath) => fileStats.has(filePath));
+  const durationMap = await readDurationMap(scannableFilePaths);
+  const lessons: IMediaLesson[] = scannableFilePaths.map((filePath, index) => {
     const fileName = basename(filePath);
     const relativePath = relative(rootPath, filePath).split(sep).join('/');
     const parentPath = dirname(relativePath);
     const {sequence, title} = titleForFile(fileName);
-    const fileStats = statSync(filePath);
+    const currentFileStats = fileStats.get(filePath);
+    if (!currentFileStats) {
+      return null;
+    }
     return {
       id: lessonIdForPath(courseId, relativePath),
       sequence: sequence || index + 1,
@@ -227,10 +385,10 @@ async function scanCourse(folderPath: string): Promise<ICourse> {
       section: parentPath === '.' ? 'Course' : parentPath,
       kind: MEDIA_TYPES[extname(fileName).toLowerCase()],
       mediaUrl: mediaUrlForPath(filePath),
-      bytes: fileStats.size,
+      bytes: currentFileStats.size,
       duration: durationMap.get(filePath) ?? null,
     };
-  });
+  }).filter((lesson): lesson is IMediaLesson => lesson !== null);
 
   lessons.sort((left, right) => left.sequence - right.sequence || left.title.localeCompare(right.title, undefined, {numeric: true}));
   const totalDuration = lessons.reduce((total, lesson) => total + (lesson.duration ?? 0), 0);
@@ -248,24 +406,27 @@ async function scanCourse(folderPath: string): Promise<ICourse> {
     scannedAt: Date.now(),
   };
 
-  const state = await ensureState();
-  state.lastCoursePath = rootPath;
-  state.recentCourses = [
-    {
-      id: course.id,
-      name: course.name,
-      rootPath: course.rootPath,
-      mediaCount: course.lessons.length,
-      lastOpenedAt: Date.now(),
-    },
-    ...state.recentCourses.filter((recentCourse) => recentCourse.id !== course.id),
-  ].slice(0, 12);
-  await persistState();
+  await updateState((state) => {
+    state.lastCoursePath = rootPath;
+    state.recentCourses = [
+      {
+        id: course.id,
+        name: course.name,
+        rootPath: course.rootPath,
+        mediaCount: course.lessons.length,
+        lastOpenedAt: Date.now(),
+      },
+      ...state.recentCourses.filter((recentCourse) => recentCourse.id !== course.id),
+    ].slice(0, 12);
+  });
 
   return course;
 }
 
 async function isAllowedMediaPath(filePath: string) {
+  if (!filePath || filePath.includes('\0')) {
+    return null;
+  }
   const resolvedPath = resolve(filePath);
   for (const rootPath of mediaRoots) {
     if (resolvedPath !== rootPath && !resolvedPath.startsWith(`${rootPath}${sep}`)) {
@@ -274,14 +435,33 @@ async function isAllowedMediaPath(filePath: string) {
 
     try {
       const actualPath = await realpath(resolvedPath);
-      if (actualPath === rootPath || actualPath.startsWith(`${rootPath}${sep}`)) {
+      if (actualPath !== rootPath && !actualPath.startsWith(`${rootPath}${sep}`)) {
+        continue;
+      }
+      const fileStats = await stat(actualPath);
+      if (fileStats.isFile() && MEDIA_TYPES[extname(actualPath).toLowerCase()]) {
         return actualPath;
       }
     } catch {
-      return null;
+      continue;
     }
   }
   return null;
+}
+
+function mediaPathFromUrl(mediaUrl: unknown) {
+  if (typeof mediaUrl !== 'string' || mediaUrl.length === 0 || mediaUrl.length > 16_384) {
+    return null;
+  }
+  try {
+    const parsedUrl = new URL(mediaUrl);
+    if (parsedUrl.protocol !== `${MEDIA_SCHEME}:` || parsedUrl.hostname !== 'local' || (parsedUrl.pathname !== '' && parsedUrl.pathname !== '/') || parsedUrl.searchParams.size !== 1) {
+      return null;
+    }
+    return parsedUrl.searchParams.get('path');
+  } catch {
+    return null;
+  }
 }
 
 function responseHeaders(filePath: string, size: number) {
@@ -334,54 +514,90 @@ function parseByteRange(rangeHeader: string, size: number) {
 }
 
 async function handleMediaRequest(request: Request) {
-  const requestUrl = new URL(request.url);
-  const requestedPath = requestUrl.searchParams.get('path');
+  const rangeHeader = request.headers.get('range');
+  const method = request.method.toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD') {
+    return new Response('Method not allowed.', {status: 405, headers: {Allow: 'GET, HEAD'}});
+  }
+
+  let requestedPath: string | null;
+  try {
+    const requestUrl = new URL(request.url);
+    if (requestUrl.hostname !== 'local' || (requestUrl.pathname !== '' && requestUrl.pathname !== '/') || requestUrl.searchParams.size !== 1) {
+      return new Response('Media path is not available.', {status: 403});
+    }
+    requestedPath = requestUrl.searchParams.get('path');
+  } catch {
+    return new Response('Invalid media request.', {status: 400});
+  }
   if (!requestedPath) {
     return new Response('Missing media path.', {status: 400});
   }
 
-  const filePath = await isAllowedMediaPath(requestedPath);
-  if (!filePath) {
-    return new Response('Media path is not available.', {status: 403});
-  }
+  try {
+    const filePath = await isAllowedMediaPath(requestedPath);
+    if (!filePath) {
+      return new Response('Media path is not available.', {status: 403});
+    }
 
-  const fileSize = (await stat(filePath)).size;
-  const headers = responseHeaders(filePath, fileSize);
-  const rangeHeader = request.headers.get('range');
-  const method = request.method.toUpperCase();
+    const fileSize = (await stat(filePath)).size;
+    const headers = responseHeaders(filePath, fileSize);
 
-  if (rangeHeader) {
-    const range = parseByteRange(rangeHeader, fileSize);
-    if (!range) {
-      return new Response(null, {
-        status: 416,
+    if (rangeHeader) {
+      const range = parseByteRange(rangeHeader, fileSize);
+      if (!range) {
+        return new Response(null, {
+          status: 416,
+          headers: {
+            ...headers,
+            'Content-Length': '0',
+            'Content-Range': `bytes */${fileSize}`,
+          },
+        });
+      }
+
+      const contentLength = range.end - range.start + 1;
+      return new Response(method === 'HEAD' ? null : streamFile(filePath, range.start, range.end), {
+        status: 206,
         headers: {
           ...headers,
-          'Content-Length': '0',
-          'Content-Range': `bytes */${fileSize}`,
+          'Content-Length': String(contentLength),
+          'Content-Range': `bytes ${range.start}-${range.end}/${fileSize}`,
         },
       });
     }
 
-    const contentLength = range.end - range.start + 1;
-    return new Response(method === 'HEAD' ? null : streamFile(filePath, range.start, range.end), {
-      status: 206,
-      headers: {
-        ...headers,
-        'Content-Length': String(contentLength),
-        'Content-Range': `bytes ${range.start}-${range.end}/${fileSize}`,
-      },
+    return new Response(method === 'HEAD' ? null : streamFile(filePath), {
+      status: 200,
+      headers,
     });
+  } catch {
+    return new Response('Media file could not be opened.', {status: 404});
   }
-
-  return new Response(method === 'HEAD' ? null : streamFile(filePath), {
-    status: 200,
-    headers,
-  });
 }
 
 function rendererRootPath() {
   return resolve(__dirname, '../../.output/public');
+}
+
+function isAllowedRendererUrl(url: string) {
+  try {
+    const parsedUrl = new URL(url);
+    if (DEV_SERVER_URL) {
+      return parsedUrl.origin === new URL(DEV_SERVER_URL).origin;
+    }
+    return parsedUrl.protocol === `${RENDERER_SCHEME}:` && parsedUrl.hostname === 'app';
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedExternalUrl(url: string) {
+  try {
+    return new URL(url).protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 function rendererFilePath(requestUrl: string) {
@@ -407,6 +623,10 @@ function rendererFilePath(requestUrl: string) {
 }
 
 async function handleRendererRequest(request: Request) {
+  const method = request.method.toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD') {
+    return new Response('Method not allowed.', {status: 405, headers: {Allow: 'GET, HEAD'}});
+  }
   const filePath = rendererFilePath(request.url);
   if (!filePath) {
     return new Response('Renderer path is not available.', {status: 403});
@@ -420,12 +640,20 @@ async function handleRendererRequest(request: Request) {
 
   return net.fetch(pathToFileURL(filePath).toString(), {
     headers: request.headers,
-    method: request.method,
+    method,
   });
 }
 
+function isTrustedRenderer(sender: Electron.WebContents) {
+  return mainWindow?.webContents === sender && isAllowedRendererUrl(sender.getURL());
+}
+
+function isNonEmptyText(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= 4096;
+}
+
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  const window = new BrowserWindow({
     width: 1440,
     height: 960,
     minWidth: 1040,
@@ -440,36 +668,57 @@ function createWindow() {
       preload: join(__dirname, 'preload.js'),
     },
   });
-  mainWindow.setFullScreenable(true);
+  mainWindow = window;
+  window.setFullScreenable(true);
 
   const sendFullscreenState = (fullscreen: boolean) => {
-    if (!mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('window:fullscreen-changed', fullscreen);
+    if (!window.isDestroyed()) {
+      window.webContents.send('window:fullscreen-changed', fullscreen);
     }
   };
-  mainWindow.on('enter-full-screen', () => sendFullscreenState(true));
-  mainWindow.on('leave-full-screen', () => sendFullscreenState(false));
-  mainWindow.on('enter-html-full-screen', () => sendFullscreenState(true));
-  mainWindow.on('leave-html-full-screen', () => sendFullscreenState(false));
+  window.on('enter-full-screen', () => sendFullscreenState(true));
+  window.on('leave-full-screen', () => sendFullscreenState(false));
+  window.on('enter-html-full-screen', () => sendFullscreenState(true));
+  window.on('leave-html-full-screen', () => sendFullscreenState(false));
+  window.on('closed', () => {
+    if (mainWindow === window) {
+      mainWindow = null;
+    }
+  });
 
-  mainWindow.webContents.setWindowOpenHandler(({url}) => {
-    if (url.startsWith('https://')) {
+  window.webContents.setWindowOpenHandler(({url}) => {
+    if (isAllowedExternalUrl(url)) {
       void shell.openExternal(url);
     }
     return {action: 'deny'};
   });
+  window.webContents.on('will-navigate', (event, url) => {
+    if (isAllowedRendererUrl(url)) {
+      return;
+    }
+    event.preventDefault();
+    if (isAllowedExternalUrl(url)) {
+      void shell.openExternal(url);
+    }
+  });
+  window.webContents.on('will-attach-webview', (event) => {
+    event.preventDefault();
+  });
 
   if (DEV_SERVER_URL) {
-    void mainWindow.loadURL(DEV_SERVER_URL);
+    void window.loadURL(DEV_SERVER_URL);
   } else {
-    void mainWindow.loadURL(`${RENDERER_SCHEME}://app/`);
+    void window.loadURL(`${RENDERER_SCHEME}://app/`);
   }
 
-  return mainWindow;
+  return window;
 }
 
 function registerIpcHandlers() {
-  ipcMain.handle('course:choose-folder', async () => {
+  ipcMain.handle('course:choose-folder', async (event) => {
+    if (!isTrustedRenderer(event.sender)) {
+      return null;
+    }
     const result = await dialog.showOpenDialog({
       title: 'Choose a course or media folder',
       properties: ['openDirectory'],
@@ -480,14 +729,31 @@ function registerIpcHandlers() {
     return scanCourse(result.filePaths[0]);
   });
 
-  ipcMain.handle('course:open-recent', (_event, rootPath: unknown) => {
-    if (typeof rootPath !== 'string' || !rootPath.trim()) {
+  ipcMain.handle('course:open-recent', async (event, rootPath: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isNonEmptyText(rootPath)) {
       return null;
     }
-    return scanCourse(rootPath);
+    const state = await ensureState();
+    const recentCourse = state.recentCourses.find((candidate) => candidate.rootPath === rootPath);
+    if (!recentCourse && !authorizedCourseRoots.has(rootPath)) {
+      return null;
+    }
+    let canonicalPath: string;
+    try {
+      canonicalPath = await realpath(rootPath);
+    } catch {
+      throw new Error('Folder unavailable. It may have been moved or disconnected.');
+    }
+    if (canonicalPath !== rootPath) {
+      return null;
+    }
+    return scanCourse(canonicalPath);
   });
 
-  ipcMain.handle('course:restore-last', async () => {
+  ipcMain.handle('course:restore-last', async (event) => {
+    if (!isTrustedRenderer(event.sender)) {
+      return null;
+    }
     const state = await ensureState();
     if (!state.lastCoursePath) {
       return null;
@@ -500,10 +766,15 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('course:get-recent', async () => (await ensureState()).recentCourses);
+  ipcMain.handle('course:get-recent', async (event) => {
+    if (!isTrustedRenderer(event.sender)) {
+      return [];
+    }
+    return (await ensureState()).recentCourses;
+  });
 
-  ipcMain.handle('course:remove-recent', async (_event, rootPath: unknown) => {
-    if (typeof rootPath !== 'string' || !rootPath.trim()) {
+  ipcMain.handle('course:remove-recent', async (event, rootPath: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isNonEmptyText(rootPath)) {
       return;
     }
     const state = await ensureState();
@@ -511,68 +782,95 @@ function registerIpcHandlers() {
     if (!removedCourse) {
       return;
     }
-    state.recentCourses = state.recentCourses.filter((recentCourse) => recentCourse.rootPath !== rootPath);
-    if (state.lastCoursePath === rootPath) {
-      state.lastCoursePath = null;
-    }
-    await persistState();
+    await updateState((nextState) => {
+      nextState.recentCourses = nextState.recentCourses.filter((recentCourse) => recentCourse.rootPath !== rootPath);
+      if (nextState.lastCoursePath === rootPath) {
+        nextState.lastCoursePath = null;
+      }
+    });
+    mediaRoots.delete(removedCourse.rootPath);
   });
 
-  ipcMain.handle('progress:get', async (_event, courseId: unknown) => {
-    if (typeof courseId !== 'string') {
+  ipcMain.handle('progress:get', async (event, courseId: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(courseId)) {
       return {};
     }
-    return (await ensureState()).progress[courseId] ?? {};
+    const courseProgress = (await ensureState()).progress[courseId];
+    return courseProgress ? {...courseProgress} : {};
   });
 
-  ipcMain.handle('progress:save', async (_event, payload: unknown) => {
-    if (!payload || typeof payload !== 'object') {
+  ipcMain.handle('progress:save', async (event, payload: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isPlainRecord(payload)) {
       return;
     }
-    const candidate = payload as Partial<ISaveLessonProgressPayload>;
-    if (typeof candidate.courseId !== 'string' || typeof candidate.lessonId !== 'string' || !candidate.progress) {
+    const courseId = payload.courseId;
+    const lessonId = payload.lessonId;
+    if (!isStoredIdentifier(courseId) || !isStoredIdentifier(lessonId)) {
       return;
     }
-    const state = await ensureState();
-    const progress = candidate.progress as ILessonProgress;
-    state.progress[candidate.courseId] = {
-      ...(state.progress[candidate.courseId] ?? {}),
-      [candidate.lessonId]: {
-        position: Number(progress.position) || 0,
-        duration: Number(progress.duration) || 0,
-        completed: progress.completed === true,
-        updatedAt: Number(progress.updatedAt) || Date.now(),
-      },
-    };
-    await persistState();
+    const progress = sanitizeLessonProgress(payload.progress);
+    if (!progress) {
+      return;
+    }
+    await updateState((state) => {
+      const courseProgress = state.progress[courseId] ?? Object.create(null);
+      state.progress[courseId] = {
+        ...courseProgress,
+        [lessonId]: progress,
+      };
+    });
   });
 
-  ipcMain.handle('progress:clear-lesson', async (_event, courseId: unknown, lessonId: unknown) => {
-    if (typeof courseId !== 'string' || typeof lessonId !== 'string') {
+  ipcMain.handle('progress:clear-lesson', async (event, courseId: unknown, lessonId: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(courseId) || !isStoredIdentifier(lessonId)) {
       return;
     }
-    const state = await ensureState();
-    const courseProgress = state.progress[courseId];
-    if (!courseProgress || !(lessonId in courseProgress)) {
+    await updateState((state) => {
+      const courseProgress = state.progress[courseId];
+      if (!courseProgress || !(lessonId in courseProgress)) {
+        return false;
+      }
+      delete courseProgress[lessonId];
+      if (Object.keys(courseProgress).length === 0) {
+        delete state.progress[courseId];
+      }
+    });
+  });
+
+  ipcMain.handle('progress:clear', async (event, courseId: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(courseId)) {
       return;
     }
-    delete courseProgress[lessonId];
-    if (Object.keys(courseProgress).length === 0) {
+    await updateState((state) => {
+      if (!(courseId in state.progress)) {
+        return false;
+      }
       delete state.progress[courseId];
-    }
-    await persistState();
+    });
   });
 
-  ipcMain.handle('progress:clear', async (_event, courseId: unknown) => {
-    if (typeof courseId !== 'string') {
-      return;
+  ipcMain.handle('media:open-external', async (event, mediaUrl: unknown) => {
+    if (!isTrustedRenderer(event.sender)) {
+      throw new Error('The media request is not authorized.');
     }
-    const state = await ensureState();
-    delete state.progress[courseId];
-    await persistState();
+    const requestedPath = mediaPathFromUrl(mediaUrl);
+    if (!requestedPath) {
+      throw new Error('Only local Course Shelf media can be opened externally.');
+    }
+    const filePath = await isAllowedMediaPath(requestedPath);
+    if (!filePath) {
+      throw new Error('The media file is not available.');
+    }
+    const openError = await shell.openPath(filePath);
+    if (openError) {
+      throw new Error(openError);
+    }
   });
 
   ipcMain.handle('window:set-fullscreen', (event, fullscreen: unknown) => {
+    if (!isTrustedRenderer(event.sender)) {
+      return false;
+    }
     const window = BrowserWindow.fromWebContents(event.sender);
     if (!window) {
       return false;
@@ -584,6 +882,9 @@ function registerIpcHandlers() {
 }
 
 app.whenReady().then(() => {
+  if (!singleInstanceLock) {
+    return;
+  }
   if (process.platform === 'darwin') {
     app.dock?.setIcon(appIconPath);
   }
@@ -591,6 +892,7 @@ app.whenReady().then(() => {
   protocol.handle(RENDERER_SCHEME, handleRendererRequest);
   registerIpcHandlers();
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+  session.defaultSession.setPermissionCheckHandler(() => false);
   createWindow();
 
   app.on('activate', () => {
@@ -598,6 +900,15 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+});
+
+app.on('will-quit', (event) => {
+  if (quitFlushStarted) {
+    return;
+  }
+  event.preventDefault();
+  quitFlushStarted = true;
+  void drainStateWrites().then(() => app.quit(), () => app.quit());
 });
 
 app.on('window-all-closed', () => {

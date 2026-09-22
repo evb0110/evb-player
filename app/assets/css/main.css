@@ -2,6 +2,7 @@
 @import '@nuxt/ui';
 
 :root {
+  color-scheme: dark;
   --shell-background: #101214;
   --shell-surface: #171a1d;
   --shell-surface-raised: #1d2125;
@@ -10,7 +11,7 @@
   --shell-border-strong: rgb(255 255 255 / 14%);
   --shell-text: #f0f2f1;
   --shell-text-muted: #9aa2a4;
-  --shell-text-subtle: #687174;
+  --shell-text-subtle: #919b9e;
   --shell-accent: #f0784e;
   --shell-accent-soft: rgb(240 120 78 / 14%);
   --shell-green: #79c5a2;
@@ -65,6 +66,11 @@ button {
 button:disabled {
   cursor: default;
   opacity: 0.35;
+}
+
+:focus-visible {
+  outline: 2px solid var(--shell-accent);
+  outline-offset: 3px;
 }
 
 .course-shell {
@@ -147,7 +153,22 @@ button:disabled {
   font-size: 12px;
   font-weight: 600;
   text-align: left;
+  flex-shrink: 0;
   transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.tab-select {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  min-width: 0;
+  flex: 1;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
 }
 
 .app-tab:hover {
@@ -183,13 +204,15 @@ button:disabled {
 
 .tab-close {
   display: grid;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   flex: none;
   margin-left: auto;
   place-items: center;
   border-radius: 5px;
   color: var(--shell-text-subtle);
+  border: 0;
+  background: transparent;
 }
 
 .tab-close:hover {
@@ -204,7 +227,7 @@ button:disabled {
 
 .workspace {
   display: grid;
-  grid-template-columns: 270px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   max-width: 1680px;
   min-height: calc(100vh - 104px);
   margin: 0 auto;
@@ -315,12 +338,11 @@ button:disabled {
 .recent-course-copy small {
   color: var(--shell-text-subtle);
   font-size: 10px;
+  white-space: nowrap;
 }
 
 .recent-course-arrow {
-  width: 14px;
-  height: 14px;
-  color: var(--shell-text-subtle);
+  display: none;
 }
 
 .recent-course-remove {
@@ -407,7 +429,7 @@ button:disabled {
 
 .main-content {
   min-width: 0;
-  padding: 38px clamp(24px, 4vw, 64px) 64px;
+  padding: 24px clamp(20px, 2.5vw, 36px) 40px;
 }
 
 .state-panel,
@@ -530,11 +552,7 @@ button:disabled {
 }
 
 .course-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 28px;
-  margin-bottom: 28px;
+  margin-bottom: 18px;
 }
 
 .course-heading-copy {
@@ -542,9 +560,10 @@ button:disabled {
 }
 
 .course-heading h1 {
-  max-width: 760px;
   margin-top: 9px;
-  font-size: clamp(28px, 3.5vw, 44px);
+  font-size: clamp(22px, 2.2vw, 30px);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .course-path {
@@ -562,6 +581,8 @@ button:disabled {
   align-items: center;
   gap: 18px;
   flex: none;
+  justify-content: space-between;
+  margin-top: 16px;
 }
 
 .course-heading-buttons {
@@ -576,7 +597,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  text-align: right;
+  text-align: left;
 }
 
 .course-progress-copy span {
@@ -595,18 +616,18 @@ button:disabled {
   flex-wrap: wrap;
   align-items: stretch;
   gap: 0;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   border-top: 1px solid var(--shell-border);
   border-bottom: 1px solid var(--shell-border);
 }
 
 .course-stat {
   display: flex;
-  min-width: 132px;
+  min-width: 100px;
   flex: 1;
   flex-direction: column;
   gap: 4px;
-  padding: 14px 18px;
+  padding: 10px 14px;
   border-right: 1px solid var(--shell-border);
 }
 
@@ -633,9 +654,9 @@ button:disabled {
 
 .course-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 350px);
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 300px);
   align-items: start;
-  gap: 24px;
+  gap: 20px;
 }
 
 .course-layout.course-layout-theater {
@@ -658,6 +679,7 @@ button:disabled {
 }
 
 .player-stage {
+  container-type: inline-size;
   position: relative;
   aspect-ratio: 16 / 9;
   overflow: hidden;
@@ -800,7 +822,7 @@ button:disabled {
   letter-spacing: 0.14em;
   pointer-events: none;
   transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
-  z-index: 2;
+  z-index: 5;
 }
 
 .player-icon-button {
@@ -879,14 +901,23 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 11px;
 }
 
 .player-control-group {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 2px;
+}
+
+.player-control-group:last-child {
+  margin-left: auto;
+}
+
+.player-control-group > button {
+  flex-shrink: 0;
 }
 
 .play-button {
@@ -920,6 +951,7 @@ button:disabled {
 }
 
 .player-time {
+  white-space: nowrap;
   margin-left: 7px;
   color: rgb(255 255 255 / 72%);
   font-size: 11px;
@@ -958,12 +990,18 @@ button:disabled {
 }
 
 .lesson-heading {
-  display: flex;
+  display: block;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
   padding: 23px 3px 20px;
   border-bottom: 1px solid var(--shell-border);
+}
+
+.lesson-heading > div:first-child {
+  min-width: 0;
+  flex: 1 1 160px;
 }
 
 .lesson-heading-actions {
@@ -971,7 +1009,8 @@ button:disabled {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  margin-top: 12px;
 }
 
 .lesson-heading h2 {
@@ -1024,6 +1063,7 @@ button:disabled {
   color: var(--shell-text-muted);
   background: transparent;
   text-align: left;
+  max-width: 48%;
 }
 
 .lesson-nav-button:last-child {
@@ -1043,6 +1083,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
 }
 
 .lesson-nav-button small {
@@ -1054,6 +1095,9 @@ button:disabled {
   color: inherit;
   font-size: 12px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lesson-nav-next {
@@ -1064,8 +1108,8 @@ button:disabled {
   position: sticky;
   top: 20px;
   display: flex;
-  min-height: 540px;
-  max-height: calc(100vh - 154px);
+  min-height: 280px;
+  max-height: min(640px, calc(100vh - 380px));
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--shell-border);
@@ -1223,11 +1267,11 @@ button:disabled {
 
 @media (max-width: 1180px) {
   .workspace {
-    grid-template-columns: 230px minmax(0, 1fr);
+    grid-template-columns: 200px minmax(0, 1fr);
   }
 
   .course-layout {
-    grid-template-columns: minmax(0, 1fr) 310px;
+    grid-template-columns: minmax(0, 1fr) 270px;
     gap: 16px;
   }
 
@@ -1239,7 +1283,7 @@ button:disabled {
 
 @media (max-width: 900px) {
   .app-header {
-    padding-left: 76px;
+    padding: 0 16px;
   }
 
   .workspace {
@@ -1268,7 +1312,7 @@ button:disabled {
   .app-header {
     gap: 10px;
     padding-right: 14px;
-    padding-left: 72px;
+    padding-left: 14px;
   }
 
   .header-context {
@@ -1316,7 +1360,216 @@ button:disabled {
     align-self: flex-start;
   }
 
-  .player-control-group:last-child {
+}
+
+.error-banner,
+.loading-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--shell-border-strong);
+  border-radius: 9px;
+  color: var(--shell-text-muted);
+  background: var(--shell-surface);
+}
+
+.error-banner {
+  border-color: rgb(240 120 78 / 35%);
+  color: #ffb59a;
+}
+
+.error-banner > span:not(.iconify) {
+  flex: 1;
+}
+
+.error-banner > .iconify,
+.loading-banner > .iconify {
+  flex-shrink: 0;
+}
+
+.library-heading h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.library-heading > p {
+  color: var(--shell-text-muted);
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.course-card {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--shell-border-strong);
+  border-radius: 12px;
+  background: var(--shell-surface);
+}
+
+.course-card:hover {
+  border-color: var(--shell-accent);
+}
+
+.course-card-open {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 22px;
+  text-align: left;
+}
+
+.course-card-open > .iconify {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 8px;
+  color: var(--shell-accent);
+}
+
+.course-card-open strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.course-card-open span:not(.iconify),
+.course-card-open small {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--shell-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.course-card-remove {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--shell-text-muted);
+}
+
+.course-card-remove:hover {
+  background: var(--shell-surface-soft);
+  color: var(--shell-text);
+}
+
+.empty-course {
+  display: flex;
+  min-height: 260px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+  color: var(--shell-text-muted);
+}
+
+.empty-course > .iconify {
+  width: 32px;
+  height: 32px;
+}
+
+.empty-course h2 {
+  font-size: 20px;
+  color: var(--shell-text);
+}
+
+.player-view-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.playback-message {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px;
+  background: #101214;
+  text-align: center;
+  font-size: 13px;
+}
+
+.playback-message > .iconify {
+  width: 26px;
+  height: 26px;
+  color: var(--shell-accent);
+}
+
+.playback-message > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.buffering-indicator {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.buffering-indicator .iconify {
+  width: 32px;
+  height: 32px;
+  color: white;
+}
+
+.shortcut-list {
+  display: grid;
+  gap: 14px;
+}
+
+.shortcut-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.shortcut-list dt {
+  color: var(--shell-text);
+  font-weight: 600;
+}
+
+.shortcut-list dd {
+  color: var(--shell-text-muted);
+  text-align: right;
+}
+
+@container (max-width: 520px) {
+  .volume-range {
     display: none;
+  }
+
+  .player-controls {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

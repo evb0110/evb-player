@@ -1,18 +1,474 @@
+<template>
+  <div class="course-shell">
+    <header class="app-header">
+      <div class="brand-lockup">
+        <div class="brand-mark"><UIcon name="i-lucide-play" /></div>
+        <span>Course Shelf</span>
+      </div>
+      <div class="header-context">Private media library</div>
+      <div class="header-spacer" />
+      <UButton color="neutral" icon="i-lucide-keyboard" variant="ghost" aria-label="Keyboard shortcuts" title="Keyboard shortcuts" @click="isShortcutsOpen = true" />
+      <UButton
+        color="primary"
+        icon="i-lucide-folder-open"
+        label="Open folder"
+        size="sm"
+        :loading="loading"
+        @click="library.openFolder"
+      />
+    </header>
+
+    <nav class="tab-strip" aria-label="Open courses">
+      <button
+        class="app-tab"
+        :class="{ 'app-tab-active': activeTab === 'library' }"
+        type="button"
+        :aria-current="activeTab === 'library' ? 'page' : undefined"
+        @click="library.setActiveTab('library')"
+      >
+        <UIcon name="i-lucide-library" />
+        <span>Library</span>
+      </button>
+      <div
+        v-for="courseTab in visibleCourseTabs"
+        :key="courseTab.id"
+        class="app-tab"
+        :class="{ 'app-tab-active': activeTab === courseTab.id }"
+      >
+        <button class="tab-select" type="button" :title="courseTab.name" :aria-current="activeTab === courseTab.id ? 'page' : undefined" @click="library.setActiveTab(courseTab.id)">
+          <span class="tab-course-dot" />
+          <span class="tab-label">{{ courseTab.name }}</span>
+        </button>
+        <button class="tab-close" type="button" :aria-label="`Close ${courseTab.name} tab`" title="Close tab" @click="closeCourse(courseTab.id)">
+          <UIcon name="i-lucide-x" />
+        </button>
+      </div>
+    </nav>
+
+    <div class="workspace">
+      <aside class="library-sidebar">
+        <div class="sidebar-title-row">
+          <span>Folders</span>
+          <span class="sidebar-count">{{ recentCourses.length }}</span>
+        </div>
+
+        <UButton
+          block
+          color="neutral"
+          icon="i-lucide-folder-plus"
+          label="Add a course folder"
+          variant="soft"
+          :disabled="loading"
+          @click="library.openFolder"
+        />
+
+        <div v-if="recentCourses.length" class="recent-course-list">
+          <div
+            v-for="recentCourse in recentCourses"
+            :key="recentCourse.id"
+            class="recent-course"
+            :class="{ 'recent-course-active': currentCourse?.id === recentCourse.id }"
+          >
+            <button class="recent-course-open" type="button" :title="recentCourse.rootPath" :disabled="loading" @click="library.openRecentCourse(recentCourse)">
+              <span class="recent-course-icon"><UIcon name="i-lucide-folder" /></span>
+              <span class="recent-course-copy">
+                <strong>{{ recentCourse.name }}</strong>
+                <small>{{ recentCourse.mediaCount }} media files</small>
+              </span>
+              <UIcon class="recent-course-arrow" name="i-lucide-chevron-right" />
+            </button>
+            <button
+              class="recent-course-remove"
+              type="button"
+              :aria-label="`Remove ${recentCourse.name} from collection`"
+              title="Remove from collection"
+              :disabled="loading"
+              @click="removeCourse(recentCourse)"
+            >
+              <UIcon name="i-lucide-x" />
+            </button>
+          </div>
+        </div>
+
+        <div v-else class="sidebar-empty">
+          <UIcon name="i-lucide-inbox" />
+          <span>Folders you open will stay here.</span>
+        </div>
+
+        <div class="sidebar-footer">
+          <div class="sidebar-footer-icon"><UIcon name="i-lucide-hard-drive" /></div>
+          <div>
+            <strong>Local by design</strong>
+            <span>Nothing leaves this Mac.</span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <div v-if="error" class="error-banner" role="alert">
+          <UIcon name="i-lucide-circle-alert" />
+          <span>{{ error }}</span>
+          <UButton color="neutral" icon="i-lucide-x" aria-label="Dismiss error" variant="ghost" @click="error = ''" />
+        </div>
+
+        <div v-if="library.progressError.value" class="error-banner" role="alert">
+          <UIcon name="i-lucide-save-off" />
+          <span>Saved progress could not be updated. {{ library.progressError.value }}</span>
+          <UButton label="Retry update" color="neutral" variant="soft" :loading="isRetryingProgress" @click="retryProgressWrites" />
+        </div>
+
+        <div v-if="loading && currentCourse" class="loading-banner" role="status">
+          <UIcon class="spin" name="i-lucide-loader-circle" />
+          <span>{{ library.loadingMessage.value }}</span>
+        </div>
+
+        <div v-if="loading && !currentCourse" class="state-panel" role="status">
+          <UIcon class="spin" name="i-lucide-loader-circle" />
+          <span>{{ library.loadingMessage.value }}</span>
+        </div>
+
+        <section v-if="!currentCourse && !loading && recentCourses.length" class="library-view">
+          <div class="library-heading">
+            <h1>Your courses</h1>
+            <p>Pick up where you left off.</p>
+          </div>
+          <div class="course-grid">
+            <article v-for="course in recentCourses" :key="course.id" class="course-card">
+              <button class="course-card-open" type="button" @click="library.openRecentCourse(course)">
+                <UIcon name="i-lucide-folder" />
+                <strong>{{ course.name }}</strong>
+                <span :title="course.rootPath">{{ course.rootPath }}</span>
+                <small>{{ course.mediaCount }} {{ course.mediaCount === 1 ? 'lesson' : 'lessons' }}</small>
+              </button>
+              <button class="course-card-remove" type="button" :aria-label="`Remove ${course.name} from collection`" title="Remove from collection" @click="removeCourse(course)"><UIcon name="i-lucide-x" /></button>
+            </article>
+          </div>
+        </section>
+
+        <section v-else-if="!currentCourse && !loading" class="welcome-panel">
+          <div class="welcome-art">
+            <div class="welcome-art-ring welcome-art-ring-outer" />
+            <div class="welcome-art-ring welcome-art-ring-inner" />
+            <UIcon name="i-lucide-play" />
+          </div>
+          <h1>Your course library</h1>
+          <p class="welcome-copy">
+            Choose a folder of videos or audio files. Course Shelf reads the names, builds a playlist, and remembers exactly where you stopped.
+          </p>
+          <UButton color="primary" icon="i-lucide-folder-open" label="Choose a folder" size="lg" @click="library.openFolder" />
+          <span class="welcome-note">Local folders only. Progress is saved on this Mac.</span>
+        </section>
+
+        <section v-if="currentCourse" class="course-view">
+          <div class="course-heading">
+            <div class="course-heading-copy">
+              <p class="eyebrow">LOCAL COURSE</p>
+              <h1>{{ currentCourse.name }}</h1>
+              <p class="course-path" :title="currentCourse.rootPath">{{ currentCourse.rootPath }}</p>
+            </div>
+            <div class="course-heading-actions">
+              <div class="course-progress-copy">
+                <span>{{ courseProgress }}% complete</span>
+                <small>{{ watchedCount }} of {{ currentCourse.lessons.length }} lessons watched</small>
+              </div>
+              <div class="course-heading-buttons">
+                <UButton color="primary" icon="i-lucide-play" :label="continueLabel" :disabled="!currentLesson" @click="resumeCurrentCourse" />
+                <UButton color="neutral" icon="i-lucide-rotate-ccw" label="Reset course" variant="ghost" :disabled="!currentCourse.lessons.length" @click="requestCourseProgressReset" />
+              </div>
+            </div>
+          </div>
+
+          <div class="course-stats">
+            <div class="course-stat"><strong>{{ currentCourse.lessons.length }}</strong><span>lessons</span></div>
+            <div class="course-stat"><strong>{{ currentCourse.videoCount }}</strong><span>videos</span></div>
+            <div v-if="currentCourse.audioCount" class="course-stat"><strong>{{ currentCourse.audioCount }}</strong><span>audio</span></div>
+            <div class="course-stat" :title="currentCourse.totalDuration ? undefined : 'Duration is shown when media metadata is available.'"><strong>{{ formatCourseDuration(currentCourse.totalDuration) }}</strong><span>total play time</span></div>
+            <div class="course-stat"><strong>{{ formatBytes(currentCourse.totalBytes) }}</strong><span>on disk</span></div>
+          </div>
+
+          <div v-if="!currentCourse.lessons.length" class="empty-course" role="status">
+            <UIcon name="i-lucide-folder-search" />
+            <h2>No lessons found</h2>
+            <p>Choose a folder containing video or audio files. Subfolders are included.</p>
+            <UButton color="primary" icon="i-lucide-folder-open" label="Choose another folder" @click="library.openFolder" />
+          </div>
+
+          <div v-if="currentCourse.lessons.length" class="course-layout" :class="{ 'course-layout-theater': isTheaterMode }">
+            <div class="player-column">
+              <div
+                ref="playerStageRef"
+                class="player-stage"
+                :class="{
+                  'player-stage-window-fullscreen': isFullscreen,
+                  'player-stage-controls-hidden': !areControlsVisible,
+                }"
+                tabindex="0"
+                @focusin="handlePlayerFocusIn"
+                @focusout="handlePlayerFocusOut"
+                @pointerenter="handlePlayerPointerEnter"
+                @pointerleave="handlePlayerPointerLeave"
+                @pointermove="handlePlayerPointerMove"
+                @pointerdown="handlePlayerPointerDown"
+                @pointerup="handlePlayerPointerUp"
+              >
+                <video
+                  v-if="currentLesson?.kind === 'video'"
+                  ref="mediaRef"
+                  :key="currentLesson.id"
+                  class="media-element"
+                  preload="metadata"
+                  :src="currentLesson.mediaUrl"
+                  @click="togglePlayback"
+                  @dblclick.stop="toggleFullscreen"
+                  @error="handleMediaError"
+                  @waiting="isBuffering = true"
+                  @playing="isBuffering = false"
+                  @canplay="isBuffering = false"
+                  @durationchange="handleLoadedMetadata"
+                  @ended="handleEnded"
+                  @loadedmetadata="handleLoadedMetadata"
+                  @pause="handlePause"
+                  @play="handlePlay"
+                  @timeupdate="handleTimeUpdate"
+                />
+                <div v-else class="audio-stage">
+                  <div class="audio-orbit audio-orbit-large" />
+                  <div class="audio-orbit audio-orbit-small" />
+                  <div class="audio-glyph"><UIcon name="i-lucide-headphones" /></div>
+                  <div class="audio-stage-copy">
+                    <span>Audio lesson</span>
+                    <strong>{{ currentLesson?.title }}</strong>
+                  </div>
+                  <audio
+                    ref="mediaRef"
+                    :key="currentLesson?.id"
+                    preload="metadata"
+                    :src="currentLesson?.mediaUrl"
+                    @error="handleMediaError"
+                    @waiting="isBuffering = true"
+                    @playing="isBuffering = false"
+                    @canplay="isBuffering = false"
+                    @durationchange="handleLoadedMetadata"
+                    @ended="handleEnded"
+                    @loadedmetadata="handleLoadedMetadata"
+                    @pause="handlePause"
+                    @play="handlePlay"
+                    @timeupdate="handleTimeUpdate"
+                  />
+                </div>
+
+                <div v-if="playbackError" class="playback-message" role="alert">
+                  <UIcon name="i-lucide-circle-alert" />
+                  <p>{{ playbackError }}</p>
+                  <div>
+                    <UButton label="Try again" color="primary" @click="retryPlayback" />
+                    <UButton label="Open in default app" color="neutral" variant="soft" @click="openMediaExternally" />
+                  </div>
+                </div>
+                <div v-else-if="isBuffering" class="buffering-indicator" role="status" aria-label="Buffering"><UIcon class="spin" name="i-lucide-loader-circle" /></div>
+
+                <div class="player-topline">
+                  <span>{{ currentLesson?.kind === 'audio' ? 'AUDIO' : 'VIDEO' }}</span>
+                  <div class="player-view-controls">
+                    <button class="player-icon-button" type="button" :aria-pressed="isTheaterMode" :aria-label="isTheaterMode ? 'Exit theater mode' : 'Theater mode'" :title="isTheaterMode ? 'Exit theater mode (T)' : 'Theater mode (T)'" @click="toggleTheaterMode"><UIcon name="i-lucide-panel-top" /></button>
+                    <button v-if="currentLesson?.kind === 'video' || isFullscreen" class="player-icon-button" type="button" :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'" :title="isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'" @click="toggleFullscreen">
+                      <UIcon :name="isFullscreen ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'" />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="player-controls">
+                  <input
+                    class="seek-range"
+                    :max="mediaDuration"
+                    min="0"
+                    step="0.1"
+                    type="range"
+                    aria-label="Seek"
+                    :aria-valuetext="`${formatDuration(currentTime)} of ${formatDuration(mediaDuration)}`"
+                    :disabled="!loadedDuration || Boolean(playbackError)"
+                    :value="currentTime"
+                    @input="setSeek"
+                  >
+                  <div class="player-control-row">
+                    <div class="player-control-group">
+                      <button class="play-button" type="button" :aria-label="isPlaying ? 'Pause' : 'Play'" :title="isPlaying ? 'Pause (Space)' : 'Play (Space)'" @click="togglePlayback">
+                        <UIcon :name="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'" />
+                      </button>
+                      <button
+                        class="player-icon-button"
+                        type="button"
+                        title="Previous track"
+                        aria-label="Previous track"
+                        :disabled="!hasPreviousLesson"
+                        @click="navigateLesson(-1)"
+                      >
+                        <UIcon name="i-lucide-skip-back" />
+                      </button>
+                      <button
+                        class="player-icon-button"
+                        type="button"
+                        title="Next track"
+                        aria-label="Next track"
+                        :disabled="!hasNextLesson"
+                        @click="navigateLesson(1)"
+                      >
+                        <UIcon name="i-lucide-skip-forward" />
+                      </button>
+                      <button class="player-icon-button" title="Back 10 seconds (J)" aria-label="Back 10 seconds" type="button" @click="skip(-10)">
+                        <UIcon name="i-lucide-rotate-ccw" />
+                        <span class="skip-label">10</span>
+                      </button>
+                      <button class="player-icon-button" title="Forward 10 seconds (L)" aria-label="Forward 10 seconds" type="button" @click="skip(10)">
+                        <UIcon name="i-lucide-rotate-cw" />
+                        <span class="skip-label">10</span>
+                      </button>
+                      <span class="player-time">{{ formatDuration(currentTime) }} / {{ formatDuration(mediaDuration) }}</span>
+                    </div>
+                    <div class="player-control-group">
+                      <button class="player-icon-button player-volume-button" type="button" :aria-label="volume === 0 ? 'Unmute' : 'Mute'" :title="volume === 0 ? 'Unmute' : 'Mute'" @click="toggleMute">
+                        <UIcon class="volume-icon" :name="volumeIcon" />
+                      </button>
+                      <input class="volume-range" max="1" min="0" step="0.05" type="range" aria-label="Volume" :value="volume" @input="setVolume">
+                      <select class="speed-select" :value="playbackRate" aria-label="Playback speed" @change="setPlaybackRate">
+                        <option :value="0.75">0.75×</option>
+                        <option :value="1">1×</option>
+                        <option :value="1.25">1.25×</option>
+                        <option :value="1.5">1.5×</option>
+                        <option :value="2">2×</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lesson-heading">
+                <div>
+                  <p class="lesson-kicker">LESSON {{ String(currentLesson?.sequence ?? 0).padStart(2, '0') }}</p>
+                  <h2>{{ currentLesson?.title }}</h2>
+                  <p>{{ currentLesson?.relativePath }}</p>
+                </div>
+                <div class="lesson-heading-actions">
+                  <UButton
+                    :color="currentLesson && isLessonComplete(currentLesson) ? 'success' : 'neutral'"
+                    :icon="currentLesson && isLessonComplete(currentLesson) ? 'i-lucide-check' : 'i-lucide-circle-check'"
+                    :label="currentLesson && isLessonComplete(currentLesson) ? 'Completed' : 'Mark complete'"
+                    variant="soft"
+                    @click="currentLesson && library.toggleComplete(currentLesson)"
+                  />
+                  <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" variant="ghost" @click="requestLessonProgressReset" />
+                </div>
+              </div>
+
+              <div class="lesson-navigation">
+                <button class="lesson-nav-button" type="button" :disabled="!hasPreviousLesson" @click="navigateLesson(-1)">
+                  <UIcon name="i-lucide-arrow-left" />
+                  <span><small>Previous</small><strong>{{ previousLesson?.title ?? 'First lesson' }}</strong></span>
+                </button>
+                <button class="lesson-nav-button lesson-nav-next" type="button" :disabled="!hasNextLesson" @click="navigateLesson(1)">
+                  <span><small>Up next</small><strong>{{ nextLesson?.title ?? 'Last lesson' }}</strong></span>
+                  <UIcon name="i-lucide-arrow-right" />
+                </button>
+              </div>
+            </div>
+
+            <aside class="playlist-panel">
+              <div class="playlist-header">
+                <div>
+                  <p class="eyebrow">COURSE PLAYLIST</p>
+                  <h2>Lessons</h2>
+                </div>
+                <span class="playlist-count">{{ currentLessonIndex + 1 }} / {{ currentCourse.lessons.length }}</span>
+              </div>
+              <UInput v-model="search" class="playlist-search" icon="i-lucide-search" type="search" aria-label="Search lessons" placeholder="Search lessons" size="md" />
+
+              <div ref="playlistRef" class="playlist-scroll">
+                <div v-if="!filteredLessons.length" class="playlist-empty">
+                  <UIcon name="i-lucide-search-x" />
+                  <span>No lessons match this search.</span>
+                </div>
+                <div v-for="group in lessonGroups" :key="group.section" class="lesson-group">
+                  <div v-if="lessonGroups.length > 1" class="section-heading">{{ group.section }}</div>
+                  <button
+                    v-for="lesson in group.lessons"
+                    :key="lesson.id"
+                    class="lesson-row"
+                    :class="{ 'lesson-row-active': currentLesson?.id === lesson.id }"
+                    :aria-current="currentLesson?.id === lesson.id ? 'true' : undefined"
+                    :title="lesson.relativePath"
+                    type="button"
+                    @click="selectLesson(lesson)"
+                  >
+                    <span class="lesson-row-index">
+                      <UIcon v-if="isLessonComplete(lesson)" name="i-lucide-check" />
+                      <span v-else>{{ String(lesson.sequence).padStart(2, '0') }}</span>
+                    </span>
+                    <span class="lesson-row-copy">
+                      <strong>{{ lesson.title }}</strong>
+                      <small>{{ lesson.kind === 'audio' ? 'Audio' : 'Video' }} · {{ formatDuration(library.lessonProgress(currentCourse.id, lesson.id)?.duration || lesson.duration) }}</small>
+                      <span v-if="progressForLesson(lesson)" class="lesson-row-progress"><span :style="{width: `${progressForLesson(lesson)}%`}" /></span>
+                    </span>
+                    <UIcon v-if="currentLesson?.id === lesson.id" class="lesson-row-playing" :name="isPlaying ? 'i-lucide-volume-2' : 'i-lucide-pause'" />
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <UModal v-model:open="isProgressResetDialogOpen" :title="progressResetTitle" :description="progressResetDescription" :dismissible="!isResettingProgress" :close="!isResettingProgress">
+      <template #body>
+        <p class="progress-reset-dialog-copy">Your media files stay untouched. Only the saved playback position and completion state will be removed.</p>
+      </template>
+      <template #footer>
+        <UButton color="neutral" label="Cancel" variant="ghost" :disabled="isResettingProgress" @click="cancelProgressReset" />
+        <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" :loading="isResettingProgress" @click="confirmProgressReset" />
+      </template>
+    </UModal>
+
+    <UModal v-model:open="isShortcutsOpen" title="Keyboard shortcuts" description="Available while a lesson is open. Typing in fields keeps its normal behavior.">
+      <template #body>
+        <dl class="shortcut-list">
+          <div><dt>Play / pause</dt><dd>Space or K</dd></div>
+          <div><dt>Back / forward 10 seconds</dt><dd>J / L</dd></div>
+          <div><dt>Back / forward 5 seconds</dt><dd>← / →</dd></div>
+          <div><dt>Volume / mute</dt><dd>↑ / ↓ · M</dd></div>
+          <div><dt>Fullscreen / theater</dt><dd>F / T</dd></div>
+          <div><dt>Previous / next lesson</dt><dd>Shift + P / N</dd></div>
+          <div><dt>Seek to 0–90%</dt><dd>0–9</dd></div>
+          <div><dt>Slower / faster</dt><dd>&lt; / &gt;</dd></div>
+          <div><dt>Frame back / forward (paused)</dt><dd>, / .</dd></div>
+        </dl>
+      </template>
+    </UModal>
+  </div>
+</template>
+
 <script setup lang="ts">
-import {useDebounceFn} from '@vueuse/core';
+import {useDebounceFn, useResizeObserver, useStorage} from '@vueuse/core';
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
-import type {ICourse, IMediaLesson} from '../../shared/types';
+import type {IMediaLesson, IRecentCourse} from '../../shared/types';
 import {useCourseLibrary} from '../composables/useCourseLibrary';
 
-type ProgressResetRequest = {
+type TProgressResetRequest = {
   scope: 'lesson' | 'course';
   courseId: string;
   lessonId?: string;
   lessonTitle?: string;
 };
 
+interface IPlaybackSession {
+  courseId: string;
+  lessonId: string;
+  media: HTMLMediaElement;
+  ready: boolean;
+}
+
 const library = useCourseLibrary();
 const toast = useToast();
+useColorMode().preference = 'dark';
 const recentCourses = library.recentCourses;
 const openCourses = library.openCourses;
 const activeTab = library.activeTab;
@@ -21,26 +477,35 @@ const error = library.error;
 const search = ref('');
 const mediaRef = ref<HTMLVideoElement | HTMLAudioElement | null>(null);
 const playerStageRef = ref<HTMLElement | null>(null);
+const playlistRef = ref<HTMLElement | null>(null);
 const isPlaying = ref(false);
 const currentTime = ref(0);
 const loadedDuration = ref(0);
-const volume = ref(1);
-const lastVolume = ref(1);
-const playbackRate = ref(1);
+const volume = useStorage('course-shelf-volume', 1);
+const lastVolume = useStorage('course-shelf-last-volume', 1);
+const playbackRate = useStorage('course-shelf-playback-rate', 1);
+volume.value = Number.isFinite(volume.value) ? Math.max(0, Math.min(1, volume.value)) : 1;
+lastVolume.value = Number.isFinite(lastVolume.value) && lastVolume.value > 0 ? Math.min(1, lastVolume.value) : 1;
+playbackRate.value = [0.75, 1, 1.25, 1.5, 2].includes(playbackRate.value) ? playbackRate.value : 1;
+const playbackError = ref('');
+const isBuffering = ref(false);
+const isShortcutsOpen = ref(false);
 const isFullscreen = ref(false);
 const isTheaterMode = ref(false);
 const areControlsVisible = ref(true);
 const isPlayerFocused = ref(false);
 const autoplayLessonId = ref<string | null>(null);
-const progressResetRequest = ref<ProgressResetRequest | null>(null);
+const progressResetRequest = ref<TProgressResetRequest | null>(null);
 const isProgressResetDialogOpen = ref(false);
 const isResettingProgress = ref(false);
+const isRetryingProgress = ref(false);
 let controlsHideTimer: ReturnType<typeof setTimeout> | null = null;
 let removeWindowFullscreenListener: (() => void) | null = null;
 let isPointerInteraction = false;
 let lessonLoadRequest = 0;
 let progressPersistenceGeneration = 0;
 let isProgressPersistenceSuspended = false;
+let playbackSession: IPlaybackSession | null = null;
 
 const currentCourse = library.currentCourse;
 const currentLesson = library.currentLesson;
@@ -90,7 +555,7 @@ const persistCurrentPosition = useDebounceFn((generation: number) => {
     return;
   }
   void saveCurrentProgress();
-}, 900);
+}, 900, {maxWait: 1500});
 
 const visibleCourseTabs = computed(() => openCourses.value);
 const currentLessonIndex = computed(() => {
@@ -103,6 +568,9 @@ const hasNextLesson = computed(() => {
   const course = currentCourse.value;
   return Boolean(course && currentLessonIndex.value >= 0 && currentLessonIndex.value < course.lessons.length - 1);
 });
+const previousLesson = computed(() => currentCourse.value?.lessons[currentLessonIndex.value - 1]);
+const nextLesson = computed(() => currentCourse.value?.lessons[currentLessonIndex.value + 1]);
+const continueLabel = computed(() => courseProgress.value === 100 ? 'Watch again' : watchedCount.value || currentProgress.value?.position ? 'Continue' : 'Start course');
 const progressResetTitle = computed(() => progressResetRequest.value?.scope === 'course' ? 'Reset course progress?' : 'Reset track progress?');
 const progressResetDescription = computed(() => {
   const request = progressResetRequest.value;
@@ -116,10 +584,10 @@ const progressResetDescription = computed(() => {
 });
 
 function formatDuration(seconds: number | null | undefined) {
-  if (!seconds || !Number.isFinite(seconds)) {
+  if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) {
     return '—';
   }
-  const totalSeconds = Math.max(0, Math.round(seconds));
+  const totalSeconds = Math.max(0, Math.floor(seconds));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const remainder = totalSeconds % 60;
@@ -131,10 +599,11 @@ function formatDuration(seconds: number | null | undefined) {
 
 function formatCourseDuration(seconds: number) {
   if (!seconds) {
-    return 'Duration appears as lessons are opened';
+    return '—';
   }
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.round((seconds % 3600) / 60);
+  const totalMinutes = Math.round(seconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
   return hours > 0 ? `${hours}h ${String(minutes).padStart(2, '0')}m` : `${minutes}m`;
 }
 
@@ -176,6 +645,7 @@ function requestLessonProgressReset() {
     lessonTitle: lesson.title,
   };
   isProgressResetDialogOpen.value = true;
+  mediaRef.value?.pause();
 }
 
 function requestCourseProgressReset() {
@@ -188,6 +658,7 @@ function requestCourseProgressReset() {
     courseId: course.id,
   };
   isProgressResetDialogOpen.value = true;
+  mediaRef.value?.pause();
 }
 
 function cancelProgressReset() {
@@ -217,6 +688,8 @@ async function confirmProgressReset() {
   isResettingProgress.value = true;
   const isCurrentCourse = currentCourse.value?.id === request.courseId;
   const resetsCurrentLesson = request.scope === 'course' || request.lessonId === currentLesson.value?.id;
+  const resetMedia = resetsCurrentLesson && isCurrentCourse ? mediaRef.value : null;
+  const previousPosition = resetMedia?.currentTime ?? 0;
   if (resetsCurrentLesson && isCurrentCourse) {
     progressPersistenceGeneration += 1;
     isProgressPersistenceSuspended = true;
@@ -248,6 +721,11 @@ async function confirmProgressReset() {
     isProgressResetDialogOpen.value = false;
     progressResetRequest.value = null;
   } catch {
+    if (resetMedia && mediaRef.value === resetMedia) {
+      resetMedia.currentTime = previousPosition;
+      currentTime.value = previousPosition;
+      isProgressPersistenceSuspended = false;
+    }
     toast.add({
       title: 'Could not reset progress',
       description: 'The progress file could not be updated.',
@@ -260,9 +738,16 @@ async function confirmProgressReset() {
 }
 
 function playMedia(media: HTMLMediaElement) {
-  void media.play().catch(() => {
+  playbackError.value = '';
+  void media.play().catch((cause: unknown) => {
     if (mediaRef.value === media) {
       isPlaying.value = false;
+      if (!(cause instanceof DOMException && cause.name === 'AbortError')) {
+        playbackError.value = cause instanceof DOMException && cause.name === 'NotAllowedError'
+          ? 'Press Play to start this lesson.'
+          : 'This lesson could not be played. Try again or open it in your default media app.';
+      }
+      isBuffering.value = false;
       showPlayerControls();
     }
   });
@@ -272,7 +757,6 @@ function selectLesson(lesson: IMediaLesson, autoplay = true) {
   const isCurrentLesson = currentLesson.value?.id === lesson.id;
   autoplayLessonId.value = autoplay ? lesson.id : null;
   library.selectLesson(lesson);
-  search.value = '';
   if (autoplay) {
     isPlayerFocused.value = false;
   }
@@ -342,15 +826,8 @@ function skip(seconds: number) {
 }
 
 function setSeek(event: Event) {
-  const media = mediaRef.value;
   const input = event.target as HTMLInputElement;
-  if (!media) {
-    return;
-  }
-  isProgressPersistenceSuspended = false;
-  media.currentTime = Number(input.value);
-  currentTime.value = media.currentTime;
-  void saveCurrentProgress();
+  seekTo(Number(input.value));
 }
 
 function setVolume(event: Event) {
@@ -424,12 +901,12 @@ function clearControlsHideTimer() {
 
 function scheduleControlsHide() {
   clearControlsHideTimer();
-  if (!isPlaying.value || isPlayerFocused.value) {
+  if (!isPlaying.value || isPlayerFocused.value || isPointerInteraction) {
     return;
   }
   controlsHideTimer = setTimeout(() => {
     controlsHideTimer = null;
-    if (isPlaying.value && !isPlayerFocused.value) {
+    if (isPlaying.value && !isPlayerFocused.value && !isPointerInteraction) {
       areControlsVisible.value = false;
     }
   }, 2200);
@@ -466,7 +943,6 @@ function handlePlayerPointerUp() {
 
 function handlePlayerFocusIn() {
   const wasPointerInteraction = isPointerInteraction;
-  isPointerInteraction = false;
   isPlayerFocused.value = !wasPointerInteraction && document.activeElement !== playerStageRef.value;
   showPlayerControls();
 }
@@ -486,23 +962,23 @@ function toggleTheaterMode() {
 }
 
 async function toggleFullscreen() {
-  if (currentLesson.value?.kind !== 'video') {
+  if (currentLesson.value?.kind !== 'video' && !isFullscreen.value) {
     return;
   }
 
-  if (document.fullscreenElement) {
-    await document.exitFullscreen();
-    return;
-  }
-
-  const api = import.meta.client ? window.courseShelf : null;
-  if (api) {
-    isFullscreen.value = await api.setWindowFullscreen(!isFullscreen.value);
-    return;
-  }
-
-  if (playerStageRef.value) {
-    await playerStageRef.value.requestFullscreen();
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+    const api = import.meta.client ? window.courseShelf : null;
+    if (api) {
+      isFullscreen.value = await api.setWindowFullscreen(!isFullscreen.value);
+      return;
+    }
+    await playerStageRef.value?.requestFullscreen();
+  } catch {
+    toast.add({title: 'Fullscreen is unavailable', color: 'error'});
   }
 }
 
@@ -510,25 +986,26 @@ async function saveCurrentProgress(completed = false) {
   if (isProgressPersistenceSuspended) {
     return;
   }
-  const course = currentCourse.value;
-  const lesson = currentLesson.value;
-  const media = mediaRef.value;
-  if (!course || !lesson) {
+  const session = playbackSession;
+  if (!session?.ready) {
     return;
   }
-  const position = media?.currentTime ?? currentTime.value;
-  const duration = media?.duration && Number.isFinite(media.duration) ? media.duration : loadedDuration.value || lesson.duration || 0;
-  const previous = currentProgress.value;
-  await library.saveProgress(course.id, lesson.id, {
+  const media = session.media;
+  const position = media.currentTime;
+  const duration = Number.isFinite(media.duration) ? media.duration : 0;
+  const previous = library.lessonProgress(session.courseId, session.lessonId);
+  await library.saveProgress(session.courseId, session.lessonId, {
     position: Number.isFinite(position) ? position : 0,
     duration,
     completed: completed || Boolean(previous?.completed),
     updatedAt: Date.now(),
+  }).catch(() => {
+    // The library retains the unsaved update and exposes a recoverable error.
   });
 }
 
 function isCurrentMediaEvent(event: Event) {
-  return event.currentTarget === mediaRef.value;
+  return event.currentTarget === mediaRef.value && event.currentTarget === playbackSession?.media;
 }
 
 function handleLoadedMetadata(event: Event) {
@@ -540,11 +1017,15 @@ function handleLoadedMetadata(event: Event) {
     return;
   }
   loadedDuration.value = Number.isFinite(media.duration) ? media.duration : 0;
+  if (!playbackSession || loadedDuration.value <= 0 || playbackSession.ready) {
+    return;
+  }
+  playbackSession.ready = true;
   media.volume = volume.value;
   media.muted = volume.value === 0;
   media.playbackRate = playbackRate.value;
   const savedPosition = currentProgress.value?.position ?? 0;
-  if (savedPosition > 1 && savedPosition < media.duration - 2) {
+  if (!currentProgress.value?.completed && savedPosition > 0 && savedPosition < media.duration) {
     media.currentTime = savedPosition;
     currentTime.value = savedPosition;
   }
@@ -573,6 +1054,7 @@ function handlePlay(event: Event) {
   }
   isProgressPersistenceSuspended = false;
   isPlaying.value = true;
+  playbackError.value = '';
   showPlayerControls();
 }
 
@@ -581,6 +1063,7 @@ function handlePause(event: Event) {
     return;
   }
   isPlaying.value = false;
+  isBuffering.value = false;
   showPlayerControls();
   if (isResettingProgress.value) {
     return;
@@ -620,12 +1103,17 @@ function handleKeyboard(event: KeyboardEvent) {
   if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
     return;
   }
+  if (isProgressResetDialogOpen.value || isShortcutsOpen.value || document.querySelector('[role="dialog"]')) {
+    return;
+  }
   const target = event.target;
-  const isRangeControl = target instanceof HTMLInputElement && target.type === 'range';
-  if ((target instanceof HTMLInputElement && !isRangeControl) || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable)) {
+  if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable)) {
     return;
   }
   if (target instanceof HTMLButtonElement && (event.code === 'Space' || event.key === 'Enter')) {
+    return;
+  }
+  if (!currentLesson.value) {
     return;
   }
 
@@ -705,9 +1193,15 @@ function handleKeyboard(event: KeyboardEvent) {
 
 watch(() => currentLesson.value?.id, async (lessonId) => {
   const requestId = ++lessonLoadRequest;
+  void saveCurrentProgress();
+  playbackSession?.media.pause();
+  playbackSession = null;
+  progressPersistenceGeneration += 1;
   isProgressPersistenceSuspended = false;
+  playbackError.value = '';
+  isBuffering.value = false;
   currentTime.value = 0;
-  loadedDuration.value = currentLesson.value?.duration ?? 0;
+  loadedDuration.value = 0;
   isPlaying.value = false;
   showPlayerControls();
   await nextTick();
@@ -716,8 +1210,21 @@ watch(() => currentLesson.value?.id, async (lessonId) => {
   }
   const media = mediaRef.value;
   if (!media) {
+    if (isFullscreen.value) {
+      if (document.fullscreenElement) {
+        void document.exitFullscreen().catch(() => undefined);
+      } else {
+        void window.courseShelf?.setWindowFullscreen(false);
+      }
+      isFullscreen.value = false;
+    }
     return;
   }
+  const courseId = currentCourse.value?.id;
+  if (!courseId || !lessonId) {
+    return;
+  }
+  playbackSession = {courseId, lessonId, media, ready: false};
   const shouldAutoplay = autoplayLessonId.value === lessonId;
   autoplayLessonId.value = null;
   media.load();
@@ -725,13 +1232,92 @@ watch(() => currentLesson.value?.id, async (lessonId) => {
     isPlayerFocused.value = false;
     playMedia(media);
   }
-});
+  revealCurrentLesson();
+}, {immediate: true});
+
+function revealCurrentLesson() {
+  const playlist = playlistRef.value;
+  const row = playlist?.querySelector<HTMLElement>('[aria-current="true"]');
+  if (!playlist || !row) return;
+  const panelBounds = playlist.getBoundingClientRect();
+  const rowBounds = row.getBoundingClientRect();
+  if (rowBounds.top < panelBounds.top) playlist.scrollTop -= Math.ceil(panelBounds.top - rowBounds.top) + 2;
+  else if (rowBounds.bottom > panelBounds.bottom) playlist.scrollTop += Math.ceil(rowBounds.bottom - panelBounds.bottom) + 2;
+}
+
+useResizeObserver(playlistRef, revealCurrentLesson);
+
+function handleMediaError(event: Event) {
+  if (!isCurrentMediaEvent(event)) return;
+  isPlaying.value = false;
+  isBuffering.value = false;
+  playbackError.value = 'This file is unavailable or its format is not supported. Try again or open it in your default media app.';
+  showPlayerControls();
+}
+
+function retryPlayback() {
+  const media = mediaRef.value;
+  if (!media) return;
+  playbackError.value = '';
+  if (playbackSession) playbackSession.ready = false;
+  media.load();
+  playMedia(media);
+}
+
+async function openMediaExternally() {
+  if (!currentLesson.value || !window.courseShelf) return;
+  try {
+    await window.courseShelf.openMediaExternally(currentLesson.value.mediaUrl);
+  } catch {
+    toast.add({title: 'Could not open this file', description: 'Check that the course folder is still available.', color: 'error'});
+  }
+}
+
+async function removeCourse(course: IRecentCourse) {
+  await library.removeRecentCourse(course);
+  if (!recentCourses.value.some((candidate) => candidate.id === course.id)) {
+    toast.add({title: 'Course removed', description: 'Its files and saved progress are kept.', actions: [{label: 'Undo', onClick: () => library.openRecentCourse(course)}]});
+  }
+}
+
+async function closeCourse(courseId: string) {
+  library.closeCourse(courseId);
+  await nextTick();
+  document.querySelector<HTMLButtonElement>('.tab-strip [aria-current="page"]')?.focus();
+}
+
+function saveBeforeLeaving() {
+  void saveCurrentProgress();
+}
+
+async function retryProgressWrites() {
+  isRetryingProgress.value = true;
+  const session = playbackSession;
+  const previousProgress = session && library.lessonProgress(session.courseId, session.lessonId);
+  try {
+    await library.retryProgressWrites();
+    if (session && session === playbackSession && previousProgress && !library.lessonProgress(session.courseId, session.lessonId)) {
+      progressPersistenceGeneration += 1;
+      isProgressPersistenceSuspended = true;
+      resetCurrentMedia();
+    }
+  } catch {
+    // Keep the actionable storage error visible until a write succeeds.
+  } finally {
+    isRetryingProgress.value = false;
+  }
+}
+
+watch(() => currentCourse.value?.id, () => {search.value = '';});
+watch(search, async () => {if (!search.value) {await nextTick(); revealCurrentLesson();}});
 
 watch(isFullscreen, syncFullscreenDocumentClass);
 
 onMounted(async () => {
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   document.addEventListener('keydown', handleKeyboard);
+  window.addEventListener('pagehide', saveBeforeLeaving);
+  window.addEventListener('beforeunload', saveBeforeLeaving);
   if (import.meta.client && window.courseShelf) {
     removeWindowFullscreenListener = window.courseShelf.onWindowFullscreenChanged((fullscreen) => {
       isFullscreen.value = fullscreen;
@@ -742,378 +1328,14 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  void saveCurrentProgress();
   clearControlsHideTimer();
   document.removeEventListener('fullscreenchange', handleFullscreenChange);
   document.removeEventListener('keydown', handleKeyboard);
+  window.removeEventListener('pagehide', saveBeforeLeaving);
+  window.removeEventListener('beforeunload', saveBeforeLeaving);
   removeWindowFullscreenListener?.();
   removeWindowFullscreenListener = null;
   syncFullscreenDocumentClass(false);
 });
 </script>
-
-<template>
-  <div class="course-shell">
-    <header class="app-header">
-      <div class="brand-lockup">
-        <div class="brand-mark"><UIcon name="i-lucide-play" /></div>
-        <span>Course Shelf</span>
-      </div>
-      <div class="header-context">Private media library</div>
-      <div class="header-spacer" />
-      <UButton
-        color="primary"
-        icon="i-lucide-folder-open"
-        label="Open folder"
-        size="sm"
-        @click="library.openFolder"
-      />
-    </header>
-
-    <div class="tab-strip">
-      <button
-        class="app-tab"
-        :class="{ 'app-tab-active': activeTab === 'library' }"
-        type="button"
-        @click="library.setActiveTab('library')"
-      >
-        <UIcon name="i-lucide-library" />
-        <span>Library</span>
-      </button>
-      <button
-        v-for="courseTab in visibleCourseTabs"
-        :key="courseTab.id"
-        class="app-tab"
-        :class="{ 'app-tab-active': activeTab === courseTab.id }"
-        type="button"
-        @click="library.setActiveTab(courseTab.id)"
-      >
-        <span class="tab-course-dot" />
-        <span class="tab-label">{{ courseTab.name }}</span>
-        <span class="tab-close" role="button" tabindex="0" @click.stop="library.closeCourse(courseTab.id)">
-          <UIcon name="i-lucide-x" />
-        </span>
-      </button>
-    </div>
-
-    <div class="workspace">
-      <aside class="library-sidebar">
-        <div class="sidebar-title-row">
-          <span>Folders</span>
-          <span class="sidebar-count">{{ recentCourses.length }}</span>
-        </div>
-
-        <UButton
-          block
-          color="neutral"
-          icon="i-lucide-folder-plus"
-          label="Add a course folder"
-          variant="soft"
-          @click="library.openFolder"
-        />
-
-        <div v-if="recentCourses.length" class="recent-course-list">
-          <div
-            v-for="recentCourse in recentCourses"
-            :key="recentCourse.id"
-            class="recent-course"
-            :class="{ 'recent-course-active': currentCourse?.id === recentCourse.id }"
-          >
-            <button class="recent-course-open" type="button" @click="library.openRecentCourse(recentCourse)">
-              <span class="recent-course-icon"><UIcon name="i-lucide-folder" /></span>
-              <span class="recent-course-copy">
-                <strong>{{ recentCourse.name }}</strong>
-                <small>{{ recentCourse.mediaCount }} media files</small>
-              </span>
-              <UIcon class="recent-course-arrow" name="i-lucide-chevron-right" />
-            </button>
-            <button
-              class="recent-course-remove"
-              type="button"
-              :aria-label="`Remove ${recentCourse.name} from collection`"
-              title="Remove from collection"
-              @click="library.removeRecentCourse(recentCourse)"
-            >
-              <UIcon name="i-lucide-x" />
-            </button>
-          </div>
-        </div>
-
-        <div v-else class="sidebar-empty">
-          <UIcon name="i-lucide-inbox" />
-          <span>Folders you open will stay here.</span>
-        </div>
-
-        <div class="sidebar-footer">
-          <div class="sidebar-footer-icon"><UIcon name="i-lucide-hard-drive" /></div>
-          <div>
-            <strong>Local by design</strong>
-            <span>Nothing leaves this Mac.</span>
-          </div>
-        </div>
-      </aside>
-
-      <main class="main-content">
-        <div v-if="loading" class="state-panel">
-          <UIcon class="spin" name="i-lucide-loader-circle" />
-          <span>Scanning your folder…</span>
-        </div>
-
-        <div v-else-if="error" class="state-panel state-panel-error">
-          <UIcon name="i-lucide-circle-alert" />
-          <span>{{ error }}</span>
-          <UButton color="neutral" label="Try again" variant="soft" @click="library.openFolder" />
-        </div>
-
-        <section v-else-if="!currentCourse" class="welcome-panel">
-          <div class="welcome-art">
-            <div class="welcome-art-ring welcome-art-ring-outer" />
-            <div class="welcome-art-ring welcome-art-ring-inner" />
-            <UIcon name="i-lucide-play" />
-          </div>
-          <p class="eyebrow">YOUR COURSES, AT HOME</p>
-          <h1>A quieter way to keep learning.</h1>
-          <p class="welcome-copy">
-            Choose a folder of videos or audio files. Course Shelf reads the names, builds a playlist, and remembers exactly where you stopped.
-          </p>
-          <UButton color="primary" icon="i-lucide-folder-open" label="Choose a folder" size="lg" @click="library.openFolder" />
-          <span class="welcome-note">Local folders only. Progress is saved on this Mac.</span>
-        </section>
-
-        <section v-else class="course-view">
-          <div class="course-heading">
-            <div class="course-heading-copy">
-              <p class="eyebrow">LOCAL COURSE</p>
-              <h1>{{ currentCourse.name }}</h1>
-              <p class="course-path" :title="currentCourse.rootPath">{{ currentCourse.rootPath }}</p>
-            </div>
-            <div class="course-heading-actions">
-              <div class="course-progress-copy">
-                <span>{{ courseProgress }}% complete</span>
-                <small>{{ watchedCount }} of {{ currentCourse.lessons.length }} lessons watched</small>
-              </div>
-              <div class="course-heading-buttons">
-                <UButton color="primary" icon="i-lucide-play" label="Continue" @click="resumeCurrentCourse" />
-                <UButton color="neutral" icon="i-lucide-rotate-ccw" label="Reset course" variant="ghost" @click="requestCourseProgressReset" />
-              </div>
-            </div>
-          </div>
-
-          <div class="course-stats">
-            <div class="course-stat"><strong>{{ currentCourse.lessons.length }}</strong><span>lessons</span></div>
-            <div class="course-stat"><strong>{{ currentCourse.videoCount }}</strong><span>videos</span></div>
-            <div v-if="currentCourse.audioCount" class="course-stat"><strong>{{ currentCourse.audioCount }}</strong><span>audio</span></div>
-            <div class="course-stat"><strong>{{ formatCourseDuration(currentCourse.totalDuration) }}</strong><span>total play time</span></div>
-            <div class="course-stat"><strong>{{ formatBytes(currentCourse.totalBytes) }}</strong><span>on disk</span></div>
-          </div>
-
-          <div v-if="currentCourse.lessons.length" class="course-layout" :class="{ 'course-layout-theater': isTheaterMode }">
-            <div class="player-column">
-              <div
-                ref="playerStageRef"
-                class="player-stage"
-                :class="{
-                  'player-stage-window-fullscreen': isFullscreen,
-                  'player-stage-controls-hidden': !areControlsVisible,
-                }"
-                tabindex="0"
-                @dblclick="toggleFullscreen"
-                @focusin="handlePlayerFocusIn"
-                @focusout="handlePlayerFocusOut"
-                @pointerenter="handlePlayerPointerEnter"
-                @pointerleave="handlePlayerPointerLeave"
-                @pointermove="handlePlayerPointerMove"
-                @pointerdown="handlePlayerPointerDown"
-                @pointerup="handlePlayerPointerUp"
-              >
-                <video
-                  v-if="currentLesson?.kind === 'video'"
-                  ref="mediaRef"
-                  :key="currentLesson.id"
-                  class="media-element"
-                  preload="metadata"
-                  :src="currentLesson.mediaUrl"
-                  @click="togglePlayback"
-                  @durationchange="handleLoadedMetadata"
-                  @ended="handleEnded"
-                  @loadedmetadata="handleLoadedMetadata"
-                  @pause="handlePause"
-                  @play="handlePlay"
-                  @timeupdate="handleTimeUpdate"
-                />
-                <div v-else class="audio-stage">
-                  <div class="audio-orbit audio-orbit-large" />
-                  <div class="audio-orbit audio-orbit-small" />
-                  <div class="audio-glyph"><UIcon name="i-lucide-headphones" /></div>
-                  <div class="audio-stage-copy">
-                    <span>Audio lesson</span>
-                    <strong>{{ currentLesson?.title }}</strong>
-                  </div>
-                  <audio
-                    ref="mediaRef"
-                    :key="currentLesson?.id"
-                    preload="metadata"
-                    :src="currentLesson?.mediaUrl"
-                    @durationchange="handleLoadedMetadata"
-                    @ended="handleEnded"
-                    @loadedmetadata="handleLoadedMetadata"
-                    @pause="handlePause"
-                    @play="handlePlay"
-                    @timeupdate="handleTimeUpdate"
-                  />
-                </div>
-
-                <div class="player-topline">
-                  <span>{{ currentLesson?.kind === 'audio' ? 'AUDIO' : 'VIDEO' }}</span>
-                  <button v-if="currentLesson?.kind === 'video'" class="player-icon-button" type="button" :title="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen">
-                    <UIcon :name="isFullscreen ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'" />
-                  </button>
-                </div>
-
-                <div class="player-controls">
-                  <input
-                    class="seek-range"
-                    :max="mediaDuration"
-                    min="0"
-                    step="0.1"
-                    type="range"
-                    aria-label="Seek"
-                    :value="currentTime"
-                    @input="setSeek"
-                  >
-                  <div class="player-control-row">
-                    <div class="player-control-group">
-                      <button class="play-button" type="button" :title="isPlaying ? 'Pause' : 'Play'" @click="togglePlayback">
-                        <UIcon :name="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'" />
-                      </button>
-                      <button
-                        class="player-icon-button"
-                        type="button"
-                        title="Previous track"
-                        aria-label="Previous track"
-                        :disabled="!hasPreviousLesson"
-                        @click="navigateLesson(-1)"
-                      >
-                        <UIcon name="i-lucide-skip-back" />
-                      </button>
-                      <button
-                        class="player-icon-button"
-                        type="button"
-                        title="Next track"
-                        aria-label="Next track"
-                        :disabled="!hasNextLesson"
-                        @click="navigateLesson(1)"
-                      >
-                        <UIcon name="i-lucide-skip-forward" />
-                      </button>
-                      <button class="player-icon-button" title="Back 10 seconds" type="button" @click="skip(-10)">
-                        <UIcon name="i-lucide-rotate-ccw" />
-                        <span class="skip-label">10</span>
-                      </button>
-                      <button class="player-icon-button" title="Forward 10 seconds" type="button" @click="skip(10)">
-                        <UIcon name="i-lucide-rotate-cw" />
-                        <span class="skip-label">10</span>
-                      </button>
-                      <span class="player-time">{{ formatDuration(currentTime) }} / {{ formatDuration(mediaDuration) }}</span>
-                    </div>
-                    <div class="player-control-group">
-                      <button class="player-icon-button player-volume-button" type="button" :aria-label="volume === 0 ? 'Unmute' : 'Mute'" :title="volume === 0 ? 'Unmute' : 'Mute'" @click="toggleMute">
-                        <UIcon class="volume-icon" :name="volumeIcon" />
-                      </button>
-                      <input class="volume-range" max="1" min="0" step="0.05" type="range" aria-label="Volume" :value="volume" @input="setVolume">
-                      <select class="speed-select" :value="playbackRate" aria-label="Playback speed" @change="setPlaybackRate">
-                        <option :value="0.75">0.75×</option>
-                        <option :value="1">1×</option>
-                        <option :value="1.25">1.25×</option>
-                        <option :value="1.5">1.5×</option>
-                        <option :value="2">2×</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="lesson-heading">
-                <div>
-                  <p class="lesson-kicker">LESSON {{ String(currentLesson?.sequence ?? 0).padStart(2, '0') }}</p>
-                  <h2>{{ currentLesson?.title }}</h2>
-                  <p>{{ currentLesson?.relativePath }}</p>
-                </div>
-                <div class="lesson-heading-actions">
-                  <UButton
-                    :color="currentLesson && isLessonComplete(currentLesson) ? 'success' : 'neutral'"
-                    :icon="currentLesson && isLessonComplete(currentLesson) ? 'i-lucide-check' : 'i-lucide-circle-check'"
-                    :label="currentLesson && isLessonComplete(currentLesson) ? 'Completed' : 'Mark complete'"
-                    variant="soft"
-                    @click="currentLesson && library.toggleComplete(currentLesson)"
-                  />
-                  <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" variant="ghost" @click="requestLessonProgressReset" />
-                </div>
-              </div>
-
-              <div class="lesson-navigation">
-                <button class="lesson-nav-button" type="button" :disabled="!currentLesson || currentCourse.lessons[0]?.id === currentLesson.id" @click="navigateLesson(-1)">
-                  <UIcon name="i-lucide-arrow-left" />
-                  <span><small>Previous</small><strong>Lesson</strong></span>
-                </button>
-                <button class="lesson-nav-button lesson-nav-next" type="button" :disabled="!currentLesson || currentCourse.lessons.at(-1)?.id === currentLesson.id" @click="navigateLesson(1)">
-                  <span><small>Up next</small><strong>Lesson</strong></span>
-                  <UIcon name="i-lucide-arrow-right" />
-                </button>
-              </div>
-            </div>
-
-            <aside class="playlist-panel">
-              <div class="playlist-header">
-                <div>
-                  <p class="eyebrow">COURSE PLAYLIST</p>
-                  <h2>Lessons</h2>
-                </div>
-                <span class="playlist-count">{{ watchedCount }}/{{ currentCourse.lessons.length }}</span>
-              </div>
-              <UInput v-model="search" class="playlist-search" icon="i-lucide-search" placeholder="Search lessons" size="lg" />
-
-              <div class="playlist-scroll">
-                <div v-if="!filteredLessons.length" class="playlist-empty">
-                  <UIcon name="i-lucide-search-x" />
-                  <span>No lessons match this search.</span>
-                </div>
-                <div v-for="group in lessonGroups" :key="group.section" class="lesson-group">
-                  <div v-if="lessonGroups.length > 1" class="section-heading">{{ group.section }}</div>
-                  <button
-                    v-for="lesson in group.lessons"
-                    :key="lesson.id"
-                    class="lesson-row"
-                    :class="{ 'lesson-row-active': currentLesson?.id === lesson.id }"
-                    type="button"
-                    @click="selectLesson(lesson)"
-                  >
-                    <span class="lesson-row-index">
-                      <UIcon v-if="isLessonComplete(lesson)" name="i-lucide-check" />
-                      <span v-else>{{ String(lesson.sequence).padStart(2, '0') }}</span>
-                    </span>
-                    <span class="lesson-row-copy">
-                      <strong>{{ lesson.title }}</strong>
-                      <small>{{ lesson.kind === 'audio' ? 'Audio' : 'Video' }} · {{ formatDuration(lesson.duration) }}</small>
-                      <span v-if="progressForLesson(lesson)" class="lesson-row-progress"><span :style="{width: `${progressForLesson(lesson)}%`}" /></span>
-                    </span>
-                    <UIcon v-if="currentLesson?.id === lesson.id" class="lesson-row-playing" name="i-lucide-volume-2" />
-                  </button>
-                </div>
-              </div>
-            </aside>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <UModal v-model:open="isProgressResetDialogOpen" :title="progressResetTitle" :description="progressResetDescription">
-      <template #body>
-        <p class="progress-reset-dialog-copy">Your media files stay untouched. Only the saved playback position and completion state will be removed.</p>
-      </template>
-      <template #footer>
-        <UButton color="neutral" label="Cancel" variant="ghost" :disabled="isResettingProgress" @click="cancelProgressReset" />
-        <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" :loading="isResettingProgress" @click="confirmProgressReset" />
-      </template>
-    </UModal>
-  </div>
-</template>
