@@ -264,6 +264,7 @@
                     :aria-valuetext="`${formatDuration(currentTime)} of ${formatDuration(mediaDuration)}`"
                     :disabled="!loadedDuration || Boolean(playbackError)"
                     :value="currentTime"
+                    :style="{'--range-fill': `${seekPercent}%`}"
                     @input="setSeek"
                   >
                   <div class="player-control-row">
@@ -305,7 +306,7 @@
                       <button class="player-icon-button player-volume-button" type="button" :aria-label="volume === 0 ? 'Unmute' : 'Mute'" :title="volume === 0 ? 'Unmute' : 'Mute'" @click="toggleMute">
                         <UIcon class="volume-icon" :name="volumeIcon" />
                       </button>
-                      <input class="volume-range" max="1" min="0" step="0.05" type="range" aria-label="Volume" :value="volume" @input="setVolume">
+                      <input class="volume-range" max="1" min="0" step="0.05" type="range" aria-label="Volume" :value="volume" :style="{'--range-fill': `${volume * 100}%`}" @input="setVolume">
                       <select class="speed-select" :value="playbackRate" aria-label="Playback speed" @change="setPlaybackRate">
                         <option :value="0.75">0.75×</option>
                         <option :value="1">1×</option>
@@ -516,6 +517,7 @@ const watchedCount = computed(() => {
 
 const courseProgress = computed(() => currentCourse.value ? library.progressPercent(currentCourse.value) : 0);
 const mediaDuration = computed(() => loadedDuration.value || currentLesson.value?.duration || 0);
+const seekPercent = computed(() => mediaDuration.value ? Math.min(100, currentTime.value / mediaDuration.value * 100) : 0);
 const volumeIcon = computed(() => volume.value === 0 ? 'i-lucide-volume-x' : volume.value < 0.5 ? 'i-lucide-volume-1' : 'i-lucide-volume-2');
 const currentProgress = computed(() => {
   const course = currentCourse.value;

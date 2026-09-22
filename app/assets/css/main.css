@@ -707,12 +707,71 @@ button:disabled {
 
 .seek-range,
 .volume-range {
+  --range-fill: 0%;
+  --range-track-height: 4px;
+  --range-thumb-size: 12px;
+
   display: block;
   width: 100%;
-  height: 4px;
+  height: var(--range-thumb-size);
   margin: 0;
-  accent-color: var(--shell-accent);
+  background: transparent;
   cursor: pointer;
+  appearance: none;
+}
+
+.seek-range::-webkit-slider-runnable-track,
+.volume-range::-webkit-slider-runnable-track {
+  height: var(--range-track-height);
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--shell-accent) var(--range-fill), rgb(255 255 255 / 18%) var(--range-fill));
+  transition: height 120ms ease;
+}
+
+.seek-range::-webkit-slider-thumb,
+.volume-range::-webkit-slider-thumb {
+  width: var(--range-thumb-size);
+  height: var(--range-thumb-size);
+  margin-top: calc((var(--range-track-height) - var(--range-thumb-size)) / 2);
+  border: 0;
+  border-radius: 50%;
+  background: var(--shell-accent);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
+  transform: scale(0.75);
+  transition: transform 120ms ease;
+  appearance: none;
+}
+
+.seek-range:hover:not(:disabled),
+.seek-range:focus-visible {
+  --range-track-height: 6px;
+}
+
+.seek-range:hover:not(:disabled)::-webkit-slider-thumb,
+.volume-range:hover:not(:disabled)::-webkit-slider-thumb,
+.seek-range:focus-visible::-webkit-slider-thumb,
+.volume-range:focus-visible::-webkit-slider-thumb {
+  transform: scale(1);
+}
+
+.seek-range:focus-visible,
+.volume-range:focus-visible {
+  outline: none;
+}
+
+.seek-range:focus-visible::-webkit-slider-thumb,
+.volume-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgb(240 120 78 / 35%);
+}
+
+.seek-range:disabled,
+.volume-range:disabled {
+  cursor: default;
+}
+
+.seek-range:disabled::-webkit-slider-thumb,
+.volume-range:disabled::-webkit-slider-thumb {
+  visibility: hidden;
 }
 
 .player-control-row {
@@ -787,8 +846,9 @@ button:disabled {
 }
 
 .volume-range {
+  --range-track-height: 3px;
+
   width: 64px;
-  height: 3px;
 }
 
 .speed-select {
