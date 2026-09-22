@@ -23,8 +23,11 @@ const isFullscreen = ref(false);
 const isTheaterMode = ref(false);
 const areControlsVisible = ref(true);
 const isPlayerFocused = ref(false);
+const autoplayLessonId = ref<string | null>(null);
 let controlsHideTimer: ReturnType<typeof setTimeout> | null = null;
 let removeWindowFullscreenListener: (() => void) | null = null;
+let isPointerInteraction = false;
+let lessonLoadRequest = 0;
 
 const currentCourse = library.currentCourse;
 const currentLesson = library.currentLesson;
@@ -74,6 +77,16 @@ const persistCurrentPosition = useDebounceFn(() => {
 }, 900);
 
 const visibleCourseTabs = computed(() => openCourses.value);
+const currentLessonIndex = computed(() => {
+  const course = currentCourse.value;
+  const lesson = currentLesson.value;
+  return course && lesson ? course.lessons.findIndex((candidate) => candidate.id === lesson.id) : -1;
+});
+const hasPreviousLesson = computed(() => currentLessonIndex.value > 0);
+const hasNextLesson = computed(() => {
+  const course = currentCourse.value;
+  return Boolean(course && currentLessonIndex.value >= 0 && currentLessonIndex.value < course.lessons.length - 1);
+});
 
 function formatDuration(seconds: number | null | undefined) {
   if (!seconds || !Number.isFinite(seconds)) {
@@ -123,9 +136,29 @@ function isLessonComplete(lesson: IMediaLesson) {
   return Boolean(course && library.lessonProgress(course.id, lesson.id)?.completed);
 }
 
-function selectLesson(lesson: IMediaLesson) {
+function playMedia(media: HTMLMediaElement) {
+  void media.play().catch(() => {
+    if (mediaRef.value === media) {
+      isPlaying.value = false;
+      showPlayerControls();
+    }
+  });
+}
+
+function selectLesson(lesson: IMediaLesson, autoplay = true) {
+  const isCurrentLesson = currentLesson.value?.id === lesson.id;
+  autoplayLessonId.value = autoplay ? lesson.id : null;
   library.selectLesson(lesson);
   search.value = '';
+  if (autoplay) {
+    isPlayerFocused.value = false;
+  }
+  if (isCurrentLesson) {
+    autoplayLessonId.value = null;
+    if (autoplay && mediaRef.value) {
+      playMedia(mediaRef.value);
+    }
+  }
 }
 
 function resumeCurrentCourse() {
@@ -159,7 +192,8 @@ function togglePlayback() {
   }
   showPlayerControls();
   if (media.paused) {
-    void media.play();
+    isPlayerFocused.value = false;
+    playMedia(media);
   } else {
     media.pause();
   }
@@ -290,11 +324,25 @@ function handlePlayerPointerMove() {
 }
 
 function handlePlayerPointerLeave() {
+  isPointerInteraction = false;
+  scheduleControlsHide();
+}
+
+function handlePlayerPointerDown() {
+  isPointerInteraction = true;
+  isPlayerFocused.value = false;
+  showPlayerControls();
+}
+
+function handlePlayerPointerUp() {
+  isPointerInteraction = false;
   scheduleControlsHide();
 }
 
 function handlePlayerFocusIn() {
-  isPlayerFocused.value = document.activeElement !== playerStageRef.value;
+  const wasPointerInteraction = isPointerInteraction;
+  isPointerInteraction = false;
+  isPlayerFocused.value = !wasPointerInteraction && document.activeElement !== playerStageRef.value;
   showPlayerControls();
 }
 
@@ -351,7 +399,14 @@ async function saveCurrentProgress(completed = false) {
   });
 }
 
-function handleLoadedMetadata() {
+function isCurrentMediaEvent(event: Event) {
+  return event.currentTarget === mediaRef.value;
+}
+
+function handleLoadedMetadata(event: Event) {
+  if (!isCurrentMediaEvent(event)) {
+    return;
+  }
   const media = mediaRef.value;
   if (!media) {
     return;
@@ -368,7 +423,10 @@ function handleLoadedMetadata() {
   void saveCurrentProgress();
 }
 
-function handleTimeUpdate() {
+function handleTimeUpdate(event: Event) {
+  if (!isCurrentMediaEvent(event)) {
+    return;
+  }
   const media = mediaRef.value;
   if (!media) {
     return;
@@ -377,21 +435,37 @@ function handleTimeUpdate() {
   persistCurrentPosition();
 }
 
-function handlePlay() {
+function handlePlay(event: Event) {
+  if (!isCurrentMediaEvent(event)) {
+    return;
+  }
   isPlaying.value = true;
   showPlayerControls();
 }
 
-function handlePause() {
+function handlePause(event: Event) {
+  if (!isCurrentMediaEvent(event)) {
+    return;
+  }
   isPlaying.value = false;
   showPlayerControls();
   void saveCurrentProgress();
 }
 
-async function handleEnded() {
+async function handleEnded(event: Event) {
+  if (!isCurrentMediaEvent(event)) {
+    return;
+  }
+  const course = currentCourse.value;
+  const lesson = currentLesson.value;
+  const lessonIndex = course && lesson ? course.lessons.findIndex((candidate) => candidate.id === lesson.id) : -1;
+  const nextLesson = course && lessonIndex >= 0 ? course.lessons[lessonIndex + 1] : null;
   isPlaying.value = false;
   showPlayerControls();
   await saveCurrentProgress(true);
+  if (nextLesson && currentLesson.value?.id === lesson?.id) {
+    selectLesson(nextLesson);
+  }
 }
 
 function handleFullscreenChange() {
@@ -493,13 +567,27 @@ function handleKeyboard(event: KeyboardEvent) {
   }
 }
 
-watch(() => currentLesson.value?.id, async () => {
+watch(() => currentLesson.value?.id, async (lessonId) => {
+  const requestId = ++lessonLoadRequest;
   currentTime.value = 0;
   loadedDuration.value = currentLesson.value?.duration ?? 0;
   isPlaying.value = false;
   showPlayerControls();
   await nextTick();
-  mediaRef.value?.load();
+  if (requestId !== lessonLoadRequest || currentLesson.value?.id !== lessonId) {
+    return;
+  }
+  const media = mediaRef.value;
+  if (!media) {
+    return;
+  }
+  const shouldAutoplay = autoplayLessonId.value === lessonId;
+  autoplayLessonId.value = null;
+  media.load();
+  if (shouldAutoplay) {
+    isPlayerFocused.value = false;
+    playMedia(media);
+  }
 });
 
 watch(isFullscreen, syncFullscreenDocumentClass);
@@ -685,7 +773,8 @@ onUnmounted(() => {
                 @pointerenter="handlePlayerPointerEnter"
                 @pointerleave="handlePlayerPointerLeave"
                 @pointermove="handlePlayerPointerMove"
-                @pointerdown="showPlayerControls"
+                @pointerdown="handlePlayerPointerDown"
+                @pointerup="handlePlayerPointerUp"
               >
                 <video
                   v-if="currentLesson?.kind === 'video'"
@@ -746,6 +835,26 @@ onUnmounted(() => {
                     <div class="player-control-group">
                       <button class="play-button" type="button" :title="isPlaying ? 'Pause' : 'Play'" @click="togglePlayback">
                         <UIcon :name="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'" />
+                      </button>
+                      <button
+                        class="player-icon-button"
+                        type="button"
+                        title="Previous track"
+                        aria-label="Previous track"
+                        :disabled="!hasPreviousLesson"
+                        @click="navigateLesson(-1)"
+                      >
+                        <UIcon name="i-lucide-skip-back" />
+                      </button>
+                      <button
+                        class="player-icon-button"
+                        type="button"
+                        title="Next track"
+                        aria-label="Next track"
+                        :disabled="!hasNextLesson"
+                        @click="navigateLesson(1)"
+                      >
+                        <UIcon name="i-lucide-skip-forward" />
                       </button>
                       <button class="player-icon-button" title="Back 10 seconds" type="button" @click="skip(-10)">
                         <UIcon name="i-lucide-rotate-ccw" />

@@ -31,7 +31,8 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 - The folder is scanned recursively and lessons are sorted by numeric filename prefixes such as `0001.`.
 - The player supports play/pause, ten-second skip, seeking, volume, playback speed, and fullscreen for video.
 - Playback position is saved while a lesson is watched.
-- Lessons can be manually marked complete, and ended lessons are completed automatically.
+- Lessons can be manually marked complete; ended lessons are completed automatically and advance to the next lesson when available.
+- Clicking a playlist row or the in-player previous/next buttons switches lessons and starts playback.
 - Course tabs and recently opened folders are retained.
 - Progress is stored in `~/Library/Application Support/Course Shelf/course-shelf-state.json`.
 

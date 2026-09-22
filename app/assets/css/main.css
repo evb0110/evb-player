@@ -780,6 +780,16 @@ button:disabled {
   background: rgb(255 255 255 / 12%);
 }
 
+.player-icon-button:disabled {
+  color: rgb(255 255 255 / 24%);
+  cursor: not-allowed;
+}
+
+.player-icon-button:disabled:hover {
+  color: rgb(255 255 255 / 24%);
+  background: transparent;
+}
+
 .player-icon-button .iconify {
   width: 16px;
   height: 16px;
