@@ -629,13 +629,10 @@ button:disabled {
   left: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 18px;
   color: rgb(255 255 255 / 58%);
   background: linear-gradient(rgb(0 0 0 / 48%), transparent);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
   pointer-events: none;
   transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
   z-index: 5;

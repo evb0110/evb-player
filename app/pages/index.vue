@@ -245,7 +245,6 @@
                 <div v-else-if="isBuffering" class="buffering-indicator" role="status" aria-label="Buffering"><UIcon class="spin" name="i-lucide-loader-circle" /></div>
 
                 <div class="player-topline">
-                  <span>{{ currentLesson?.kind === 'audio' ? 'AUDIO' : 'VIDEO' }}</span>
                   <div class="player-view-controls">
                     <button class="player-icon-button" type="button" :aria-pressed="isTheaterMode" :aria-label="isTheaterMode ? 'Exit theater mode' : 'Theater mode'" :title="isTheaterMode ? 'Exit theater mode (T)' : 'Theater mode (T)'" @click="toggleTheaterMode"><UIcon name="i-lucide-panel-top" /></button>
                     <button v-if="currentLesson?.kind === 'video' || isFullscreen" class="player-icon-button" type="button" :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'" :title="isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'" @click="toggleFullscreen">
@@ -379,7 +378,7 @@
                       </span>
                       <span class="lesson-row-copy">
                         <strong>{{ lesson.title }}</strong>
-                        <small>{{ lesson.kind === 'audio' ? 'Audio' : 'Video' }} · {{ formatDuration(library.lessonProgress(currentCourse.id, lesson.id)?.duration || lesson.duration) }}</small>
+                        <small>{{ lesson.kind === 'audio' ? 'Audio · ' : '' }}{{ formatDuration(library.lessonProgress(currentCourse.id, lesson.id)?.duration || lesson.duration) }}</small>
                         <span v-if="progressForLesson(lesson)" class="lesson-row-progress"><span :style="{width: `${progressForLesson(lesson)}%`}" /></span>
                       </span>
                       <UIcon v-if="currentLesson?.id === lesson.id" class="lesson-row-playing" :name="isPlaying ? 'i-lucide-volume-2' : 'i-lucide-pause'" />
