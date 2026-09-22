@@ -360,7 +360,7 @@
                     class="lesson-row"
                     :class="{ 'lesson-row-active': currentLesson?.id === lesson.id }"
                   >
-                    <button class="lesson-row-select" type="button" :aria-current="currentLesson?.id === lesson.id ? 'true' : undefined" :title="lesson.relativePath" @click="selectLesson(lesson)">
+                    <button class="lesson-row-select" type="button" :aria-current="currentLesson?.id === lesson.id ? 'true' : undefined" :title="lesson.relativePath" @click="handleLessonRowClick(lesson)">
                       <span class="lesson-row-index">
                         <UIcon v-if="isLessonComplete(lesson)" name="i-lucide-check" />
                         <span v-else>{{ String(lesson.sequence).padStart(2, '0') }}</span>
@@ -370,7 +370,13 @@
                         <small>{{ lesson.kind === 'audio' ? 'Audio · ' : '' }}{{ formatDuration(library.lessonProgress(currentCourse.id, lesson.id)?.duration || lesson.duration) }}</small>
                         <span v-if="progressForLesson(lesson)" class="lesson-row-progress"><span :style="{width: `${progressForLesson(lesson)}%`}" /></span>
                       </span>
-                      <UIcon v-if="currentLesson?.id === lesson.id" class="lesson-row-playing" :name="isPlaying ? 'i-lucide-volume-2' : 'i-lucide-pause'" />
+                      <template v-if="currentLesson?.id === lesson.id">
+                        <template v-if="isPlaying">
+                          <UIcon class="lesson-row-playing lesson-row-playing-idle" name="i-lucide-volume-2" aria-label="Playing" />
+                          <UIcon class="lesson-row-playing lesson-row-playing-hover" name="i-lucide-pause" aria-label="Pause" />
+                        </template>
+                        <UIcon v-else class="lesson-row-playing" name="i-lucide-play" aria-label="Play" />
+                      </template>
                     </button>
                     <button class="lesson-row-reset" type="button" :aria-label="`Reset progress for ${lesson.title}`" :title="`Reset progress for ${lesson.title}`" @click="requestLessonProgressReset(lesson)">
                       <UIcon name="i-lucide-rotate-ccw" />
@@ -763,6 +769,14 @@ function selectLesson(lesson: IMediaLesson, autoplay = true) {
     if (autoplay && mediaRef.value) {
       playMedia(mediaRef.value);
     }
+  }
+}
+
+function handleLessonRowClick(lesson: IMediaLesson) {
+  if (currentLesson.value?.id === lesson.id) {
+    togglePlayback();
+  } else {
+    selectLesson(lesson);
   }
 }
 

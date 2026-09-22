@@ -1051,6 +1051,15 @@ button:disabled {
   color: var(--shell-accent);
 }
 
+.lesson-row-playing-hover,
+.lesson-row-select:hover .lesson-row-playing-idle {
+  display: none;
+}
+
+.lesson-row-select:hover .lesson-row-playing-hover {
+  display: block;
+}
+
 .playlist-empty {
   display: flex;
   align-items: center;
