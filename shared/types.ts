@@ -11,9 +11,6 @@ export interface IMediaLesson {
   mediaUrl: string;
   bytes: number;
   duration: number | null;
-  sourceWidth: number | null;
-  sourceHeight: number | null;
-  rotation: number;
 }
 
 export interface ICourse {
@@ -56,6 +53,7 @@ export interface ICourseShelfApi {
   openRecentCourse(rootPath: string): Promise<ICourse | null>;
   restoreLastCourse(): Promise<ICourse | null>;
   getRecentCourses(): Promise<IRecentCourse[]>;
+  removeRecentCourse(rootPath: string): Promise<void>;
   getCourseProgress(courseId: string): Promise<TCourseProgress>;
   saveLessonProgress(payload: ISaveLessonProgressPayload): Promise<void>;
   clearLessonProgress(courseId: string, lessonId: string): Promise<void>;

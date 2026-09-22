@@ -129,6 +129,21 @@ export function useCourseLibrary() {
     }
   }
 
+  async function removeRecentCourse(recentCourse: IRecentCourse) {
+    const api = getApi();
+    if (!api) {
+      return;
+    }
+    error.value = '';
+    try {
+      await api.removeRecentCourse(recentCourse.rootPath);
+      recentCourses.value = recentCourses.value.filter((candidate) => candidate.id !== recentCourse.id);
+      closeCourse(recentCourse.id);
+    } catch (cause) {
+      error.value = cause instanceof Error ? cause.message : 'The course could not be removed from the collection.';
+    }
+  }
+
   function selectLesson(lesson: IMediaLesson) {
     if (!currentCourse.value) {
       return;
@@ -230,6 +245,7 @@ export function useCourseLibrary() {
     load,
     openFolder,
     openRecentCourse,
+    removeRecentCourse,
     selectLesson,
     closeCourse,
     setActiveTab,

@@ -246,14 +246,25 @@ button:disabled {
   display: flex;
   align-items: center;
   width: 100%;
-  gap: 10px;
-  padding: 10px 8px;
   border: 1px solid transparent;
   border-radius: 9px;
   color: var(--shell-text-muted);
   background: transparent;
   text-align: left;
   transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.recent-course-open {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  gap: 10px;
+  padding: 10px 4px 10px 8px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
 }
 
 .recent-course:hover,
@@ -310,6 +321,29 @@ button:disabled {
   width: 14px;
   height: 14px;
   color: var(--shell-text-subtle);
+}
+
+.recent-course-remove {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  margin-right: 5px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  color: var(--shell-text-subtle);
+  background: transparent;
+}
+
+.recent-course-remove:hover {
+  color: var(--shell-text);
+  background: rgb(255 255 255 / 10%);
+}
+
+.recent-course-remove .iconify {
+  width: 13px;
+  height: 13px;
 }
 
 .sidebar-empty {
@@ -664,11 +698,6 @@ button:disabled {
   height: 100%;
   object-fit: contain;
   background: #08090a;
-  transform-origin: center;
-}
-
-.media-element-rotated {
-  transform: rotate(var(--media-rotation)) scale(var(--media-rotation-scale));
 }
 
 .audio-stage {

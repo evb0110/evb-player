@@ -35,6 +35,7 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 - Progress can be reset for the current lesson or the entire course; reset removes saved positions and completion state without touching media files.
 - Clicking a playlist row or the in-player previous/next buttons switches lessons and starts playback.
 - Course tabs and recently opened folders are retained.
+- Use the × beside a folder in the sidebar to remove it from the collection and close its tab. Media files and saved progress are kept; opening the folder again restores its progress.
 - Progress is stored in `~/Library/Application Support/Course Shelf/course-shelf-state.json`.
 
 ### Keyboard shortcuts
