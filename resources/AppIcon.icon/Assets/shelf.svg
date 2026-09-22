@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <path d="M256 0C375 0 440 0 477 37C514 74 512 139 512 256C512 373 514 438 477 475C440 512 375 512 256 512C137 512 72 512 35 475C-2 438 0 373 0 256C0 139 -2 74 35 37C72 0 137 0 256 0Z" fill="#20282d"/>
-  <g transform="translate(256 256) scale(1.25) translate(-253.5 -258)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <g transform="translate(512 512) scale(2.5) translate(-253.5 -258)">
     <rect x="114" y="162" width="43" height="180" rx="13" fill="#e8e4da"/>
     <rect x="170" y="137" width="47" height="205" rx="13" fill="#91c5b1"/>
     <path d="M242 162Q239 149 252 146L281 139Q294 136 297 149L340 321Q343 334 330 337L301 344Q288 347 285 334Z" fill="#f0784e"/>

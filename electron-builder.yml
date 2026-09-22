@@ -9,7 +9,8 @@ files:
 directories:
   output: release
 mac:
-  icon: resources/icon.icns
+  # Icon Composer asset, compiled to Assets.car plus an .icns fallback. Needs Xcode 26 actool.
+  icon: resources/AppIcon.icon
   category: public.app-category.education
   target:
     - dmg
