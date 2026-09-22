@@ -13,6 +13,7 @@ const api: ICourseShelfApi = {
   restoreLastCourse: () => ipcRenderer.invoke('course:restore-last') as Promise<ICourse | null>,
   getRecentCourses: () => ipcRenderer.invoke('course:get-recent') as Promise<IRecentCourse[]>,
   removeRecentCourse: (rootPath: string) => ipcRenderer.invoke('course:remove-recent', rootPath) as Promise<void>,
+  revealCourse: (rootPath: string) => ipcRenderer.invoke('course:reveal', rootPath) as Promise<void>,
   getCourseProgress: (courseId: string) => ipcRenderer.invoke('progress:get', courseId) as Promise<TCourseProgress>,
   saveLessonProgress: (payload: ISaveLessonProgressPayload) => ipcRenderer.invoke('progress:save', payload) as Promise<void>,
   clearLessonProgress: (courseId: string, lessonId: string) => ipcRenderer.invoke('progress:clear-lesson', courseId, lessonId) as Promise<void>,

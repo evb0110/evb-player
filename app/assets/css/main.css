@@ -1161,16 +1161,42 @@ button:disabled {
 .lesson-row {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
-  gap: 10px;
-  padding: 10px 9px;
+  padding: 0;
   border: 1px solid transparent;
   border-radius: 8px;
   color: var(--shell-text-muted);
   background: transparent;
   text-align: left;
   transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.lesson-row-select {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 9px;
+  text-align: left;
+}
+
+.lesson-row-reset {
+  display: grid;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin-right: 6px;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--shell-text-muted);
+}
+
+.lesson-row-reset:hover,
+.lesson-row-reset:focus-visible {
+  color: var(--shell-accent);
+  background: var(--shell-accent-soft);
 }
 
 .lesson-row:hover {
@@ -1393,6 +1419,41 @@ button:disabled {
   margin: 0 0 8px;
   font-size: 28px;
   font-weight: 700;
+}
+
+.library-player {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding: 18px;
+  border: 1px solid var(--shell-border-strong);
+  border-radius: 12px;
+  background: var(--shell-surface);
+}
+
+.library-player-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.library-player-copy > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-player-copy span,
+.library-player-copy small {
+  color: var(--shell-text-muted);
+  font-size: 12px;
+}
+
+.course-card-reveal {
+  margin: 0 16px 16px;
 }
 
 .library-heading > p {

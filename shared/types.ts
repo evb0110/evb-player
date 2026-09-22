@@ -54,6 +54,7 @@ export interface ICourseShelfApi {
   restoreLastCourse(): Promise<ICourse | null>;
   getRecentCourses(): Promise<IRecentCourse[]>;
   removeRecentCourse(rootPath: string): Promise<void>;
+  revealCourse(rootPath: string): Promise<void>;
   getCourseProgress(courseId: string): Promise<TCourseProgress>;
   saveLessonProgress(payload: ISaveLessonProgressPayload): Promise<void>;
   clearLessonProgress(courseId: string, lessonId: string): Promise<void>;

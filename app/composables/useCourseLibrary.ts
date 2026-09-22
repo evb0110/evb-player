@@ -33,6 +33,7 @@ export function useCourseLibrary() {
   const recentCourses = useState<IRecentCourse[]>('course-shelf-recent', () => []);
   const openCourses = useState<ICourse[]>('course-shelf-open', () => []);
   const activeTab = useState<string>('course-shelf-active-tab', () => 'library');
+  const playbackCourseId = useState<string | null>('course-shelf-playback-course', () => null);
   const progressByCourse = useState<Record<string, TCourseProgress>>('course-shelf-progress', () => ({}));
   const selectedLessonByCourse = useState<Record<string, string>>('course-shelf-selected-lesson', () => ({}));
   const loading = useState<boolean>('course-shelf-loading', () => false);
@@ -46,14 +47,17 @@ export function useCourseLibrary() {
   const progressWrites = new Map<string, IProgressWrite>();
 
   const currentCourse = computed(() => openCourses.value.find((course) => course.id === activeTab.value) ?? null);
-  const currentLesson = computed(() => {
-    const course = currentCourse.value;
+  const playbackCourse = computed(() => openCourses.value.find((course) => course.id === playbackCourseId.value) ?? null);
+  const currentLesson = computed(() => selectedLesson(currentCourse.value));
+  const playbackLesson = computed(() => selectedLesson(playbackCourse.value));
+
+  function selectedLesson(course: ICourse | null) {
     if (!course) {
       return null;
     }
     const selectedLessonId = selectedLessonByCourse.value[course.id];
     return course.lessons.find((lesson) => lesson.id === selectedLessonId) ?? course.lessons[0] ?? null;
-  });
+  }
 
   function getApi() {
     return import.meta.client ? window.courseShelf : null;
@@ -318,6 +322,7 @@ export function useCourseLibrary() {
       };
     }
     activeTab.value = course.id;
+    playbackCourseId.value = course.id;
     return true;
   }
 
@@ -442,7 +447,7 @@ export function useCourseLibrary() {
   }
 
   function selectLesson(lesson: IMediaLesson) {
-    const course = currentCourse.value;
+    const course = playbackCourse.value;
     if (!course || !course.lessons.some((candidate) => candidate.id === lesson.id)) {
       return;
     }
@@ -469,6 +474,9 @@ export function useCourseLibrary() {
     } else if (activeTab.value !== 'library' && !openCourses.value.some((course) => course.id === activeTab.value)) {
       activeTab.value = 'library';
     }
+    if (playbackCourseId.value === courseId) {
+      playbackCourseId.value = activeTab.value === 'library' ? null : activeTab.value;
+    }
   }
 
   function closeCourse(courseId: string) {
@@ -479,6 +487,10 @@ export function useCourseLibrary() {
   function setActiveTab(tabId: string) {
     invalidatePendingOperations();
     activeTab.value = tabId === 'library' || openCourses.value.some((course) => course.id === tabId) ? tabId : 'library';
+    // Library is navigation only. Keep the same media owner until another course is selected or closed.
+    if (activeTab.value !== 'library') {
+      playbackCourseId.value = activeTab.value;
+    }
   }
 
   function lessonProgress(courseId: string, lessonId: string): ILessonProgress | null {
@@ -589,7 +601,7 @@ export function useCourseLibrary() {
   }
 
   async function toggleComplete(lesson: IMediaLesson) {
-    const course = currentCourse.value;
+    const course = playbackCourse.value;
     if (!course || !course.lessons.some((candidate) => candidate.id === lesson.id)) {
       return;
     }
@@ -624,6 +636,8 @@ export function useCourseLibrary() {
     activeTab,
     currentCourse,
     currentLesson,
+    playbackCourse,
+    playbackLesson,
     loading,
     loadingMessage,
     error,

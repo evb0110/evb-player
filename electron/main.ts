@@ -750,6 +750,24 @@ function registerIpcHandlers() {
     return scanCourse(canonicalPath);
   });
 
+  ipcMain.handle('course:reveal', async (event, rootPath: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isNonEmptyText(rootPath)) {
+      throw new Error('The course folder is not authorized.');
+    }
+    const state = await ensureState();
+    if (!state.recentCourses.some((course) => course.rootPath === rootPath) && !mediaRoots.has(rootPath)) {
+      throw new Error('The course folder is not in your library.');
+    }
+    try {
+      if (await realpath(rootPath) !== rootPath || !(await stat(rootPath)).isDirectory()) {
+        throw new Error('Invalid course folder');
+      }
+    } catch {
+      throw new Error('Folder unavailable. It may have been moved or disconnected.');
+    }
+    shell.showItemInFolder(rootPath);
+  });
+
   ipcMain.handle('course:restore-last', async (event) => {
     if (!isTrustedRenderer(event.sender)) {
       return null;

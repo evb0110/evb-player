@@ -1,7 +1,7 @@
 {
   "name": "course-shelf",
   "productName": "Course Shelf",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A private local course and media player for macOS.",
   "author": "Eugene Barsky",
   "main": "dist-electron/electron/main.js",

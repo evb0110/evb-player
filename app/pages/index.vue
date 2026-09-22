@@ -36,7 +36,8 @@
         :class="{ 'app-tab-active': activeTab === courseTab.id }"
       >
         <button class="tab-select" type="button" :title="courseTab.name" :aria-current="activeTab === courseTab.id ? 'page' : undefined" @click="library.setActiveTab(courseTab.id)">
-          <span class="tab-course-dot" />
+          <UIcon v-if="currentCourse?.id === courseTab.id && isPlaying" name="i-lucide-volume-2" aria-label="Playing" />
+          <span v-else class="tab-course-dot" />
           <span class="tab-label">{{ courseTab.name }}</span>
         </button>
         <button class="tab-close" type="button" :aria-label="`Close ${courseTab.name} tab`" title="Close tab" @click="closeCourse(courseTab.id)">
@@ -67,7 +68,7 @@
             v-for="recentCourse in recentCourses"
             :key="recentCourse.id"
             class="recent-course"
-            :class="{ 'recent-course-active': currentCourse?.id === recentCourse.id }"
+            :class="{ 'recent-course-active': activeTab === recentCourse.id }"
           >
             <button class="recent-course-open" type="button" :title="recentCourse.rootPath" :disabled="loading" @click="library.openRecentCourse(recentCourse)">
               <span class="recent-course-icon"><UIcon name="i-lucide-folder" /></span>
@@ -117,17 +118,29 @@
           <UButton label="Retry update" color="neutral" variant="soft" :loading="isRetryingProgress" @click="retryProgressWrites" />
         </div>
 
-        <div v-if="loading && currentCourse" class="loading-banner" role="status">
+        <div v-if="loading && !isLibraryActive" class="loading-banner" role="status">
           <UIcon class="spin" name="i-lucide-loader-circle" />
           <span>{{ library.loadingMessage.value }}</span>
         </div>
 
-        <div v-if="loading && !currentCourse" class="state-panel" role="status">
+        <div v-if="loading && isLibraryActive" class="state-panel" role="status">
           <UIcon class="spin" name="i-lucide-loader-circle" />
           <span>{{ library.loadingMessage.value }}</span>
         </div>
 
-        <section v-if="!currentCourse && !loading && recentCourses.length" class="library-view">
+        <section v-if="isLibraryActive && currentCourse && currentLesson" class="library-player" aria-label="Current playback">
+          <button class="play-button" type="button" :aria-label="isPlaying ? 'Pause' : 'Play'" @click="togglePlayback">
+            <UIcon :name="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'" />
+          </button>
+          <div class="library-player-copy">
+            <span>{{ playbackError ? 'Playback unavailable' : isPlaying ? 'Now playing' : 'Paused' }} · {{ currentCourse.name }}</span>
+            <strong>{{ currentLesson.title }}</strong>
+            <small>{{ formatDuration(currentTime) }} / {{ formatDuration(mediaDuration) }}</small>
+          </div>
+          <UButton color="neutral" icon="i-lucide-arrow-up-right" label="Back to course" variant="soft" @click="library.setActiveTab(currentCourse.id)" />
+        </section>
+
+        <section v-if="isLibraryActive && !loading && recentCourses.length" class="library-view">
           <div class="library-heading">
             <h1>Your courses</h1>
             <p>Pick up where you left off.</p>
@@ -140,12 +153,13 @@
                 <span :title="course.rootPath">{{ course.rootPath }}</span>
                 <small>{{ course.mediaCount }} {{ course.mediaCount === 1 ? 'lesson' : 'lessons' }}</small>
               </button>
+              <UButton class="course-card-reveal" color="neutral" icon="i-lucide-folder-search" label="Show in Finder" variant="ghost" @click="revealCourse(course.rootPath)" />
               <button class="course-card-remove" type="button" :aria-label="`Remove ${course.name} from collection`" title="Remove from collection" @click="removeCourse(course)"><UIcon name="i-lucide-x" /></button>
             </article>
           </div>
         </section>
 
-        <section v-else-if="!currentCourse && !loading" class="welcome-panel">
+        <section v-else-if="isLibraryActive && !loading" class="welcome-panel">
           <div class="welcome-art">
             <div class="welcome-art-ring welcome-art-ring-outer" />
             <div class="welcome-art-ring welcome-art-ring-inner" />
@@ -159,12 +173,13 @@
           <span class="welcome-note">Local folders only. Progress is saved on this Mac.</span>
         </section>
 
-        <section v-if="currentCourse" class="course-view">
+        <section v-if="currentCourse" v-show="!isLibraryActive" class="course-view">
           <div class="course-heading">
             <div class="course-heading-copy">
               <p class="eyebrow">LOCAL COURSE</p>
               <h1>{{ currentCourse.name }}</h1>
               <p class="course-path" :title="currentCourse.rootPath">{{ currentCourse.rootPath }}</p>
+              <UButton color="neutral" icon="i-lucide-folder-search" label="Show in Finder" variant="ghost" @click="revealCourse(currentCourse.rootPath)" />
             </div>
             <div class="course-heading-actions">
               <div class="course-progress-copy">
@@ -356,7 +371,7 @@
                     variant="soft"
                     @click="currentLesson && library.toggleComplete(currentLesson)"
                   />
-                  <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" variant="ghost" @click="requestLessonProgressReset" />
+                  <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" variant="ghost" @click="currentLesson && requestLessonProgressReset(currentLesson)" />
                 </div>
               </div>
 
@@ -389,27 +404,28 @@
                 </div>
                 <div v-for="group in lessonGroups" :key="group.section" class="lesson-group">
                   <div v-if="lessonGroups.length > 1" class="section-heading">{{ group.section }}</div>
-                  <button
+                  <div
                     v-for="lesson in group.lessons"
                     :key="lesson.id"
                     class="lesson-row"
                     :class="{ 'lesson-row-active': currentLesson?.id === lesson.id }"
-                    :aria-current="currentLesson?.id === lesson.id ? 'true' : undefined"
-                    :title="lesson.relativePath"
-                    type="button"
-                    @click="selectLesson(lesson)"
                   >
-                    <span class="lesson-row-index">
-                      <UIcon v-if="isLessonComplete(lesson)" name="i-lucide-check" />
-                      <span v-else>{{ String(lesson.sequence).padStart(2, '0') }}</span>
-                    </span>
-                    <span class="lesson-row-copy">
-                      <strong>{{ lesson.title }}</strong>
-                      <small>{{ lesson.kind === 'audio' ? 'Audio' : 'Video' }} · {{ formatDuration(library.lessonProgress(currentCourse.id, lesson.id)?.duration || lesson.duration) }}</small>
-                      <span v-if="progressForLesson(lesson)" class="lesson-row-progress"><span :style="{width: `${progressForLesson(lesson)}%`}" /></span>
-                    </span>
-                    <UIcon v-if="currentLesson?.id === lesson.id" class="lesson-row-playing" :name="isPlaying ? 'i-lucide-volume-2' : 'i-lucide-pause'" />
-                  </button>
+                    <button class="lesson-row-select" type="button" :aria-current="currentLesson?.id === lesson.id ? 'true' : undefined" :title="lesson.relativePath" @click="selectLesson(lesson)">
+                      <span class="lesson-row-index">
+                        <UIcon v-if="isLessonComplete(lesson)" name="i-lucide-check" />
+                        <span v-else>{{ String(lesson.sequence).padStart(2, '0') }}</span>
+                      </span>
+                      <span class="lesson-row-copy">
+                        <strong>{{ lesson.title }}</strong>
+                        <small>{{ lesson.kind === 'audio' ? 'Audio' : 'Video' }} · {{ formatDuration(library.lessonProgress(currentCourse.id, lesson.id)?.duration || lesson.duration) }}</small>
+                        <span v-if="progressForLesson(lesson)" class="lesson-row-progress"><span :style="{width: `${progressForLesson(lesson)}%`}" /></span>
+                      </span>
+                      <UIcon v-if="currentLesson?.id === lesson.id" class="lesson-row-playing" :name="isPlaying ? 'i-lucide-volume-2' : 'i-lucide-pause'" />
+                    </button>
+                    <button class="lesson-row-reset" type="button" :aria-label="`Reset progress for ${lesson.title}`" :title="`Reset progress for ${lesson.title}`" @click="requestLessonProgressReset(lesson)">
+                      <UIcon name="i-lucide-rotate-ccw" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </aside>
@@ -507,8 +523,9 @@ let progressPersistenceGeneration = 0;
 let isProgressPersistenceSuspended = false;
 let playbackSession: IPlaybackSession | null = null;
 
-const currentCourse = library.currentCourse;
-const currentLesson = library.currentLesson;
+const currentCourse = library.playbackCourse;
+const currentLesson = library.playbackLesson;
+const isLibraryActive = computed(() => activeTab.value === 'library');
 
 const filteredLessons = computed(() => {
   const course = currentCourse.value;
@@ -632,10 +649,9 @@ function isLessonComplete(lesson: IMediaLesson) {
   return Boolean(course && library.lessonProgress(course.id, lesson.id)?.completed);
 }
 
-function requestLessonProgressReset() {
+function requestLessonProgressReset(lesson: IMediaLesson) {
   const course = currentCourse.value;
-  const lesson = currentLesson.value;
-  if (!course || !lesson) {
+  if (!course) {
     return;
   }
   progressResetRequest.value = {
@@ -645,7 +661,9 @@ function requestLessonProgressReset() {
     lessonTitle: lesson.title,
   };
   isProgressResetDialogOpen.value = true;
-  mediaRef.value?.pause();
+  if (lesson.id === currentLesson.value?.id) {
+    mediaRef.value?.pause();
+  }
 }
 
 function requestCourseProgressReset() {
@@ -957,11 +975,13 @@ function handlePlayerFocusOut(event: FocusEvent) {
 }
 
 function toggleTheaterMode() {
+  if (isLibraryActive.value) return;
   isTheaterMode.value = !isTheaterMode.value;
   showPlayerControls();
 }
 
 async function toggleFullscreen() {
+  if (isLibraryActive.value && !isFullscreen.value) return;
   if (currentLesson.value?.kind !== 'video' && !isFullscreen.value) {
     return;
   }
@@ -1191,7 +1211,7 @@ function handleKeyboard(event: KeyboardEvent) {
   }
 }
 
-watch(() => currentLesson.value?.id, async (lessonId) => {
+watch([() => currentCourse.value?.id, () => currentLesson.value?.id], async ([courseId, lessonId]) => {
   const requestId = ++lessonLoadRequest;
   void saveCurrentProgress();
   playbackSession?.media.pause();
@@ -1220,7 +1240,6 @@ watch(() => currentLesson.value?.id, async (lessonId) => {
     }
     return;
   }
-  const courseId = currentCourse.value?.id;
   if (!courseId || !lessonId) {
     return;
   }
@@ -1270,6 +1289,15 @@ async function openMediaExternally() {
     await window.courseShelf.openMediaExternally(currentLesson.value.mediaUrl);
   } catch {
     toast.add({title: 'Could not open this file', description: 'Check that the course folder is still available.', color: 'error'});
+  }
+}
+
+async function revealCourse(rootPath: string) {
+  try {
+    if (!window.courseShelf) throw new Error('Finder is available in the desktop app.');
+    await window.courseShelf.revealCourse(rootPath);
+  } catch (cause) {
+    toast.add({title: 'Could not reveal the course', description: cause instanceof Error ? cause.message : 'Check that the course folder is still available.', color: 'error'});
   }
 }
 
