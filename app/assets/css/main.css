@@ -422,8 +422,7 @@ button:disabled {
   border-color: rgb(240 120 78 / 22%);
 }
 
-.welcome-panel h1,
-.course-heading h1 {
+.welcome-panel h1 {
   margin: 0;
   color: var(--shell-text);
   font-size: clamp(30px, 4vw, 48px);
@@ -444,107 +443,6 @@ button:disabled {
   width: 100%;
   max-width: 1480px;
   margin: 0 auto;
-}
-
-.course-heading {
-  margin-bottom: 18px;
-}
-
-.course-heading-copy {
-  min-width: 0;
-}
-
-.course-heading h1 {
-  margin-top: 9px;
-  font-size: clamp(22px, 2.2vw, 30px);
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
-.course-path {
-  max-width: 680px;
-  margin: 10px 0 0;
-  overflow: hidden;
-  color: var(--shell-text-subtle);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.course-heading-actions {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  flex: none;
-  justify-content: space-between;
-  margin-top: 16px;
-}
-
-.course-heading-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.course-progress-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  text-align: left;
-}
-
-.course-progress-copy span {
-  color: var(--shell-text);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.course-progress-copy small {
-  color: var(--shell-text-subtle);
-  font-size: 10px;
-}
-
-.course-stats {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 0;
-  margin-bottom: 20px;
-  border-top: 1px solid var(--shell-border);
-  border-bottom: 1px solid var(--shell-border);
-}
-
-.course-stat {
-  display: flex;
-  min-width: 100px;
-  flex: 1;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 14px;
-  border-right: 1px solid var(--shell-border);
-}
-
-.course-stat:first-child {
-  padding-left: 0;
-}
-
-.course-stat:last-child {
-  border-right: 0;
-}
-
-.course-stat strong {
-  color: var(--shell-text);
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-}
-
-.course-stat span {
-  color: var(--shell-text-subtle);
-  font-size: 10px;
-  text-transform: uppercase;
 }
 
 .course-layout {
@@ -1004,7 +902,7 @@ button:disabled {
   top: 20px;
   display: flex;
   min-height: 280px;
-  max-height: min(640px, calc(100vh - 380px));
+  max-height: calc(100vh - 88px);
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--shell-border);
@@ -1014,20 +912,61 @@ button:disabled {
 
 .playlist-header {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 19px 18px 14px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 12px 12px 18px;
 }
 
-.playlist-header h2 {
-  margin: 0;
+.playlist-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.playlist-title-row h2 {
+  display: -webkit-box;
+  flex: 1;
+  min-width: 0;
+  margin: 3px 0 0;
+  overflow: hidden;
   color: var(--shell-text);
-  font-size: 19px;
+  font-size: 14px;
   font-weight: 650;
-  letter-spacing: -0.03em;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.playlist-count {
+.course-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 6px;
+  color: var(--shell-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.course-progress-bar {
+  display: block;
+  flex: 1;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 8%);
+}
+
+.course-progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--shell-accent);
+}
+
+.course-meta {
+  margin: 0;
+  padding-right: 6px;
   color: var(--shell-text-subtle);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -1234,30 +1173,6 @@ button:disabled {
     padding: 25px 15px 44px;
   }
 
-  .course-heading {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 18px;
-  }
-
-  .course-heading-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .course-stat {
-    min-width: 50%;
-    border-bottom: 1px solid var(--shell-border);
-  }
-
-  .course-stat:nth-child(2n) {
-    border-right: 0;
-  }
-
-  .course-stat:first-child {
-    padding-left: 18px;
-  }
-
   .lesson-heading {
     align-items: stretch;
     flex-direction: column;
@@ -1423,6 +1338,13 @@ button:disabled {
 .empty-course > .iconify {
   width: 32px;
   height: 32px;
+}
+
+.empty-course-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
 }
 
 .empty-course h2 {

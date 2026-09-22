@@ -154,37 +154,14 @@
         </section>
 
         <section v-if="currentCourse" v-show="!isLibraryActive" class="course-view">
-          <div class="course-heading">
-            <div class="course-heading-copy">
-              <h1>{{ currentCourse.name }}</h1>
-              <p class="course-path" :title="currentCourse.rootPath">{{ currentCourse.rootPath }}</p>
-              <UButton color="neutral" icon="i-lucide-folder-search" label="Show in folder" variant="ghost" @click="revealCourse(currentCourse.rootPath)" />
-            </div>
-            <div class="course-heading-actions">
-              <div class="course-progress-copy">
-                <span>{{ courseProgress }}% complete</span>
-                <small>{{ watchedCount }} of {{ currentCourse.lessons.length }} lessons watched</small>
-              </div>
-              <div class="course-heading-buttons">
-                <UButton color="primary" icon="i-lucide-play" :label="continueLabel" :disabled="!currentLesson" @click="resumeCurrentCourse" />
-                <UButton color="neutral" icon="i-lucide-rotate-ccw" label="Reset course" variant="ghost" :disabled="!currentCourse.lessons.length" @click="requestCourseProgressReset" />
-              </div>
-            </div>
-          </div>
-
-          <div class="course-stats">
-            <div class="course-stat"><strong>{{ currentCourse.lessons.length }}</strong><span>lessons</span></div>
-            <div class="course-stat"><strong>{{ currentCourse.videoCount }}</strong><span>videos</span></div>
-            <div v-if="currentCourse.audioCount" class="course-stat"><strong>{{ currentCourse.audioCount }}</strong><span>audio</span></div>
-            <div class="course-stat" :title="currentCourse.totalDuration ? undefined : 'Duration is shown when media metadata is available.'"><strong>{{ formatCourseDuration(currentCourse.totalDuration) }}</strong><span>total play time</span></div>
-            <div class="course-stat"><strong>{{ formatBytes(currentCourse.totalBytes) }}</strong><span>on disk</span></div>
-          </div>
-
           <div v-if="!currentCourse.lessons.length" class="empty-course" role="status">
             <UIcon name="i-lucide-folder-search" />
             <h2>No lessons found</h2>
             <p>Choose a folder containing video or audio files. Subfolders are included.</p>
-            <UButton color="primary" icon="i-lucide-folder-open" label="Choose another folder" @click="library.openFolder" />
+            <div class="empty-course-actions">
+              <UButton color="primary" icon="i-lucide-folder-open" label="Choose another folder" @click="library.openFolder" />
+              <UButton color="neutral" icon="i-lucide-folder-search" label="Show in folder" variant="ghost" @click="revealCourse(currentCourse.rootPath)" />
+            </div>
           </div>
 
           <div v-if="currentCourse.lessons.length" class="course-layout" :class="{ 'course-layout-theater': isTheaterMode }">
@@ -368,8 +345,17 @@
 
             <aside class="playlist-panel">
               <div class="playlist-header">
-                <h2>Lessons</h2>
-                <span class="playlist-count">{{ currentLessonIndex + 1 }} / {{ currentCourse.lessons.length }}</span>
+                <div class="playlist-title-row">
+                  <h2 :title="currentCourse.rootPath">{{ currentCourse.name }}</h2>
+                  <UDropdownMenu :items="courseMenuItems" :content="{align: 'end'}">
+                    <UButton color="neutral" icon="i-lucide-ellipsis" variant="ghost" size="sm" aria-label="Course actions" title="Course actions" />
+                  </UDropdownMenu>
+                </div>
+                <div class="course-progress" :title="`${watchedCount} of ${currentCourse.lessons.length} lessons watched`">
+                  <span class="course-progress-bar"><span :style="{width: `${courseProgress}%`}" /></span>
+                  <span>{{ courseProgress }}% · {{ watchedCount }}/{{ currentCourse.lessons.length }}</span>
+                </div>
+                <p class="course-meta">{{ courseMeta }}</p>
               </div>
               <UInput v-model="search" class="playlist-search" icon="i-lucide-search" type="search" aria-label="Search lessons" placeholder="Search lessons" size="md" />
 
@@ -564,6 +550,36 @@ const hasNextLesson = computed(() => {
 const previousLesson = computed(() => currentCourse.value?.lessons[currentLessonIndex.value - 1]);
 const nextLesson = computed(() => currentCourse.value?.lessons[currentLessonIndex.value + 1]);
 const continueLabel = computed(() => courseProgress.value === 100 ? 'Watch again' : watchedCount.value || currentProgress.value?.position ? 'Continue' : 'Start course');
+const courseMeta = computed(() => {
+  const course = currentCourse.value;
+  if (!course) {
+    return '';
+  }
+  const parts = [`Lesson ${currentLessonIndex.value + 1} of ${course.lessons.length}`];
+  if (course.audioCount && course.videoCount) {
+    parts.push(`${course.videoCount} video, ${course.audioCount} audio`);
+  }
+  if (course.totalDuration) {
+    parts.push(formatCourseDuration(course.totalDuration));
+  }
+  parts.push(formatBytes(course.totalBytes));
+  return parts.join(' · ');
+});
+const courseMenuItems = computed(() => {
+  const course = currentCourse.value;
+  if (!course) {
+    return [];
+  }
+  return [
+    [
+      {label: continueLabel.value, icon: 'i-lucide-play', disabled: !currentLesson.value, onSelect: resumeCurrentCourse},
+      {label: 'Show in folder', icon: 'i-lucide-folder-search', onSelect: () => revealCourse(course.rootPath)},
+    ],
+    [
+      {label: 'Reset course progress', icon: 'i-lucide-rotate-ccw', color: 'error' as const, onSelect: requestCourseProgressReset},
+    ],
+  ];
+});
 const progressResetTitle = computed(() => progressResetRequest.value?.scope === 'course' ? 'Reset course progress?' : 'Reset track progress?');
 const progressResetDescription = computed(() => {
   const request = progressResetRequest.value;
