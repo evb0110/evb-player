@@ -85,11 +85,6 @@
             </button>
           </div>
         </div>
-
-        <div v-else class="sidebar-empty">
-          <UIcon name="i-lucide-inbox" />
-          <span>Folders you open will stay here.</span>
-        </div>
       </aside>
 
       <main class="main-content">
@@ -130,7 +125,6 @@
         <section v-if="isLibraryActive && !loading && recentCourses.length" class="library-view">
           <div class="library-heading">
             <h1>Your courses</h1>
-            <p>Pick up where you left off.</p>
           </div>
           <div class="course-grid">
             <article v-for="course in recentCourses" :key="course.id" class="course-card">
@@ -140,7 +134,7 @@
                 <span :title="course.rootPath">{{ course.rootPath }}</span>
                 <small>{{ course.mediaCount }} {{ course.mediaCount === 1 ? 'lesson' : 'lessons' }}</small>
               </button>
-              <UButton class="course-card-reveal" color="neutral" icon="i-lucide-folder-search" label="Show in Finder" variant="ghost" @click="revealCourse(course.rootPath)" />
+              <UButton class="course-card-reveal" color="neutral" icon="i-lucide-folder-search" label="Show in folder" variant="ghost" @click="revealCourse(course.rootPath)" />
               <button class="course-card-remove" type="button" :aria-label="`Remove ${course.name} from collection`" title="Remove from collection" @click="removeCourse(course)"><UIcon name="i-lucide-x" /></button>
             </article>
           </div>
@@ -154,19 +148,17 @@
           </div>
           <h1>Your course library</h1>
           <p class="welcome-copy">
-            Choose a folder of videos or audio files. Course Shelf reads the names, builds a playlist, and remembers exactly where you stopped.
+            Choose a folder of videos or audio files.
           </p>
           <UButton color="primary" icon="i-lucide-folder-open" label="Choose a folder" size="lg" @click="library.openFolder" />
-          <span class="welcome-note">Local folders only. Progress is saved on this Mac.</span>
         </section>
 
         <section v-if="currentCourse" v-show="!isLibraryActive" class="course-view">
           <div class="course-heading">
             <div class="course-heading-copy">
-              <p class="eyebrow">LOCAL COURSE</p>
               <h1>{{ currentCourse.name }}</h1>
               <p class="course-path" :title="currentCourse.rootPath">{{ currentCourse.rootPath }}</p>
-              <UButton color="neutral" icon="i-lucide-folder-search" label="Show in Finder" variant="ghost" @click="revealCourse(currentCourse.rootPath)" />
+              <UButton color="neutral" icon="i-lucide-folder-search" label="Show in folder" variant="ghost" @click="revealCourse(currentCourse.rootPath)" />
             </div>
             <div class="course-heading-actions">
               <div class="course-progress-copy">
@@ -376,10 +368,7 @@
 
             <aside class="playlist-panel">
               <div class="playlist-header">
-                <div>
-                  <p class="eyebrow">COURSE PLAYLIST</p>
-                  <h2>Lessons</h2>
-                </div>
+                <h2>Lessons</h2>
                 <span class="playlist-count">{{ currentLessonIndex + 1 }} / {{ currentCourse.lessons.length }}</span>
               </div>
               <UInput v-model="search" class="playlist-search" icon="i-lucide-search" type="search" aria-label="Search lessons" placeholder="Search lessons" size="md" />
@@ -431,7 +420,7 @@
       </template>
     </UModal>
 
-    <UModal v-model:open="isShortcutsOpen" title="Keyboard shortcuts" description="Available while a lesson is open. Press ? anywhere to show this list. Typing in fields keeps its normal behavior.">
+    <UModal v-model:open="isShortcutsOpen" title="Keyboard shortcuts" description="Available while a lesson is open. Press ? to show this list.">
       <template #body>
         <dl class="shortcut-list">
           <div><dt>Play / pause</dt><dd>Space or K</dd></div>
@@ -1286,7 +1275,7 @@ async function openMediaExternally() {
 
 async function revealCourse(rootPath: string) {
   try {
-    if (!window.courseShelf) throw new Error('Finder is available in the desktop app.');
+    if (!window.courseShelf) throw new Error('Showing folders is available in the desktop app.');
     await window.courseShelf.revealCourse(rootPath);
   } catch (cause) {
     toast.add({title: 'Could not reveal the course', description: cause instanceof Error ? cause.message : 'Check that the course folder is still available.', color: 'error'});

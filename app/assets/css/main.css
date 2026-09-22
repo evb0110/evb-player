@@ -337,22 +337,6 @@ button:disabled {
   height: 13px;
 }
 
-.sidebar-empty {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 5px 8px;
-  color: var(--shell-text-subtle);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.sidebar-empty .iconify {
-  width: 16px;
-  height: 16px;
-  flex: none;
-}
-
 .main-content {
   min-width: 0;
   padding: 24px clamp(20px, 2.5vw, 36px) 40px;
@@ -438,16 +422,6 @@ button:disabled {
   border-color: rgb(240 120 78 / 22%);
 }
 
-.eyebrow {
-  margin: 0;
-  color: var(--shell-accent);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-
 .welcome-panel h1,
 .course-heading h1 {
   margin: 0;
@@ -464,11 +438,6 @@ button:disabled {
   color: var(--shell-text-muted);
   font-size: 15px;
   line-height: 1.65;
-}
-
-.welcome-note {
-  color: var(--shell-text-subtle);
-  font-size: 11px;
 }
 
 .course-view {
@@ -1051,7 +1020,7 @@ button:disabled {
 }
 
 .playlist-header h2 {
-  margin: 4px 0 0;
+  margin: 0;
   color: var(--shell-text);
   font-size: 19px;
   font-weight: 650;
@@ -1370,10 +1339,6 @@ button:disabled {
 
 .course-card-reveal {
   margin: 0 16px 16px;
-}
-
-.library-heading > p {
-  color: var(--shell-text-muted);
 }
 
 .course-grid {
