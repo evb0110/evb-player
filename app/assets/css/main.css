@@ -530,6 +530,14 @@ button:disabled {
   flex: none;
 }
 
+.course-heading-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .course-progress-copy {
   display: flex;
   flex-direction: column;
@@ -924,6 +932,14 @@ button:disabled {
   border-bottom: 1px solid var(--shell-border);
 }
 
+.lesson-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .lesson-heading h2 {
   margin: 6px 0 5px;
   color: var(--shell-text);
@@ -955,6 +971,13 @@ button:disabled {
   justify-content: space-between;
   gap: 10px;
   padding: 16px 3px 0;
+}
+
+.progress-reset-dialog-copy {
+  margin: 0;
+  color: var(--shell-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .lesson-nav-button {
@@ -1252,6 +1275,10 @@ button:disabled {
   }
 
   .lesson-heading .u-button {
+    align-self: flex-start;
+  }
+
+  .lesson-heading-actions {
     align-self: flex-start;
   }
 

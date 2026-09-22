@@ -533,6 +533,22 @@ function registerIpcHandlers() {
     await persistState();
   });
 
+  ipcMain.handle('progress:clear-lesson', async (_event, courseId: unknown, lessonId: unknown) => {
+    if (typeof courseId !== 'string' || typeof lessonId !== 'string') {
+      return;
+    }
+    const state = await ensureState();
+    const courseProgress = state.progress[courseId];
+    if (!courseProgress || !(lessonId in courseProgress)) {
+      return;
+    }
+    delete courseProgress[lessonId];
+    if (Object.keys(courseProgress).length === 0) {
+      delete state.progress[courseId];
+    }
+    await persistState();
+  });
+
   ipcMain.handle('progress:clear', async (_event, courseId: unknown) => {
     if (typeof courseId !== 'string') {
       return;

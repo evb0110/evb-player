@@ -8,6 +8,7 @@ export function useCourseLibrary() {
   const selectedLessonByCourse = useState<Record<string, string>>('course-shelf-selected-lesson', () => ({}));
   const loading = useState<boolean>('course-shelf-loading', () => false);
   const error = useState<string>('course-shelf-error', () => '');
+  let progressWriteQueue: Promise<void> = Promise.resolve();
 
   const currentCourse = computed(() => openCourses.value.find((course) => course.id === activeTab.value) ?? null);
   const currentLesson = computed(() => {
@@ -21,6 +22,12 @@ export function useCourseLibrary() {
 
   function getApi() {
     return import.meta.client ? window.courseShelf : null;
+  }
+
+  function enqueueProgressWrite(write: () => Promise<void>) {
+    const nextWrite = progressWriteQueue.then(write, write);
+    progressWriteQueue = nextWrite.catch(() => undefined);
+    return nextWrite;
   }
 
   function progressFor(courseId: string) {
@@ -160,7 +167,33 @@ export function useCourseLibrary() {
       },
     };
     if (api) {
-      await api.saveLessonProgress({courseId, lessonId, progress});
+      await enqueueProgressWrite(() => api.saveLessonProgress({courseId, lessonId, progress}));
+    }
+  }
+
+  async function clearLessonProgress(courseId: string, lessonId: string) {
+    const courseProgress = {...(progressByCourse.value[courseId] ?? {})};
+    delete courseProgress[lessonId];
+    const nextProgress = {...progressByCourse.value};
+    if (Object.keys(courseProgress).length === 0) {
+      delete nextProgress[courseId];
+    } else {
+      nextProgress[courseId] = courseProgress;
+    }
+    progressByCourse.value = nextProgress;
+    const api = getApi();
+    if (api) {
+      await enqueueProgressWrite(() => api.clearLessonProgress(courseId, lessonId));
+    }
+  }
+
+  async function clearCourseProgress(courseId: string) {
+    const nextProgress = {...progressByCourse.value};
+    delete nextProgress[courseId];
+    progressByCourse.value = nextProgress;
+    const api = getApi();
+    if (api) {
+      await enqueueProgressWrite(() => api.clearCourseProgress(courseId));
     }
   }
 
@@ -204,6 +237,8 @@ export function useCourseLibrary() {
     progressFor,
     lessonProgress,
     saveProgress,
+    clearLessonProgress,
+    clearCourseProgress,
     toggleComplete,
     progressPercent,
   };

@@ -4,7 +4,15 @@ import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import type {ICourse, IMediaLesson} from '../../shared/types';
 import {useCourseLibrary} from '../composables/useCourseLibrary';
 
+type ProgressResetRequest = {
+  scope: 'lesson' | 'course';
+  courseId: string;
+  lessonId?: string;
+  lessonTitle?: string;
+};
+
 const library = useCourseLibrary();
+const toast = useToast();
 const recentCourses = library.recentCourses;
 const openCourses = library.openCourses;
 const activeTab = library.activeTab;
@@ -24,10 +32,15 @@ const isTheaterMode = ref(false);
 const areControlsVisible = ref(true);
 const isPlayerFocused = ref(false);
 const autoplayLessonId = ref<string | null>(null);
+const progressResetRequest = ref<ProgressResetRequest | null>(null);
+const isProgressResetDialogOpen = ref(false);
+const isResettingProgress = ref(false);
 let controlsHideTimer: ReturnType<typeof setTimeout> | null = null;
 let removeWindowFullscreenListener: (() => void) | null = null;
 let isPointerInteraction = false;
 let lessonLoadRequest = 0;
+let progressPersistenceGeneration = 0;
+let isProgressPersistenceSuspended = false;
 
 const currentCourse = library.currentCourse;
 const currentLesson = library.currentLesson;
@@ -72,7 +85,10 @@ const currentProgress = computed(() => {
   return course && lesson ? library.lessonProgress(course.id, lesson.id) : null;
 });
 
-const persistCurrentPosition = useDebounceFn(() => {
+const persistCurrentPosition = useDebounceFn((generation: number) => {
+  if (generation !== progressPersistenceGeneration || isProgressPersistenceSuspended) {
+    return;
+  }
   void saveCurrentProgress();
 }, 900);
 
@@ -86,6 +102,17 @@ const hasPreviousLesson = computed(() => currentLessonIndex.value > 0);
 const hasNextLesson = computed(() => {
   const course = currentCourse.value;
   return Boolean(course && currentLessonIndex.value >= 0 && currentLessonIndex.value < course.lessons.length - 1);
+});
+const progressResetTitle = computed(() => progressResetRequest.value?.scope === 'course' ? 'Reset course progress?' : 'Reset track progress?');
+const progressResetDescription = computed(() => {
+  const request = progressResetRequest.value;
+  if (!request) {
+    return '';
+  }
+  if (request.scope === 'course') {
+    return 'This clears saved positions and completion state for every track in this course.';
+  }
+  return `This clears the saved position and completion state for “${request.lessonTitle}”.`;
 });
 
 function formatDuration(seconds: number | null | undefined) {
@@ -134,6 +161,102 @@ function progressForLesson(lesson: IMediaLesson) {
 function isLessonComplete(lesson: IMediaLesson) {
   const course = currentCourse.value;
   return Boolean(course && library.lessonProgress(course.id, lesson.id)?.completed);
+}
+
+function requestLessonProgressReset() {
+  const course = currentCourse.value;
+  const lesson = currentLesson.value;
+  if (!course || !lesson) {
+    return;
+  }
+  progressResetRequest.value = {
+    scope: 'lesson',
+    courseId: course.id,
+    lessonId: lesson.id,
+    lessonTitle: lesson.title,
+  };
+  isProgressResetDialogOpen.value = true;
+}
+
+function requestCourseProgressReset() {
+  const course = currentCourse.value;
+  if (!course) {
+    return;
+  }
+  progressResetRequest.value = {
+    scope: 'course',
+    courseId: course.id,
+  };
+  isProgressResetDialogOpen.value = true;
+}
+
+function cancelProgressReset() {
+  if (isResettingProgress.value) {
+    return;
+  }
+  isProgressResetDialogOpen.value = false;
+  progressResetRequest.value = null;
+}
+
+function resetCurrentMedia() {
+  const media = mediaRef.value;
+  if (!media) {
+    return;
+  }
+  media.currentTime = 0;
+  media.pause();
+  currentTime.value = 0;
+  showPlayerControls();
+}
+
+async function confirmProgressReset() {
+  const request = progressResetRequest.value;
+  if (!request) {
+    return;
+  }
+  isResettingProgress.value = true;
+  const isCurrentCourse = currentCourse.value?.id === request.courseId;
+  const resetsCurrentLesson = request.scope === 'course' || request.lessonId === currentLesson.value?.id;
+  if (resetsCurrentLesson && isCurrentCourse) {
+    progressPersistenceGeneration += 1;
+    isProgressPersistenceSuspended = true;
+  }
+  try {
+    if (request.scope === 'course') {
+      if (isCurrentCourse) {
+        resetCurrentMedia();
+      }
+      await library.clearCourseProgress(request.courseId);
+      toast.add({
+        title: 'Course progress reset',
+        description: 'All saved positions and completion states were cleared.',
+        color: 'success',
+        icon: 'i-lucide-rotate-ccw',
+      });
+    } else if (request.lessonId) {
+      if (isCurrentCourse && request.lessonId === currentLesson.value?.id) {
+        resetCurrentMedia();
+      }
+      await library.clearLessonProgress(request.courseId, request.lessonId);
+      toast.add({
+        title: 'Track progress reset',
+        description: `“${request.lessonTitle}” will start from the beginning next time.`,
+        color: 'success',
+        icon: 'i-lucide-rotate-ccw',
+      });
+    }
+    isProgressResetDialogOpen.value = false;
+    progressResetRequest.value = null;
+  } catch {
+    toast.add({
+      title: 'Could not reset progress',
+      description: 'The progress file could not be updated.',
+      color: 'error',
+      icon: 'i-lucide-circle-alert',
+    });
+  } finally {
+    isResettingProgress.value = false;
+  }
 }
 
 function playMedia(media: HTMLMediaElement) {
@@ -204,6 +327,7 @@ function seekTo(position: number) {
   if (!media || !Number.isFinite(media.duration) || media.duration <= 0) {
     return;
   }
+  isProgressPersistenceSuspended = false;
   media.currentTime = Math.max(0, Math.min(media.duration, position));
   currentTime.value = media.currentTime;
   void saveCurrentProgress();
@@ -223,6 +347,7 @@ function setSeek(event: Event) {
   if (!media) {
     return;
   }
+  isProgressPersistenceSuspended = false;
   media.currentTime = Number(input.value);
   currentTime.value = media.currentTime;
   void saveCurrentProgress();
@@ -382,6 +507,9 @@ async function toggleFullscreen() {
 }
 
 async function saveCurrentProgress(completed = false) {
+  if (isProgressPersistenceSuspended) {
+    return;
+  }
   const course = currentCourse.value;
   const lesson = currentLesson.value;
   const media = mediaRef.value;
@@ -420,7 +548,9 @@ function handleLoadedMetadata(event: Event) {
     media.currentTime = savedPosition;
     currentTime.value = savedPosition;
   }
-  void saveCurrentProgress();
+  if (!isResettingProgress.value) {
+    void saveCurrentProgress();
+  }
 }
 
 function handleTimeUpdate(event: Event) {
@@ -432,13 +562,16 @@ function handleTimeUpdate(event: Event) {
     return;
   }
   currentTime.value = media.currentTime;
-  persistCurrentPosition();
+  if (!isResettingProgress.value) {
+    persistCurrentPosition(progressPersistenceGeneration);
+  }
 }
 
 function handlePlay(event: Event) {
   if (!isCurrentMediaEvent(event)) {
     return;
   }
+  isProgressPersistenceSuspended = false;
   isPlaying.value = true;
   showPlayerControls();
 }
@@ -449,6 +582,9 @@ function handlePause(event: Event) {
   }
   isPlaying.value = false;
   showPlayerControls();
+  if (isResettingProgress.value) {
+    return;
+  }
   void saveCurrentProgress();
 }
 
@@ -569,6 +705,7 @@ function handleKeyboard(event: KeyboardEvent) {
 
 watch(() => currentLesson.value?.id, async (lessonId) => {
   const requestId = ++lessonLoadRequest;
+  isProgressPersistenceSuspended = false;
   currentTime.value = 0;
   loadedDuration.value = currentLesson.value?.duration ?? 0;
   isPlaying.value = false;
@@ -745,7 +882,10 @@ onUnmounted(() => {
                 <span>{{ courseProgress }}% complete</span>
                 <small>{{ watchedCount }} of {{ currentCourse.lessons.length }} lessons watched</small>
               </div>
-              <UButton color="primary" icon="i-lucide-play" label="Continue" @click="resumeCurrentCourse" />
+              <div class="course-heading-buttons">
+                <UButton color="primary" icon="i-lucide-play" label="Continue" @click="resumeCurrentCourse" />
+                <UButton color="neutral" icon="i-lucide-rotate-ccw" label="Reset course" variant="ghost" @click="requestCourseProgressReset" />
+              </div>
             </div>
           </div>
 
@@ -889,13 +1029,16 @@ onUnmounted(() => {
                   <h2>{{ currentLesson?.title }}</h2>
                   <p>{{ currentLesson?.relativePath }}</p>
                 </div>
-                <UButton
-                  :color="currentLesson && isLessonComplete(currentLesson) ? 'success' : 'neutral'"
-                  :icon="currentLesson && isLessonComplete(currentLesson) ? 'i-lucide-check' : 'i-lucide-circle-check'"
-                  :label="currentLesson && isLessonComplete(currentLesson) ? 'Completed' : 'Mark complete'"
-                  variant="soft"
-                  @click="currentLesson && library.toggleComplete(currentLesson)"
-                />
+                <div class="lesson-heading-actions">
+                  <UButton
+                    :color="currentLesson && isLessonComplete(currentLesson) ? 'success' : 'neutral'"
+                    :icon="currentLesson && isLessonComplete(currentLesson) ? 'i-lucide-check' : 'i-lucide-circle-check'"
+                    :label="currentLesson && isLessonComplete(currentLesson) ? 'Completed' : 'Mark complete'"
+                    variant="soft"
+                    @click="currentLesson && library.toggleComplete(currentLesson)"
+                  />
+                  <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" variant="ghost" @click="requestLessonProgressReset" />
+                </div>
               </div>
 
               <div class="lesson-navigation">
@@ -953,5 +1096,15 @@ onUnmounted(() => {
         </section>
       </main>
     </div>
+
+    <UModal v-model:open="isProgressResetDialogOpen" :title="progressResetTitle" :description="progressResetDescription">
+      <template #body>
+        <p class="progress-reset-dialog-copy">Your media files stay untouched. Only the saved playback position and completion state will be removed.</p>
+      </template>
+      <template #footer>
+        <UButton color="neutral" label="Cancel" variant="ghost" :disabled="isResettingProgress" @click="cancelProgressReset" />
+        <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" :loading="isResettingProgress" @click="confirmProgressReset" />
+      </template>
+    </UModal>
   </div>
 </template>

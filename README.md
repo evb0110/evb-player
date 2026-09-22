@@ -32,6 +32,7 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 - The player supports play/pause, ten-second skip, seeking, volume, playback speed, and fullscreen for video.
 - Playback position is saved while a lesson is watched.
 - Lessons can be manually marked complete; ended lessons are completed automatically and advance to the next lesson when available.
+- Progress can be reset for the current lesson or the entire course; reset removes saved positions and completion state without touching media files.
 - Clicking a playlist row or the in-player previous/next buttons switches lessons and starts playback.
 - Course tabs and recently opened folders are retained.
 - Progress is stored in `~/Library/Application Support/Course Shelf/course-shelf-state.json`.
