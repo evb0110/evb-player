@@ -206,6 +206,11 @@ button:disabled {
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Leave exactly the playlist panel's bottom gap so a full panel never scrolls the page. */
+.workspace-course .main-content {
+  padding-bottom: 20px;
+}
+
 .library-sidebar {
   display: flex;
   flex-direction: column;
