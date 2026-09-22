@@ -1,23 +1,5 @@
 <template>
   <div class="course-shell">
-    <header class="app-header">
-      <div class="brand-lockup">
-        <div class="brand-mark"><UIcon name="i-lucide-play" /></div>
-        <span>Course Shelf</span>
-      </div>
-      <div class="header-context">Private media library</div>
-      <div class="header-spacer" />
-      <UButton color="neutral" icon="i-lucide-keyboard" variant="ghost" aria-label="Keyboard shortcuts" title="Keyboard shortcuts" @click="isShortcutsOpen = true" />
-      <UButton
-        color="primary"
-        icon="i-lucide-folder-open"
-        label="Open folder"
-        size="sm"
-        :loading="loading"
-        @click="library.openFolder"
-      />
-    </header>
-
     <nav class="tab-strip" aria-label="Open courses">
       <button
         class="app-tab"
@@ -43,6 +25,19 @@
         <button class="tab-close" type="button" :aria-label="`Close ${courseTab.name} tab`" title="Close tab" @click="closeCourse(courseTab.id)">
           <UIcon name="i-lucide-x" />
         </button>
+      </div>
+      <div class="tab-strip-actions">
+        <UButton
+          class="tab-strip-open-folder"
+          color="neutral"
+          icon="i-lucide-folder-plus"
+          variant="ghost"
+          aria-label="Add a course folder"
+          title="Add a course folder"
+          :loading="loading"
+          @click="library.openFolder"
+        />
+        <UButton color="neutral" icon="i-lucide-keyboard" variant="ghost" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)" @click="isShortcutsOpen = true" />
       </div>
     </nav>
 
@@ -94,14 +89,6 @@
         <div v-else class="sidebar-empty">
           <UIcon name="i-lucide-inbox" />
           <span>Folders you open will stay here.</span>
-        </div>
-
-        <div class="sidebar-footer">
-          <div class="sidebar-footer-icon"><UIcon name="i-lucide-hard-drive" /></div>
-          <div>
-            <strong>Local by design</strong>
-            <span>Nothing leaves this Mac.</span>
-          </div>
         </div>
       </aside>
 
@@ -444,7 +431,7 @@
       </template>
     </UModal>
 
-    <UModal v-model:open="isShortcutsOpen" title="Keyboard shortcuts" description="Available while a lesson is open. Typing in fields keeps its normal behavior.">
+    <UModal v-model:open="isShortcutsOpen" title="Keyboard shortcuts" description="Available while a lesson is open. Press ? anywhere to show this list. Typing in fields keeps its normal behavior.">
       <template #body>
         <dl class="shortcut-list">
           <div><dt>Play / pause</dt><dd>Space or K</dd></div>
@@ -1131,6 +1118,11 @@ function handleKeyboard(event: KeyboardEvent) {
     return;
   }
   if (target instanceof HTMLButtonElement && (event.code === 'Space' || event.key === 'Enter')) {
+    return;
+  }
+  if (event.key === '?') {
+    event.preventDefault();
+    isShortcutsOpen.value = true;
     return;
   }
   if (!currentLesson.value) {

@@ -80,53 +80,6 @@ button:disabled {
     var(--shell-background);
 }
 
-.app-header {
-  display: flex;
-  align-items: center;
-  height: 60px;
-  gap: 16px;
-  padding: 0 28px;
-  border-bottom: 1px solid var(--shell-border);
-  background: rgb(16 18 20 / 88%);
-  backdrop-filter: blur(18px);
-}
-
-.brand-lockup {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--shell-text);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.brand-mark {
-  display: grid;
-  width: 27px;
-  height: 27px;
-  place-items: center;
-  border: 1px solid rgb(240 120 78 / 46%);
-  border-radius: 9px;
-  color: var(--shell-accent);
-  background: var(--shell-accent-soft);
-}
-
-.brand-mark .iconify {
-  width: 14px;
-  height: 14px;
-  margin-left: 1px;
-}
-
-.header-context {
-  color: var(--shell-text-subtle);
-  font-size: 12px;
-}
-
-.header-spacer {
-  flex: 1;
-}
-
 .tab-strip {
   display: flex;
   align-items: stretch;
@@ -225,11 +178,27 @@ button:disabled {
   height: 12px;
 }
 
+.tab-strip-actions {
+  position: sticky;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding-left: 12px;
+  flex-shrink: 0;
+  background: #131618;
+}
+
+.tab-strip-open-folder {
+  display: none;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
   max-width: 1680px;
-  min-height: calc(100vh - 104px);
+  min-height: calc(100vh - 44px);
   margin: 0 auto;
 }
 
@@ -382,49 +351,6 @@ button:disabled {
   width: 16px;
   height: 16px;
   flex: none;
-}
-
-.sidebar-footer {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: auto;
-  padding: 14px 10px;
-  border-top: 1px solid var(--shell-border);
-  color: var(--shell-text-subtle);
-}
-
-.sidebar-footer-icon {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  flex: none;
-  place-items: center;
-  border: 1px solid rgb(121 197 162 / 22%);
-  border-radius: 7px;
-  color: var(--shell-green);
-  background: rgb(121 197 162 / 8%);
-}
-
-.sidebar-footer-icon .iconify {
-  width: 14px;
-  height: 14px;
-}
-
-.sidebar-footer div:last-child {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.sidebar-footer strong {
-  color: var(--shell-text-muted);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.sidebar-footer span {
-  font-size: 10px;
 }
 
 .main-content {
@@ -1308,8 +1234,8 @@ button:disabled {
 }
 
 @media (max-width: 900px) {
-  .app-header {
-    padding: 0 16px;
+  .tab-strip-open-folder {
+    display: inline-flex;
   }
 
   .workspace {
@@ -1335,16 +1261,6 @@ button:disabled {
 }
 
 @media (max-width: 650px) {
-  .app-header {
-    gap: 10px;
-    padding-right: 14px;
-    padding-left: 14px;
-  }
-
-  .header-context {
-    display: none;
-  }
-
   .main-content {
     padding: 25px 15px 44px;
   }
