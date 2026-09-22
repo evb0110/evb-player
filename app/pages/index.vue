@@ -41,8 +41,8 @@
       </div>
     </nav>
 
-    <div class="workspace">
-      <aside class="library-sidebar">
+    <div class="workspace" :class="{ 'workspace-course': !isLibraryActive }">
+      <aside v-if="isLibraryActive" class="library-sidebar">
         <div class="sidebar-title-row">
           <span>Folders</span>
           <span class="sidebar-count">{{ recentCourses.length }}</span>
@@ -166,6 +166,12 @@
 
           <div v-if="currentCourse.lessons.length" class="course-layout" :class="{ 'course-layout-theater': isTheaterMode }">
             <div class="player-column">
+              <div class="course-title-row">
+                <h1 :title="currentCourse.rootPath">{{ currentCourse.name }}</h1>
+                <UDropdownMenu :items="courseMenuItems" :content="{align: 'end'}">
+                  <UButton color="neutral" icon="i-lucide-ellipsis" variant="ghost" size="sm" aria-label="Course actions" title="Course actions" />
+                </UDropdownMenu>
+              </div>
               <div
                 ref="playerStageRef"
                 class="player-stage"
@@ -345,12 +351,6 @@
 
             <aside class="playlist-panel">
               <div class="playlist-header">
-                <div class="playlist-title-row">
-                  <h2 :title="currentCourse.rootPath">{{ currentCourse.name }}</h2>
-                  <UDropdownMenu :items="courseMenuItems" :content="{align: 'end'}">
-                    <UButton color="neutral" icon="i-lucide-ellipsis" variant="ghost" size="sm" aria-label="Course actions" title="Course actions" />
-                  </UDropdownMenu>
-                </div>
                 <div class="course-progress" :title="`${watchedCount} of ${currentCourse.lessons.length} lessons watched`">
                   <span class="course-progress-bar"><span :style="{width: `${courseProgress}%`}" /></span>
                   <span>{{ courseProgress }}% · {{ watchedCount }}/{{ currentCourse.lessons.length }}</span>
