@@ -1,9 +1,10 @@
 import {app, BrowserWindow, dialog, ipcMain, net, protocol, session, shell} from 'electron';
 import {createHash} from 'node:crypto';
-import {statSync} from 'node:fs';
+import {createReadStream, statSync} from 'node:fs';
 import {access, mkdir, readdir, readFile, realpath, stat, writeFile, rename} from 'node:fs/promises';
 import {basename, dirname, extname, join, relative, resolve, sep} from 'node:path';
 import {execFile} from 'node:child_process';
+import {Readable} from 'node:stream';
 import {promisify} from 'node:util';
 import {pathToFileURL} from 'node:url';
 import type {
@@ -56,6 +57,20 @@ const MEDIA_TYPES: Record<string, TMediaKind> = {
   '.ogv': 'video',
   '.webm': 'video',
   '.wmv': 'video',
+};
+
+const MEDIA_MIME_TYPES: Record<string, string> = {
+  '.aac': 'audio/aac',
+  '.flac': 'audio/flac',
+  '.m4a': 'audio/mp4',
+  '.mkv': 'video/x-matroska',
+  '.mov': 'video/quicktime',
+  '.mp3': 'audio/mpeg',
+  '.mp4': 'video/mp4',
+  '.ogg': 'audio/ogg',
+  '.opus': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.webm': 'video/webm',
 };
 
 protocol.registerSchemesAsPrivileged([{
@@ -269,6 +284,55 @@ async function isAllowedMediaPath(filePath: string) {
   return null;
 }
 
+function responseHeaders(filePath: string, size: number) {
+  return {
+    'Accept-Ranges': 'bytes',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-cache',
+    'Content-Length': String(size),
+    'Content-Type': MEDIA_MIME_TYPES[extname(filePath).toLowerCase()] ?? 'application/octet-stream',
+  };
+}
+
+function streamFile(filePath: string, start?: number, end?: number) {
+  return Readable.toWeb(createReadStream(filePath, {start, end})) as ReadableStream;
+}
+
+function parseByteRange(rangeHeader: string, size: number) {
+  const match = /^bytes=(\d*)-(\d*)$/u.exec(rangeHeader);
+  if (!match || (!match[1] && !match[2]) || size <= 0) {
+    return null;
+  }
+
+  const requestedStart = match[1] ? Number(match[1]) : null;
+  const requestedEnd = match[2] ? Number(match[2]) : null;
+  if (requestedStart !== null && !Number.isSafeInteger(requestedStart)) {
+    return null;
+  }
+  if (requestedEnd !== null && !Number.isSafeInteger(requestedEnd)) {
+    return null;
+  }
+
+  if (requestedStart === null) {
+    if (requestedEnd === null || requestedEnd <= 0) {
+      return null;
+    }
+    return {
+      start: Math.max(0, size - requestedEnd),
+      end: size - 1,
+    };
+  }
+
+  if (requestedStart >= size || (requestedEnd !== null && requestedStart > requestedEnd)) {
+    return null;
+  }
+
+  return {
+    start: requestedStart,
+    end: Math.min(requestedEnd ?? size - 1, size - 1),
+  };
+}
+
 async function handleMediaRequest(request: Request) {
   const requestUrl = new URL(request.url);
   const requestedPath = requestUrl.searchParams.get('path');
@@ -281,16 +345,37 @@ async function handleMediaRequest(request: Request) {
     return new Response('Media path is not available.', {status: 403});
   }
 
-  const response = await net.fetch(pathToFileURL(filePath).toString(), {
-    headers: request.headers,
-    method: request.method,
-  });
-  const headers = new Headers(response.headers);
-  headers.set('Cache-Control', 'no-cache');
-  headers.set('Access-Control-Allow-Origin', '*');
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
+  const fileSize = (await stat(filePath)).size;
+  const headers = responseHeaders(filePath, fileSize);
+  const rangeHeader = request.headers.get('range');
+  const method = request.method.toUpperCase();
+
+  if (rangeHeader) {
+    const range = parseByteRange(rangeHeader, fileSize);
+    if (!range) {
+      return new Response(null, {
+        status: 416,
+        headers: {
+          ...headers,
+          'Content-Length': '0',
+          'Content-Range': `bytes */${fileSize}`,
+        },
+      });
+    }
+
+    const contentLength = range.end - range.start + 1;
+    return new Response(method === 'HEAD' ? null : streamFile(filePath, range.start, range.end), {
+      status: 206,
+      headers: {
+        ...headers,
+        'Content-Length': String(contentLength),
+        'Content-Range': `bytes ${range.start}-${range.end}/${fileSize}`,
+      },
+    });
+  }
+
+  return new Response(method === 'HEAD' ? null : streamFile(filePath), {
+    status: 200,
     headers,
   });
 }
