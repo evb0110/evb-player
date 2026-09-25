@@ -157,7 +157,7 @@
                 ref="playerStageRef"
                 class="player-stage"
                 :class="{
-                  'player-stage-window-fullscreen': isFullscreen,
+                  'player-stage-window-fullscreen': isFullscreen || isFullWindow,
                   'player-stage-controls-hidden': !areControlsVisible,
                 }"
                 tabindex="0"
@@ -228,6 +228,9 @@
                 <div class="player-topline">
                   <div class="player-view-controls">
                     <button class="player-icon-button" type="button" :aria-pressed="isTheaterMode" :aria-label="isTheaterMode ? 'Exit theater mode' : 'Theater mode'" :title="isTheaterMode ? 'Exit theater mode (T)' : 'Theater mode (T)'" @click="toggleTheaterMode"><UIcon name="i-lucide-panel-top" /></button>
+                    <button v-if="!isFullscreen" class="player-icon-button" type="button" :aria-pressed="isFullWindow" :aria-label="isFullWindow ? 'Exit full window' : 'Full window'" :title="isFullWindow ? 'Exit full window (W)' : 'Full window (W)'" @click="toggleFullWindow">
+                      <UIcon :name="isFullWindow ? 'i-lucide-shrink' : 'i-lucide-expand'" />
+                    </button>
                     <button v-if="currentLesson?.kind === 'video' || isFullscreen" class="player-icon-button" type="button" :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'" :title="isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'" @click="toggleFullscreen">
                       <UIcon :name="isFullscreen ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'" />
                     </button>
@@ -390,6 +393,7 @@
           <div><dt>Back / forward 5 seconds</dt><dd>← / →</dd></div>
           <div><dt>Volume / mute</dt><dd>↑ / ↓ · M</dd></div>
           <div><dt>Fullscreen / theater</dt><dd>F / T</dd></div>
+          <div><dt>Full window</dt><dd>W</dd></div>
           <div><dt>Previous / next lesson</dt><dd>Shift + P / N</dd></div>
           <div><dt>Seek to 0–90%</dt><dd>0–9</dd></div>
           <div><dt>Slower / faster</dt><dd>&lt; / &gt;</dd></div>
@@ -446,6 +450,7 @@ const isBuffering = ref(false);
 const isShortcutsOpen = ref(false);
 const isFullscreen = ref(false);
 const isTheaterMode = ref(false);
+const isFullWindow = ref(false);
 const areControlsVisible = ref(true);
 const isPlayerFocused = ref(false);
 const autoplayLessonId = ref<string | null>(null);
@@ -957,6 +962,12 @@ function toggleTheaterMode() {
   showPlayerControls();
 }
 
+function toggleFullWindow() {
+  if (isLibraryActive.value && !isFullWindow.value) return;
+  isFullWindow.value = !isFullWindow.value;
+  showPlayerControls();
+}
+
 async function toggleFullscreen() {
   if (isLibraryActive.value && !isFullscreen.value) return;
   if (currentLesson.value?.kind !== 'video' && !isFullscreen.value) {
@@ -1173,6 +1184,8 @@ function handleKeyboard(event: KeyboardEvent) {
     navigateLesson(-1);
   } else if (isKey('t')) {
     toggleTheaterMode();
+  } else if (isKey('w')) {
+    toggleFullWindow();
   } else if (isGreaterThan) {
     adjustPlaybackRate(1);
   } else if (isLessThan) {
@@ -1183,6 +1196,8 @@ function handleKeyboard(event: KeyboardEvent) {
     frameStep(1);
   } else if (isEscape && isFullscreen.value) {
     void toggleFullscreen();
+  } else if (isEscape && isFullWindow.value) {
+    toggleFullWindow();
   } else {
     handled = false;
   }
@@ -1220,6 +1235,7 @@ watch([() => currentCourse.value?.id, () => currentLesson.value?.id], async ([co
       }
       isFullscreen.value = false;
     }
+    isFullWindow.value = false;
     return;
   }
   if (!courseId || !lessonId) {
@@ -1319,9 +1335,10 @@ async function retryProgressWrites() {
 }
 
 watch(() => currentCourse.value?.id, () => {search.value = '';});
+watch(isLibraryActive, (libraryActive) => {if (libraryActive) isFullWindow.value = false;});
 watch(search, async () => {if (!search.value) {await nextTick(); revealCurrentLesson();}});
 
-watch(isFullscreen, syncFullscreenDocumentClass);
+watch(() => isFullscreen.value || isFullWindow.value, syncFullscreenDocumentClass);
 
 onMounted(async () => {
   document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -1333,7 +1350,7 @@ onMounted(async () => {
       isFullscreen.value = fullscreen;
     });
   }
-  syncFullscreenDocumentClass(isFullscreen.value);
+  syncFullscreenDocumentClass(isFullscreen.value || isFullWindow.value);
   await library.load();
 });
 

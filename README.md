@@ -30,7 +30,7 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 - Videos and common audio formats are supported.
 - The folder is scanned recursively and lessons are sorted by numeric filename prefixes such as `0001.`.
 - The player supports play/pause, ten-second skip, seeking, volume, playback speed, and fullscreen for video.
-- Volume and playback speed are remembered between launches. Theater mode expands the player; the keyboard button lists available shortcuts.
+- Volume and playback speed are remembered between launches. Theater mode expands the player; full window fills the app window with the player and hides the tabs and course panels, while the window's title bar stays; the keyboard button lists available shortcuts.
 - Playback position is saved while a lesson is watched.
 - Lessons can be manually marked complete; ended lessons are completed automatically and advance to the next lesson when available.
 - Every playlist row has a reset-progress button, including tracks that are not selected. Resetting another track does not interrupt playback. Confirmed resets clear only saved positions and completion state, never media files; a separate button resets the entire course.
@@ -47,7 +47,7 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 ### Keyboard shortcuts
 
 - `Space` or `K`: play/pause; `J`/`L`: seek 10 seconds; `←`/`→`: seek 5 seconds.
-- `↑`/`↓`: volume; `M`: mute; `F`: fullscreen; `T`: theater mode.
+- `↑`/`↓`: volume; `M`: mute; `F`: fullscreen; `T`: theater mode; `W`: full window (`Esc` also exits).
 - `0`–`9`, `Home`, `End`: seek; `Shift+N`/`Shift+P`: next/previous lesson.
 - `<`/`>`: playback speed; `,`/`.`: frame step while paused.
 
