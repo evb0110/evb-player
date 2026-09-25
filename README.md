@@ -51,4 +51,4 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 - `0`–`9`, `Home`, `End`: seek; `Shift+N`/`Shift+P`: next/previous lesson.
 - `<`/`>`: playback speed; `,`/`.`: frame step while paused.
 
-The main process owns the local media protocol and progress file. The renderer never receives Node.js access or arbitrary filesystem APIs.
+Icons are bundled into the app, so the interface is complete offline. The main process owns the local media protocol and progress file. The renderer never receives Node.js access or arbitrary filesystem APIs.

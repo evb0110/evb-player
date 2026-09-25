@@ -4,6 +4,11 @@ export default defineNuxtConfig({
   ssr: false,
   devtools: {enabled: false},
   colorMode: {preference: 'dark', fallback: 'dark'},
+  // Ship every icon inside the app. The default provider for ssr: false fetches icons from the Iconify API at runtime.
+  icon: {
+    provider: 'none',
+    clientBundle: {scan: {globInclude: ['app/**/*.{vue,ts}']}},
+  },
   compatibilityDate: '2026-09-22',
   app: {
     baseURL: process.env.COURSE_SHELF_DEV_SERVER_URL ? '/' : './',
