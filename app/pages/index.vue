@@ -27,16 +27,6 @@
         </button>
       </div>
       <div class="tab-strip-actions">
-        <UButton
-          class="tab-strip-open-folder"
-          color="neutral"
-          icon="i-lucide-folder-plus"
-          variant="ghost"
-          aria-label="Add a course folder"
-          title="Add a course folder"
-          :loading="loading"
-          @click="library.openFolder"
-        />
         <UButton color="neutral" icon="i-lucide-keyboard" variant="ghost" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)" @click="isShortcutsOpen = true" />
       </div>
     </nav>
@@ -47,16 +37,6 @@
           <span>Folders</span>
           <span class="sidebar-count">{{ recentCourses.length }}</span>
         </div>
-
-        <UButton
-          block
-          color="neutral"
-          icon="i-lucide-folder-plus"
-          label="Add a course folder"
-          variant="soft"
-          :disabled="loading"
-          @click="library.openFolder"
-        />
 
         <div v-if="recentCourses.length" class="recent-course-list">
           <div
@@ -125,6 +105,7 @@
         <section v-if="isLibraryActive && !loading && recentCourses.length" class="library-view">
           <div class="library-heading">
             <h1>Your courses</h1>
+            <UButton color="primary" icon="i-lucide-folder-plus" label="Add course" @click="library.openFolder" />
           </div>
           <div class="course-grid">
             <article v-for="course in recentCourses" :key="course.id" class="course-card">

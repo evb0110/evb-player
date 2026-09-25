@@ -190,10 +190,6 @@ button:disabled {
   background: #131618;
 }
 
-.tab-strip-open-folder {
-  display: none;
-}
-
 .workspace {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -1156,10 +1152,6 @@ button:disabled {
 }
 
 @media (max-width: 900px) {
-  .tab-strip-open-folder {
-    display: inline-flex;
-  }
-
   .workspace {
     display: block;
   }
@@ -1229,8 +1221,15 @@ button:disabled {
   flex-shrink: 0;
 }
 
+.library-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .library-heading h1 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 28px;
   font-weight: 700;
 }

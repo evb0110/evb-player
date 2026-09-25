@@ -37,7 +37,7 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 - Clicking a playlist row or the in-player previous/next buttons switches lessons and starts playback.
 - Several courses can be open in tabs. Recent folders and the last opened course are restored on launch.
 - Use the × beside a folder in the sidebar to remove it from the collection and close its tab. Media files and saved progress are kept; opening the folder again restores its progress.
-- The Library tab shows recent courses with quick reopen and removal. Removal offers an Undo action.
+- The Library tab shows recent courses with quick reopen and removal. Removal offers an Undo action. Add course in the Library heading opens a folder chooser to add another course.
 - Switching to Library keeps the current lesson playing and advancing through the playlist. A compact player offers play/pause and a return to the course. Selecting another course switches the player; closing or removing the playing course stops it.
 - Show in Finder is available in each Library card and the course heading, and reveals the course folder without changing playback.
 - Missing or unsupported media shows an explanation, a retry button, and an option to open the file in the default media app. Opening another folder does not interrupt the active lesson unless the new course opens successfully.
