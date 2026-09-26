@@ -1,15 +1,15 @@
 <template>
   <div class="folder-shell">
-    <nav class="tab-strip" aria-label="Open folders">
+    <nav class="tab-strip" :aria-label="t('library.openFolders')">
       <button
-        class="app-tab"
+        class="app-tab app-tab-library"
         :class="{ 'app-tab-active': activeTab === 'library' }"
         type="button"
         :aria-current="activeTab === 'library' ? 'page' : undefined"
         @click="library.setActiveTab('library')"
       >
         <UIcon name="i-lucide-library" />
-        <span>Library</span>
+        <span>{{ t('library.library') }}</span>
       </button>
       <div
         v-for="folderTab in visibleFolderTabs"
@@ -18,23 +18,29 @@
         :class="{ 'app-tab-active': activeTab === folderTab.id }"
       >
         <button class="tab-select" type="button" :title="folderTab.name" :aria-current="activeTab === folderTab.id ? 'page' : undefined" @click="library.setActiveTab(folderTab.id)">
-          <UIcon v-if="currentFolder?.id === folderTab.id && isPlaying" name="i-lucide-volume-2" aria-label="Playing" />
+          <UIcon v-if="currentFolder?.id === folderTab.id && isPlaying" name="i-lucide-volume-2" :aria-label="t('library.playing')" />
           <span v-else class="tab-folder-dot" />
           <span class="tab-label">{{ folderTab.name }}</span>
         </button>
-        <button class="tab-close" type="button" :aria-label="`Close ${folderTab.name} tab`" title="Close tab" @click="closeFolder(folderTab.id)">
+        <button class="tab-close" type="button" :aria-label="t('library.closeTab', {name: folderTab.name})" :title="t('library.closeTab', {name: folderTab.name})" @click="closeFolder(folderTab.id)">
           <UIcon name="i-lucide-x" />
         </button>
       </div>
       <div class="tab-strip-actions">
-        <UButton color="neutral" icon="i-lucide-keyboard" variant="ghost" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)" @click="isShortcutsOpen = true" />
+        <UDropdownMenu :items="themeMenuItems" :content="{align: 'end'}">
+          <UButton color="neutral" :icon="themeIcon" variant="ghost" :aria-label="t('settings.theme')" :title="t('settings.theme')" />
+        </UDropdownMenu>
+        <UDropdownMenu :items="languageMenuItems" :content="{align: 'end'}">
+          <UButton color="neutral" :icon="languageFlag" variant="ghost" :aria-label="t('settings.language')" :title="t('settings.language')" />
+        </UDropdownMenu>
+        <UButton color="neutral" icon="i-lucide-keyboard" variant="ghost" :aria-label="t('player.keyboardShortcuts')" :title="t('player.keyboardShortcuts')" @click="isShortcutsOpen = true" />
       </div>
     </nav>
 
     <div class="workspace" :class="{ 'workspace-folder': !isLibraryActive }">
       <aside v-if="isLibraryActive" class="library-sidebar">
         <div class="sidebar-title-row">
-          <span>Folders</span>
+          <span>{{ t('library.folders') }}</span>
           <span class="sidebar-count">{{ recentFolders.length }}</span>
         </div>
 
@@ -49,15 +55,15 @@
               <span class="recent-folder-icon"><UIcon name="i-lucide-folder" /></span>
               <span class="recent-folder-copy">
                 <strong>{{ recentFolder.name }}</strong>
-                <small>{{ recentFolder.mediaCount }} {{ recentFolder.mediaCount === 1 ? 'lesson' : 'lessons' }}</small>
+                <small>{{ formatLessonCount(recentFolder.mediaCount) }}</small>
               </span>
               <UIcon class="recent-folder-arrow" name="i-lucide-chevron-right" />
             </button>
             <button
               class="recent-folder-remove"
               type="button"
-              :aria-label="`Remove ${recentFolder.name} from collection`"
-              title="Remove from collection"
+              :aria-label="t('library.removeFromCollection', {name: recentFolder.name})"
+              :title="t('library.removeFolder')"
               :disabled="loading"
               @click="removeFolder(recentFolder)"
             >
@@ -71,13 +77,13 @@
         <div v-if="error" class="error-banner" role="alert">
           <UIcon name="i-lucide-circle-alert" />
           <span>{{ error }}</span>
-          <UButton color="neutral" icon="i-lucide-x" aria-label="Dismiss error" variant="ghost" @click="error = ''" />
+          <UButton color="neutral" icon="i-lucide-x" :aria-label="t('library.dismissError')" variant="ghost" @click="error = ''" />
         </div>
 
         <div v-if="library.progressError.value" class="error-banner" role="alert">
           <UIcon name="i-lucide-save-off" />
-          <span>Saved progress could not be updated. {{ library.progressError.value }}</span>
-          <UButton label="Retry update" color="neutral" variant="soft" :loading="isRetryingProgress" @click="retryProgressWrites" />
+          <span>{{ t('library.savedProgressError') }} {{ library.progressError.value }}</span>
+          <UButton :label="t('library.retryUpdate')" color="neutral" variant="soft" :loading="isRetryingProgress" @click="retryProgressWrites" />
         </div>
 
         <div v-if="loading && !isLibraryActive" class="loading-banner" role="status">
@@ -90,22 +96,22 @@
           <span>{{ library.loadingMessage.value }}</span>
         </div>
 
-        <section v-if="isLibraryActive && currentFolder && currentLesson" class="library-player" aria-label="Current playback">
-          <button class="play-button" type="button" :aria-label="isPlaying ? 'Pause' : 'Play'" @click="togglePlayback">
+        <section v-if="isLibraryActive && currentFolder && currentLesson" class="library-player" :aria-label="t('library.currentPlayback')">
+          <button class="play-button" type="button" :aria-label="isPlaying ? t('player.pause') : t('player.play')" @click="togglePlayback">
             <UIcon :name="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'" />
           </button>
           <div class="library-player-copy">
-            <span>{{ playbackError ? 'Playback unavailable' : isPlaying ? 'Now playing' : 'Paused' }} · {{ currentFolder.name }}</span>
+            <span>{{ playbackError ? t('library.playbackUnavailable') : isPlaying ? t('library.nowPlaying') : t('library.paused') }} · {{ currentFolder.name }}</span>
             <strong>{{ currentLesson.title }}</strong>
             <small>{{ formatDuration(currentTime) }} / {{ formatDuration(mediaDuration) }}</small>
           </div>
-          <UButton color="neutral" icon="i-lucide-arrow-up-right" label="Back to player" variant="soft" @click="library.setActiveTab(currentFolder.id)" />
+          <UButton color="neutral" icon="i-lucide-arrow-up-right" :label="t('library.backToPlayer')" variant="soft" @click="library.setActiveTab(currentFolder.id)" />
         </section>
 
         <section v-if="isLibraryActive && !loading && recentFolders.length" class="library-view">
           <div class="library-heading">
-            <h1>Your folders</h1>
-            <UButton color="primary" icon="i-lucide-folder-plus" label="Add folder" @click="library.openFolder" />
+            <h1>{{ t('library.yourFolders') }}</h1>
+            <UButton color="primary" icon="i-lucide-folder-plus" :label="t('library.addFolder')" @click="library.openFolder" />
           </div>
           <div class="folder-grid">
             <article v-for="folder in recentFolders" :key="folder.id" class="folder-card">
@@ -113,10 +119,10 @@
                 <UIcon name="i-lucide-folder" />
                 <strong>{{ folder.name }}</strong>
                 <span :title="folder.rootPath">{{ folder.rootPath }}</span>
-                <small>{{ folder.mediaCount }} {{ folder.mediaCount === 1 ? 'lesson' : 'lessons' }}</small>
+                <small>{{ formatLessonCount(folder.mediaCount) }}</small>
               </button>
-              <UButton class="folder-card-reveal" color="neutral" icon="i-lucide-folder-search" label="Show in folder" variant="ghost" @click="revealFolder(folder.rootPath)" />
-              <button class="folder-card-remove" type="button" :aria-label="`Remove ${folder.name} from collection`" title="Remove from collection" @click="removeFolder(folder)"><UIcon name="i-lucide-x" /></button>
+              <UButton class="folder-card-reveal" color="neutral" icon="i-lucide-folder-search" :label="t('library.showInFolder')" variant="ghost" @click="revealFolder(folder.rootPath)" />
+              <button class="folder-card-remove" type="button" :aria-label="t('library.removeFromCollection', {name: folder.name})" :title="t('library.removeFolder')" @click="removeFolder(folder)"><UIcon name="i-lucide-x" /></button>
             </article>
           </div>
         </section>
@@ -127,21 +133,25 @@
             <div class="welcome-art-ring welcome-art-ring-inner" />
             <UIcon name="i-lucide-play" />
           </div>
-          <h1>Your library</h1>
+          <h1>{{ t('library.yourLibrary') }}</h1>
           <p class="welcome-copy">
-            Choose a folder of videos or audio files.
+            {{ t('library.chooseFolderHint') }}
           </p>
-          <UButton color="primary" icon="i-lucide-folder-open" label="Choose a folder" size="lg" @click="library.openFolder" />
+          <UButton color="primary" icon="i-lucide-folder-open" :label="t('library.chooseFolder')" size="lg" @click="library.openFolder" />
         </section>
+
+        <footer v-if="isLibraryActive && !loading" class="library-footer">
+          {{ t('footer.copyright') }} © 2026 Eugene Barsky · <a href="https://evb-stack.com" target="_blank" rel="noreferrer">evb-stack.com</a>
+        </footer>
 
         <section v-if="currentFolder" v-show="!isLibraryActive" class="folder-view">
           <div v-if="!currentFolder.lessons.length" class="empty-folder" role="status">
             <UIcon name="i-lucide-folder-search" />
-            <h2>No lessons found</h2>
-            <p>Choose a folder containing video or audio files. Subfolders are included.</p>
+            <h2>{{ t('library.noLessonsFound') }}</h2>
+            <p>{{ t('library.emptyFolderHint') }}</p>
             <div class="empty-folder-actions">
-              <UButton color="primary" icon="i-lucide-folder-open" label="Choose another folder" @click="library.openFolder" />
-              <UButton color="neutral" icon="i-lucide-folder-search" label="Show in folder" variant="ghost" @click="revealFolder(currentFolder.rootPath)" />
+              <UButton color="primary" icon="i-lucide-folder-open" :label="t('library.chooseAnotherFolder')" @click="library.openFolder" />
+              <UButton color="neutral" icon="i-lucide-folder-search" :label="t('library.showInFolder')" variant="ghost" @click="revealFolder(currentFolder.rootPath)" />
             </div>
           </div>
 
@@ -150,7 +160,7 @@
               <div class="folder-title-row">
                 <h1 :title="currentFolder.rootPath">{{ currentFolder.name }}</h1>
                 <UDropdownMenu :items="folderMenuItems" :content="{align: 'end'}">
-                  <UButton color="neutral" icon="i-lucide-ellipsis" variant="ghost" size="sm" aria-label="Folder actions" title="Folder actions" />
+                <UButton color="neutral" icon="i-lucide-ellipsis" variant="ghost" size="sm" :aria-label="t('library.folderActions')" :title="t('library.folderActions')" />
                 </UDropdownMenu>
               </div>
               <div
@@ -195,7 +205,7 @@
                   <div class="audio-orbit audio-orbit-small" />
                   <div class="audio-glyph"><UIcon name="i-lucide-headphones" /></div>
                   <div class="audio-stage-copy">
-                    <span>Audio lesson</span>
+                    <span>{{ t('library.audioLesson') }}</span>
                     <strong>{{ currentLesson?.title }}</strong>
                   </div>
                   <audio
@@ -220,19 +230,19 @@
                   <UIcon name="i-lucide-circle-alert" />
                   <p>{{ playbackError }}</p>
                   <div>
-                    <UButton label="Try again" color="primary" @click="retryPlayback" />
-                    <UButton label="Open in default app" color="neutral" variant="soft" @click="openMediaExternally" />
+                    <UButton :label="t('player.tryAgain')" color="primary" @click="retryPlayback" />
+                    <UButton :label="t('player.openDefaultApp')" color="neutral" variant="soft" @click="openMediaExternally" />
                   </div>
                 </div>
-                <div v-else-if="isBuffering" class="buffering-indicator" role="status" aria-label="Buffering"><UIcon class="spin" name="i-lucide-loader-circle" /></div>
+                <div v-else-if="isBuffering" class="buffering-indicator" role="status" :aria-label="t('player.buffering')"><UIcon class="spin" name="i-lucide-loader-circle" /></div>
 
                 <div class="player-topline">
                   <div class="player-view-controls">
                     <button class="player-icon-button" type="button" :aria-expanded="isSidePlaylistVisible" :aria-label="playlistToggleLabel" :title="`${playlistToggleLabel} (T)`" @click="togglePlaylistPanel"><UIcon :name="isSidePlaylistVisible ? 'i-lucide-panel-right-close' : 'i-lucide-panel-right-open'" /></button>
-                    <button v-if="!isFullscreen" class="player-icon-button" type="button" :aria-pressed="isFullWindow" :aria-label="isFullWindow ? 'Exit full window' : 'Full window'" :title="isFullWindow ? 'Exit full window (W)' : 'Full window (W)'" @click="toggleFullWindow">
+                    <button v-if="!isFullscreen" class="player-icon-button player-full-window" type="button" :aria-pressed="isFullWindow" :aria-label="isFullWindow ? t('player.fullWindowExit') : t('player.fullWindow')" :title="isFullWindow ? `${t('player.fullWindowExit')} (W)` : `${t('player.fullWindow')} (W)`" @click="toggleFullWindow">
                       <UIcon :name="isFullWindow ? 'i-lucide-shrink' : 'i-lucide-expand'" />
                     </button>
-                    <button v-if="currentLesson?.kind === 'video' || isFullscreen" class="player-icon-button" type="button" :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'" :title="isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'" @click="toggleFullscreen">
+                    <button v-if="currentLesson?.kind === 'video' || isFullscreen" class="player-icon-button" type="button" :aria-label="isFullscreen ? t('player.fullscreenExit') : t('player.fullscreen')" :title="isFullscreen ? `${t('player.fullscreenExit')} (F)` : `${t('player.fullscreen')} (F)`" @click="toggleFullscreen">
                       <UIcon :name="isFullscreen ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'" />
                     </button>
                   </div>
@@ -245,8 +255,8 @@
                     min="0"
                     step="0.1"
                     type="range"
-                    aria-label="Seek"
-                    :aria-valuetext="`${formatDuration(currentTime)} of ${formatDuration(mediaDuration)}`"
+                    :aria-label="t('player.seek')"
+                    :aria-valuetext="t('player.seekValue', {current: formatDuration(currentTime), duration: formatDuration(mediaDuration)})"
                     :disabled="!loadedDuration || Boolean(playbackError)"
                     :value="currentTime"
                     :style="{'--range-fill': `${seekPercent}%`}"
@@ -254,14 +264,14 @@
                   >
                   <div class="player-control-row">
                     <div class="player-control-group">
-                      <button class="play-button" type="button" :aria-label="isPlaying ? 'Pause' : 'Play'" :title="isPlaying ? 'Pause (Space)' : 'Play (Space)'" @click="togglePlayback">
+                      <button class="play-button" type="button" :aria-label="isPlaying ? t('player.pause') : t('player.play')" :title="isPlaying ? t('player.pauseWithSpace') : t('player.playWithSpace')" @click="togglePlayback">
                         <UIcon :name="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'" />
                       </button>
                       <button
                         class="player-icon-button"
                         type="button"
-                        :title="previousLesson ? `Previous: ${previousLesson.title} (Shift+P)` : 'Previous track'"
-                        aria-label="Previous track"
+                        :title="previousLesson ? t('player.previousLesson', {name: previousLesson.title}) : t('player.previousTrack')"
+                        :aria-label="t('player.previousTrack')"
                         :disabled="!hasPreviousLesson"
                         @click="navigateLesson(-1)"
                       >
@@ -270,29 +280,29 @@
                       <button
                         class="player-icon-button"
                         type="button"
-                        :title="nextLesson ? `Next: ${nextLesson.title} (Shift+N)` : 'Next track'"
-                        aria-label="Next track"
+                        :title="nextLesson ? t('player.nextLesson', {name: nextLesson.title}) : t('player.nextTrack')"
+                        :aria-label="t('player.nextTrack')"
                         :disabled="!hasNextLesson"
                         @click="navigateLesson(1)"
                       >
                         <UIcon name="i-lucide-skip-forward" />
                       </button>
-                      <button class="player-icon-button" title="Back 10 seconds (J)" aria-label="Back 10 seconds" type="button" @click="skip(-10)">
+                      <button class="player-icon-button" :title="t('player.backTenSecondsTitle')" :aria-label="t('player.backTenSeconds')" type="button" @click="skip(-10)">
                         <UIcon name="i-lucide-rotate-ccw" />
                         <span class="skip-label">10</span>
                       </button>
-                      <button class="player-icon-button" title="Forward 10 seconds (L)" aria-label="Forward 10 seconds" type="button" @click="skip(10)">
+                      <button class="player-icon-button" :title="t('player.forwardTenSecondsTitle')" :aria-label="t('player.forwardTenSeconds')" type="button" @click="skip(10)">
                         <UIcon name="i-lucide-rotate-cw" />
                         <span class="skip-label">10</span>
                       </button>
                       <span class="player-time">{{ formatDuration(currentTime) }} / {{ formatDuration(mediaDuration) }}</span>
                     </div>
                     <div class="player-control-group">
-                      <button class="player-icon-button player-volume-button" type="button" :aria-label="volume === 0 ? 'Unmute' : 'Mute'" :title="volume === 0 ? 'Unmute' : 'Mute'" @click="toggleMute">
+                      <button class="player-icon-button player-volume-button" type="button" :aria-label="volume === 0 ? t('player.unmute') : t('player.mute')" :title="volume === 0 ? t('player.unmute') : t('player.mute')" @click="toggleMute">
                         <UIcon class="volume-icon" :name="volumeIcon" />
                       </button>
-                      <input class="volume-range" max="1" min="0" step="0.05" type="range" aria-label="Volume" :value="volume" :style="{'--range-fill': `${volume * 100}%`}" @input="setVolume">
-                      <select class="speed-select" :value="playbackRate" aria-label="Playback speed" @change="setPlaybackRate">
+                      <input class="volume-range" max="1" min="0" step="0.05" type="range" :aria-label="t('player.volume')" :value="volume" :style="{'--range-fill': `${volume * 100}%`}" @input="setVolume">
+                      <select class="speed-select" :value="playbackRate" :aria-label="t('player.playbackSpeed')" @change="setPlaybackRate">
                         <option :value="0.75">0.75×</option>
                         <option :value="1">1×</option>
                         <option :value="1.25">1.25×</option>
@@ -306,7 +316,7 @@
 
               <div class="lesson-heading">
                 <div>
-                  <p class="lesson-kicker">LESSON {{ String(currentLesson?.sequence ?? 0).padStart(2, '0') }}</p>
+                  <p class="lesson-kicker">{{ t('library.lessonKicker', {number: formatLessonNumber(currentLesson?.sequence ?? 0)}) }}</p>
                   <h2>{{ currentLesson?.title }}</h2>
                   <p>{{ currentLesson?.relativePath }}</p>
                 </div>
@@ -314,29 +324,29 @@
                   <UButton
                     :color="currentLesson && isLessonComplete(currentLesson) ? 'success' : 'neutral'"
                     :icon="currentLesson && isLessonComplete(currentLesson) ? 'i-lucide-check' : 'i-lucide-circle-check'"
-                    :label="currentLesson && isLessonComplete(currentLesson) ? 'Completed' : 'Mark complete'"
+                    :label="currentLesson && isLessonComplete(currentLesson) ? t('library.completed') : t('library.markComplete')"
                     variant="soft"
                     @click="currentLesson && library.toggleComplete(currentLesson)"
                   />
-                  <UButton v-if="currentLesson && hasLessonProgress(currentLesson)" color="error" icon="i-lucide-rotate-ccw" label="Reset progress" variant="ghost" @click="requestLessonProgressReset(currentLesson)" />
+                  <UButton v-if="currentLesson && hasLessonProgress(currentLesson)" color="error" icon="i-lucide-rotate-ccw" :label="t('player.resetProgress')" variant="ghost" @click="requestLessonProgressReset(currentLesson)" />
                 </div>
               </div>
             </div>
 
             <aside class="playlist-panel" :class="{ 'playlist-panel-immersive': isImmersive && isImmersivePlaylistOpen }">
               <div class="playlist-header">
-                <div class="folder-progress" :title="`${watchedCount} of ${currentFolder.lessons.length} lessons watched`">
+                <div class="folder-progress" :title="watchedProgressTitle">
                   <span class="folder-progress-bar"><span :style="{width: `${folderProgress}%`}" /></span>
-                  <span>{{ folderProgress }}% · {{ watchedCount }}/{{ currentFolder.lessons.length }}</span>
+                  <span>{{ formatPercent(folderProgress) }} · {{ formatNumber(watchedCount) }}/{{ formatNumber(currentFolder.lessons.length) }}</span>
                 </div>
                 <p class="folder-meta">{{ folderMeta }}</p>
               </div>
-              <UInput v-model="search" class="playlist-search" icon="i-lucide-search" type="search" aria-label="Search lessons" placeholder="Search lessons" size="md" />
+              <UInput v-model="search" class="playlist-search" icon="i-lucide-search" type="search" :aria-label="t('playlist.searchPlaceholder')" :placeholder="t('playlist.searchPlaceholder')" size="md" />
 
               <div ref="playlistRef" class="playlist-scroll">
                 <div v-if="!filteredLessons.length" class="playlist-empty">
                   <UIcon name="i-lucide-search-x" />
-                  <span>No lessons match this search.</span>
+                  <span>{{ t('playlist.noMatches') }}</span>
                 </div>
                 <div v-for="group in lessonGroups" :key="group.section" class="lesson-group">
                   <div v-if="lessonGroups.length > 1" class="section-heading">{{ group.section }}</div>
@@ -350,8 +360,8 @@
                       class="lesson-row-done"
                       type="button"
                       :aria-pressed="isLessonComplete(lesson)"
-                      :aria-label="isLessonComplete(lesson) ? `Mark ${lesson.title} as not complete` : `Mark ${lesson.title} as complete`"
-                      :title="isLessonComplete(lesson) ? 'Mark as not complete' : 'Mark as complete'"
+                      :aria-label="isLessonComplete(lesson) ? t('library.markLessonIncomplete', {name: lesson.title}) : t('library.markLessonComplete', {name: lesson.title})"
+                      :title="isLessonComplete(lesson) ? t('library.markAsIncomplete') : t('library.markAsComplete')"
                       @click="library.toggleComplete(lesson)"
                     >
                       <UIcon v-if="isLessonComplete(lesson)" class="lesson-row-done-idle lesson-row-done-check" name="i-lucide-check" />
@@ -361,18 +371,18 @@
                     <button class="lesson-row-select" type="button" :aria-current="currentLesson?.id === lesson.id ? 'true' : undefined" :title="lesson.relativePath" @click="handleLessonRowClick(lesson)">
                       <span class="lesson-row-copy">
                         <strong>{{ lesson.title }}</strong>
-                        <small>{{ lesson.kind === 'audio' ? 'Audio · ' : '' }}{{ formatDuration(library.lessonProgress(currentFolder.id, lesson.id)?.duration || lesson.duration) }}</small>
+                        <small>{{ lesson.kind === 'audio' ? `${t('playlist.audio')} · ` : '' }}{{ formatDuration(library.lessonProgress(currentFolder.id, lesson.id)?.duration || lesson.duration) }}</small>
                         <span class="lesson-row-progress" :class="{ 'lesson-row-progress-empty': !progressForLesson(lesson) }"><span :style="{width: `${progressForLesson(lesson)}%`}" /></span>
                       </span>
                       <template v-if="currentLesson?.id === lesson.id">
                         <template v-if="isPlaying">
-                          <UIcon class="lesson-row-playing lesson-row-playing-idle" name="i-lucide-volume-2" aria-label="Playing" />
-                          <UIcon class="lesson-row-playing lesson-row-playing-hover" name="i-lucide-pause" aria-label="Pause" />
+                          <UIcon class="lesson-row-playing lesson-row-playing-idle" name="i-lucide-volume-2" :aria-label="t('library.playing')" />
+                          <UIcon class="lesson-row-playing lesson-row-playing-hover" name="i-lucide-pause" :aria-label="t('player.pause')" />
                         </template>
-                        <UIcon v-else class="lesson-row-playing" name="i-lucide-play" aria-label="Play" />
+                        <UIcon v-else class="lesson-row-playing" name="i-lucide-play" :aria-label="t('player.play')" />
                       </template>
                     </button>
-                    <button v-if="hasLessonProgress(lesson)" class="lesson-row-reset" type="button" :aria-label="`Reset progress for ${lesson.title}`" :title="`Reset progress for ${lesson.title}`" @click="requestLessonProgressReset(lesson)">
+                    <button v-if="hasLessonProgress(lesson)" class="lesson-row-reset" type="button" :aria-label="t('library.resetLessonProgress', {name: lesson.title})" :title="t('library.resetLessonProgress', {name: lesson.title})" @click="requestLessonProgressReset(lesson)">
                       <UIcon name="i-lucide-rotate-ccw" />
                     </button>
                     <span v-else class="lesson-row-reset-space" />
@@ -387,27 +397,27 @@
 
     <UModal v-model:open="isProgressResetDialogOpen" :title="progressResetTitle" :description="progressResetDescription" :dismissible="!isResettingProgress" :close="!isResettingProgress">
       <template #body>
-        <p class="progress-reset-dialog-copy">Your media files stay untouched. Only the saved playback position and completion state will be removed.</p>
+        <p class="progress-reset-dialog-copy">{{ t('reset.body') }}</p>
       </template>
       <template #footer>
-        <UButton color="neutral" label="Cancel" variant="ghost" :disabled="isResettingProgress" @click="cancelProgressReset" />
-        <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" :loading="isResettingProgress" @click="confirmProgressReset" />
+        <UButton color="neutral" :label="t('reset.cancel')" variant="ghost" :disabled="isResettingProgress" @click="cancelProgressReset" />
+        <UButton color="error" icon="i-lucide-rotate-ccw" :label="t('reset.reset')" :loading="isResettingProgress" @click="confirmProgressReset" />
       </template>
     </UModal>
 
-    <UModal v-model:open="isShortcutsOpen" title="Keyboard shortcuts" description="Available while a lesson is open. Press ? to show this list.">
+    <UModal v-model:open="isShortcutsOpen" :title="t('shortcuts.title')" :description="t('shortcuts.description')">
       <template #body>
         <dl class="shortcut-list">
-          <div><dt>Play / pause</dt><dd>Space or K</dd></div>
-          <div><dt>Back / forward 10 seconds</dt><dd>J / L</dd></div>
-          <div><dt>Back / forward 5 seconds</dt><dd>← / →</dd></div>
-          <div><dt>Volume / mute</dt><dd>↑ / ↓ · M</dd></div>
-          <div><dt>Fullscreen / theater, or the playlist in full window</dt><dd>F / T</dd></div>
-          <div><dt>Full window</dt><dd>W</dd></div>
-          <div><dt>Previous / next lesson</dt><dd>Shift + P / N</dd></div>
-          <div><dt>Seek to 0–90%</dt><dd>0–9</dd></div>
-          <div><dt>Slower / faster</dt><dd>&lt; / &gt;</dd></div>
-          <div><dt>Frame back / forward (paused)</dt><dd>, / .</dd></div>
+          <div><dt>{{ t('shortcuts.playPause') }}</dt><dd>{{ t('shortcuts.keyPlayPause') }}</dd></div>
+          <div><dt>{{ t('shortcuts.seekTen') }}</dt><dd>{{ t('shortcuts.keySeekTen') }}</dd></div>
+          <div><dt>{{ t('shortcuts.seekFive') }}</dt><dd>{{ t('shortcuts.keySeekFive') }}</dd></div>
+          <div><dt>{{ t('shortcuts.volumeMute') }}</dt><dd>{{ t('shortcuts.keyVolumeMute') }}</dd></div>
+          <div><dt>{{ t('shortcuts.fullscreenTheater') }}</dt><dd>{{ t('shortcuts.keyFullscreenTheater') }}</dd></div>
+          <div><dt>{{ t('shortcuts.fullWindow') }}</dt><dd>{{ t('shortcuts.keyFullWindow') }}</dd></div>
+          <div><dt>{{ t('shortcuts.previousNext') }}</dt><dd>{{ t('shortcuts.keyPreviousNext') }}</dd></div>
+          <div><dt>{{ t('shortcuts.seekRange') }}</dt><dd>{{ t('shortcuts.keySeekRange') }}</dd></div>
+          <div><dt>{{ t('shortcuts.speed') }}</dt><dd>{{ t('shortcuts.keySpeed') }}</dd></div>
+          <div><dt>{{ t('shortcuts.frames') }}</dt><dd>{{ t('shortcuts.keyFrames') }}</dd></div>
         </dl>
       </template>
     </UModal>
@@ -417,7 +427,9 @@
 <script setup lang="ts">
 import {useDebounceFn, useResizeObserver, useStorage} from '@vueuse/core';
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
-import type {IMediaLesson, IRecentFolder} from '../../shared/types';
+import {useI18n} from 'vue-i18n';
+import {UI_LOCALES} from '../../shared/i18n';
+import type {IMediaLesson, IRecentFolder, TLocale, TTheme} from '../../shared/types';
 import {useLibrary} from '../composables/useLibrary';
 
 type TProgressResetRequest = {
@@ -436,13 +448,42 @@ interface IPlaybackSession {
 
 const library = useLibrary();
 const toast = useToast();
-useColorMode().preference = 'dark';
+const {t, locale} = useI18n();
+const colorMode = useColorMode();
 const recentFolders = library.recentFolders;
 const openFolders = library.openFolders;
 const activeTab = library.activeTab;
 const loading = library.loading;
 const error = library.error;
 const search = ref('');
+const languageFlagIcons: Record<TLocale, string> = {
+  en: 'i-circle-flags-gb',
+  ru: 'i-circle-flags-ru',
+  fr: 'i-circle-flags-fr',
+  de: 'i-circle-flags-de',
+  es: 'i-circle-flags-es',
+  it: 'i-circle-flags-it',
+  pt: 'i-circle-flags-pt',
+  'pt-BR': 'i-circle-flags-br',
+  nl: 'i-circle-flags-nl',
+};
+const themeIcon = computed(() => ({
+  system: 'i-lucide-monitor',
+  light: 'i-lucide-sun',
+  dark: 'i-lucide-moon',
+}[colorMode.preference as TTheme]));
+const languageFlag = computed(() => languageFlagIcons[locale.value as TLocale]);
+const themeMenuItems = computed(() => ([
+  {label: t('settings.system'), icon: 'i-lucide-monitor', onSelect: () => void selectTheme('system'), ...(colorMode.preference === 'system' ? {trailingIcon: 'i-lucide-check'} : {})},
+  {label: t('settings.light'), icon: 'i-lucide-sun', onSelect: () => void selectTheme('light'), ...(colorMode.preference === 'light' ? {trailingIcon: 'i-lucide-check'} : {})},
+  {label: t('settings.dark'), icon: 'i-lucide-moon', onSelect: () => void selectTheme('dark'), ...(colorMode.preference === 'dark' ? {trailingIcon: 'i-lucide-check'} : {})},
+]));
+const languageMenuItems = computed(() => UI_LOCALES.map(({code, nativeName}) => ({
+  label: nativeName,
+  icon: languageFlagIcons[code],
+  ...(locale.value === code ? {trailingIcon: 'i-lucide-check'} : {}),
+  onSelect: () => void selectLocale(code),
+})));
 const mediaRef = ref<HTMLVideoElement | HTMLAudioElement | null>(null);
 const playerStageRef = ref<HTMLElement | null>(null);
 const playlistRef = ref<HTMLElement | null>(null);
@@ -467,9 +508,9 @@ const isImmersivePlaylistOpen = ref(false);
 const isSidePlaylistVisible = computed(() => isImmersive.value ? isImmersivePlaylistOpen.value : !isTheaterMode.value);
 const playlistToggleLabel = computed(() => {
   if (isImmersive.value) {
-    return isImmersivePlaylistOpen.value ? 'Hide playlist' : 'Show playlist';
+    return isImmersivePlaylistOpen.value ? t('player.playlistHide') : t('player.playlistShow');
   }
-  return isTheaterMode.value ? 'Exit theater mode' : 'Theater mode';
+  return isTheaterMode.value ? t('player.theaterExit') : t('player.theater');
 });
 const areControlsVisible = ref(true);
 const isPlayerFocused = ref(false);
@@ -490,6 +531,7 @@ let playbackSession: IPlaybackSession | null = null;
 const currentFolder = library.playbackFolder;
 const currentLesson = library.playbackLesson;
 const isLibraryActive = computed(() => activeTab.value === 'library');
+const numberFormat = computed(() => new Intl.NumberFormat(locale.value));
 
 const filteredLessons = computed(() => {
   const folder = currentFolder.value;
@@ -520,6 +562,13 @@ const watchedCount = computed(() => {
   }
   const progress = library.progressFor(folder.id);
   return folder.lessons.filter((lesson) => progress[lesson.id]?.completed).length;
+});
+const watchedProgressTitle = computed(() => {
+  const total = currentFolder.value?.lessons.length ?? 0;
+  return t('counts.watched', {
+    count: formatNumber(watchedCount.value),
+    total: formatNumber(total),
+  }, total);
 });
 
 const folderProgress = computed(() => currentFolder.value ? library.progressPercent(currentFolder.value) : 0);
@@ -552,21 +601,24 @@ const hasNextLesson = computed(() => {
 });
 const previousLesson = computed(() => currentFolder.value?.lessons[currentLessonIndex.value - 1]);
 const nextLesson = computed(() => currentFolder.value?.lessons[currentLessonIndex.value + 1]);
-const continueLabel = computed(() => folderProgress.value === 100 ? 'Watch again' : watchedCount.value || currentProgress.value?.position ? 'Continue' : 'Start');
+const continueLabel = computed(() => folderProgress.value === 100 ? t('library.watchAgain') : watchedCount.value || currentProgress.value?.position ? t('library.continue') : t('library.start'));
 const folderMeta = computed(() => {
   const folder = currentFolder.value;
   if (!folder) {
     return '';
   }
-  const parts = [`Lesson ${currentLessonIndex.value + 1} of ${folder.lessons.length}`];
+  const parts = [t('counts.position', {
+    current: formatNumber(currentLessonIndex.value + 1),
+    total: formatNumber(folder.lessons.length),
+  })];
   if (folder.audioCount && folder.videoCount) {
-    parts.push(`${folder.videoCount} video, ${folder.audioCount} audio`);
+    parts.push(`${t('counts.video', {count: formatNumber(folder.videoCount)}, folder.videoCount)}, ${t('counts.audio', {count: formatNumber(folder.audioCount)}, folder.audioCount)}`);
   }
   if (folder.totalDuration) {
     parts.push(formatFolderDuration(folder.totalDuration));
   }
   parts.push(formatBytes(folder.totalBytes));
-  // Wrap only between parts, never inside "4 MB" or "Lesson 3 of 12".
+  // Keep localized number and unit groups together while allowing breaks between summary parts.
   return parts.map((part) => part.replaceAll(' ', '\u00a0')).join(' · ');
 });
 const folderMenuItems = computed(() => {
@@ -577,24 +629,68 @@ const folderMenuItems = computed(() => {
   return [
     [
       {label: continueLabel.value, icon: 'i-lucide-play', disabled: !currentLesson.value, onSelect: resumeCurrentFolder},
-      {label: 'Show in folder', icon: 'i-lucide-folder-search', onSelect: () => revealFolder(folder.rootPath)},
+      {label: t('library.showInFolder'), icon: 'i-lucide-folder-search', onSelect: () => revealFolder(folder.rootPath)},
     ],
     [
-      {label: 'Reset folder progress', icon: 'i-lucide-rotate-ccw', color: 'error' as const, onSelect: requestFolderProgressReset},
+      {label: t('reset.folderMenu'), icon: 'i-lucide-rotate-ccw', color: 'error' as const, onSelect: requestFolderProgressReset},
     ],
   ];
 });
-const progressResetTitle = computed(() => progressResetRequest.value?.scope === 'folder' ? 'Reset folder progress?' : 'Reset track progress?');
+const progressResetTitle = computed(() => progressResetRequest.value?.scope === 'folder' ? t('reset.folderTitle') : t('reset.lessonTitle'));
 const progressResetDescription = computed(() => {
   const request = progressResetRequest.value;
   if (!request) {
     return '';
   }
   if (request.scope === 'folder') {
-    return 'This clears saved positions and completion state for every track in this folder.';
+    return t('reset.folderDescription');
   }
-  return `This clears the saved position and completion state for “${request.lessonTitle}”.`;
+  return t('reset.lessonDescription', {name: request.lessonTitle});
 });
+
+function formatNumber(value: number) {
+  return numberFormat.value.format(value);
+}
+
+function formatLessonCount(count: number) {
+  return t('counts.lesson', {count: formatNumber(count)}, count);
+}
+
+function formatLessonNumber(value: number) {
+  return new Intl.NumberFormat(locale.value, {minimumIntegerDigits: 2, useGrouping: false}).format(value);
+}
+
+function formatPercent(value: number) {
+  return new Intl.NumberFormat(locale.value, {style: 'percent', maximumFractionDigits: 0}).format(value / 100);
+}
+
+function formatUnit(value: number, unit: 'hour' | 'minute') {
+  return new Intl.NumberFormat(locale.value, {style: 'unit', unit, unitDisplay: 'short'}).format(value);
+}
+
+async function selectTheme(theme: TTheme) {
+  colorMode.preference = theme;
+  if (!window.evbPlayer) {
+    return;
+  }
+  try {
+    await window.evbPlayer.setTheme(theme);
+  } catch {
+    toast.add({title: t('settings.themeSaveFailed'), color: 'error'});
+  }
+}
+
+async function selectLocale(nextLocale: TLocale) {
+  locale.value = nextLocale;
+  if (!window.evbPlayer) {
+    return;
+  }
+  try {
+    await window.evbPlayer.setLocale(nextLocale);
+  } catch {
+    toast.add({title: t('settings.languageSaveFailed'), color: 'error'});
+  }
+}
 
 function formatDuration(seconds: number | null | undefined) {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) {
@@ -617,14 +713,21 @@ function formatFolderDuration(seconds: number) {
   const totalMinutes = Math.round(seconds / 60);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return hours > 0 ? `${hours}h ${String(minutes).padStart(2, '0')}m` : `${minutes}m`;
+  const parts = [];
+  if (hours > 0) {
+    parts.push(formatUnit(hours, 'hour'));
+  }
+  if (minutes > 0 || hours === 0) {
+    parts.push(formatUnit(minutes, 'minute'));
+  }
+  return parts.join(' ');
 }
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 ** 3) {
-    return `${(bytes / 1024 ** 2).toFixed(0)} MB`;
+    return new Intl.NumberFormat(locale.value, {style: 'unit', unit: 'megabyte', unitDisplay: 'short', maximumFractionDigits: 0}).format(bytes / 1024 ** 2);
   }
-  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+  return new Intl.NumberFormat(locale.value, {style: 'unit', unit: 'gigabyte', unitDisplay: 'short', maximumFractionDigits: 1}).format(bytes / 1024 ** 3);
 }
 
 function progressForLesson(lesson: IMediaLesson) {
@@ -721,8 +824,8 @@ async function confirmProgressReset() {
       }
       await library.clearFolderProgress(request.folderId);
       toast.add({
-        title: 'Folder progress reset',
-        description: 'All saved positions and completion states were cleared.',
+        title: t('reset.folderSuccessTitle'),
+        description: t('reset.folderSuccessDescription'),
         color: 'success',
         icon: 'i-lucide-rotate-ccw',
       });
@@ -732,8 +835,8 @@ async function confirmProgressReset() {
       }
       await library.clearLessonProgress(request.folderId, request.lessonId);
       toast.add({
-        title: 'Track progress reset',
-        description: `“${request.lessonTitle}” will start from the beginning next time.`,
+        title: t('reset.lessonSuccessTitle'),
+        description: t('reset.lessonSuccessDescription', {name: request.lessonTitle}),
         color: 'success',
         icon: 'i-lucide-rotate-ccw',
       });
@@ -747,8 +850,8 @@ async function confirmProgressReset() {
       isProgressPersistenceSuspended = false;
     }
     toast.add({
-      title: 'Could not reset progress',
-      description: 'The progress file could not be updated.',
+      title: t('reset.failedTitle'),
+      description: t('reset.failedDescription'),
       color: 'error',
       icon: 'i-lucide-circle-alert',
     });
@@ -764,8 +867,8 @@ function playMedia(media: HTMLMediaElement) {
       isPlaying.value = false;
       if (!(cause instanceof DOMException && cause.name === 'AbortError')) {
         playbackError.value = cause instanceof DOMException && cause.name === 'NotAllowedError'
-          ? 'Press Play to start this lesson.'
-          : 'This lesson could not be played. Try again or open it in your default media app.';
+          ? t('player.playbackStartPrompt')
+          : t('player.playbackFailed');
       }
       isBuffering.value = false;
       showPlayerControls();
@@ -1023,7 +1126,7 @@ async function toggleFullscreen() {
     }
     await playerStageRef.value?.requestFullscreen();
   } catch {
-    toast.add({title: 'Fullscreen is unavailable', color: 'error'});
+    toast.add({title: t('player.fullscreenUnavailable'), color: 'error'});
   }
 }
 
@@ -1305,7 +1408,7 @@ function handleMediaError(event: Event) {
   if (!isCurrentMediaEvent(event)) return;
   isPlaying.value = false;
   isBuffering.value = false;
-  playbackError.value = 'This file is unavailable or its format is not supported. Try again or open it in your default media app.';
+  playbackError.value = t('player.mediaUnavailable');
   showPlayerControls();
 }
 
@@ -1323,23 +1426,23 @@ async function openMediaExternally() {
   try {
     await window.evbPlayer.openMediaExternally(currentLesson.value.mediaUrl);
   } catch {
-    toast.add({title: 'Could not open this file', description: 'Check that the folder is still available.', color: 'error'});
+    toast.add({title: t('player.openFileFailed'), description: t('player.checkFolderAvailable'), color: 'error'});
   }
 }
 
 async function revealFolder(rootPath: string) {
   try {
-    if (!window.evbPlayer) throw new Error('Showing folders is available in the desktop app.');
+    if (!window.evbPlayer) throw new Error(t('player.showFolderDesktopOnly'));
     await window.evbPlayer.revealFolder(rootPath);
   } catch (cause) {
-    toast.add({title: 'Could not show the folder', description: cause instanceof Error ? cause.message : 'Check that the folder is still available.', color: 'error'});
+    toast.add({title: t('player.showFolderFailed'), description: cause instanceof Error ? cause.message : t('player.checkFolderAvailable'), color: 'error'});
   }
 }
 
 async function removeFolder(folder: IRecentFolder) {
   await library.removeRecentFolder(folder);
   if (!recentFolders.value.some((candidate) => candidate.id === folder.id)) {
-    toast.add({title: 'Folder removed', description: 'Its files and saved progress are kept.', actions: [{label: 'Undo', onClick: () => library.openRecentFolder(folder)}]});
+    toast.add({title: t('library.folderRemoved'), description: t('library.folderRemovedDescription'), actions: [{label: t('library.undo'), onClick: () => library.openRecentFolder(folder)}]});
   }
 }
 
@@ -1382,11 +1485,11 @@ watch(() => isFullscreen.value || isFullWindow.value, syncFullscreenDocumentClas
 function announceUpdate(version: string) {
   toast.add({
     id: 'update-ready',
-    title: `EVB Player ${version} is ready`,
-    description: 'Restart to install it.',
+    title: t('toast.updateReady', {version}),
+    description: t('toast.updateDescription'),
     icon: 'i-lucide-download',
     duration: 0,
-    actions: [{label: 'Restart now', color: 'primary', onClick: () => void window.evbPlayer.installUpdate()}],
+    actions: [{label: t('toast.restartNow'), color: 'primary', onClick: () => void window.evbPlayer.installUpdate()}],
   });
 }
 

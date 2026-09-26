@@ -3,7 +3,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   ssr: false,
   devtools: {enabled: false},
-  colorMode: {preference: 'dark', fallback: 'dark'},
+  colorMode: {preference: 'dark', fallback: 'dark', storage: 'sessionStorage', storageKey: 'evb-player-color-mode'},
   // Ship every icon inside the app. The default provider for ssr: false fetches icons from the Iconify API at runtime.
   icon: {
     provider: 'none',

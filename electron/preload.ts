@@ -1,13 +1,19 @@
 import {contextBridge, ipcRenderer} from 'electron';
 import type {
   IFolder,
+  IPlayerSettings,
   IPlayerApi,
   IRecentFolder,
   ISaveLessonProgressPayload,
+  TLocale,
+  TTheme,
   TFolderProgress,
 } from '../shared/types';
 
 const api: IPlayerApi = {
+  getSettings: () => ipcRenderer.invoke('settings:get') as Promise<IPlayerSettings>,
+  setTheme: (theme: TTheme) => ipcRenderer.invoke('settings:set-theme', theme) as Promise<void>,
+  setLocale: (locale: TLocale) => ipcRenderer.invoke('settings:set-locale', locale) as Promise<void>,
   chooseFolder: () => ipcRenderer.invoke('folder:choose') as Promise<IFolder | null>,
   openRecentFolder: (rootPath: string) => ipcRenderer.invoke('folder:open-recent', rootPath) as Promise<IFolder | null>,
   restoreLastFolder: () => ipcRenderer.invoke('folder:restore-last') as Promise<IFolder | null>,

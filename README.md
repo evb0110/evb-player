@@ -13,6 +13,7 @@ Downloads for macOS (Apple Silicon), Windows 10 and 11 (x64), and Ubuntu (x64 `.
 - Playback position is saved as you watch. Ended lessons are marked complete and the next one starts.
 - Mark any lesson complete without watching it by clicking its number in the playlist; click the check again to undo. Lessons with saved progress show a reset button, and the folder menu resets the whole folder.
 - Several folders can be open in tabs. Recent folders and the last opened folder are restored on launch. The Library tab lists your folders; Add folder opens another one.
+- Choose System, Light or Dark from the theme menu, and switch the interface among English, Russian, French, German, Spanish, Italian, Portuguese, Brazilian Portuguese and Dutch from the language menu.
 - Switching to the Library keeps the current lesson playing, with a compact player to pause or return.
 - Show in folder reveals a folder in Finder, Explorer or the Linux file manager.
 
@@ -30,6 +31,8 @@ Progress and the folder list are stored in `evb-player-state.json` in the app's 
 - macOS: `~/Library/Application Support/EVB Player/`
 - Windows: `%APPDATA%\EVB Player\`
 - Linux: `~/.config/EVB Player/`
+
+Theme and language preferences are stored separately in `evb-player-settings.json` in the same folder, with `theme` and `locale` fields. The theme defaults to Dark; when no language is saved, the app chooses the closest supported system language or English.
 
 Media files are never modified. If the progress file can't be read, for example after an older version wrote it in another format, it is kept as `evb-player-state.json.unreadable-<time>` before a new one replaces it.
 
@@ -68,3 +71,5 @@ The Windows installer is not code-signed, so Windows SmartScreen asks for confir
 ## License
 
 [MIT](LICENSE)
+
+Copyright © 2026 Eugene Barsky · [evb-stack.com](https://evb-stack.com)

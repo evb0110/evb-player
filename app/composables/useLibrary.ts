@@ -1,4 +1,6 @@
 import type {IFolder, ILessonProgress, IMediaLesson, IRecentFolder, TFolderProgress} from '../../shared/types';
+import {useI18n} from 'vue-i18n';
+import {messages} from '../../shared/i18n';
 
 interface IProgressMutation {
   revision: number;
@@ -30,6 +32,7 @@ interface IProgressWrite {
 }
 
 export function useLibrary() {
+  const {t, locale} = useI18n();
   const recentFolders = useState<IRecentFolder[]>('evb-player-recent', () => []);
   const openFolders = useState<IFolder[]>('evb-player-open', () => []);
   const activeTab = useState<string>('evb-player-active-tab', () => 'library');
@@ -37,7 +40,7 @@ export function useLibrary() {
   const progressByFolder = useState<Record<string, TFolderProgress>>('evb-player-progress', () => ({}));
   const selectedLessonByFolder = useState<Record<string, string>>('evb-player-selected-lesson', () => ({}));
   const loading = useState<boolean>('evb-player-loading', () => false);
-  const loadingMessage = useState<string>('evb-player-loading-message', () => 'Scanning your folder…');
+  const loadingMessage = useState<string>('evb-player-loading-message', () => t('library.scanningFolder'));
   const error = useState<string>('evb-player-error', () => '');
   const progressError = useState<string>('evb-player-progress-error', () => '');
   let progressWriteQueue: Promise<void> = Promise.resolve();
@@ -64,7 +67,8 @@ export function useLibrary() {
   }
 
   function messageFor(cause: unknown, fallback: string) {
-    if (cause instanceof Error && cause.message.trim()) {
+    const knownMainMessages = Object.values(messages[locale.value as keyof typeof messages].main);
+    if (cause instanceof Error && knownMainMessages.some((message) => message === cause.message)) {
       return cause.message;
     }
     return fallback;
@@ -331,7 +335,7 @@ export function useLibrary() {
     if (!api) {
       return;
     }
-    const generation = beginOperation('Loading your library…');
+    const generation = beginOperation(t('library.loadingLibrary'));
     try {
       const loadedRecentFolders = await api.getRecentFolders();
       if (!isCurrentOperation(generation)) {
@@ -351,7 +355,7 @@ export function useLibrary() {
       }
     } catch (cause) {
       if (isCurrentOperation(generation)) {
-        error.value = messageFor(cause, 'The library could not be loaded.');
+        error.value = messageFor(cause, t('library.loadFailed'));
       }
     } finally {
       endOperation(generation);
@@ -363,7 +367,7 @@ export function useLibrary() {
     if (!api) {
       return;
     }
-    const generation = beginOperation('Scanning your folder…');
+    const generation = beginOperation(t('library.scanningFolder'));
     try {
       const folder = await api.chooseFolder();
       if (!folder || !isCurrentOperation(generation)) {
@@ -379,7 +383,7 @@ export function useLibrary() {
       }
     } catch (cause) {
       if (isCurrentOperation(generation)) {
-        error.value = messageFor(cause, 'The selected folder could not be opened.');
+        error.value = messageFor(cause, t('library.chooseFailed'));
       }
     } finally {
       endOperation(generation);
@@ -391,7 +395,7 @@ export function useLibrary() {
     if (!api) {
       return;
     }
-    const generation = beginOperation('Opening the folder…');
+    const generation = beginOperation(t('library.openingFolder'));
     try {
       const folder = await api.openRecentFolder(recentFolder.rootPath);
       if (!folder || !isCurrentOperation(generation)) {
@@ -407,7 +411,7 @@ export function useLibrary() {
       }
     } catch (cause) {
       if (isCurrentOperation(generation)) {
-        error.value = messageFor(cause, 'The recent folder could not be opened.');
+        error.value = messageFor(cause, t('library.recentFailed'));
       }
     } finally {
       endOperation(generation);
@@ -419,7 +423,7 @@ export function useLibrary() {
     if (!api) {
       return;
     }
-    const generation = beginOperation('Removing the folder…');
+    const generation = beginOperation(t('library.removingFolder'));
     try {
       await api.removeRecentFolder(recentFolder.rootPath);
       if (!isCurrentOperation(generation)) {
@@ -434,12 +438,12 @@ export function useLibrary() {
         }
       } catch (cause) {
         if (isCurrentOperation(generation)) {
-          error.value = messageFor(cause, 'The folder was removed, but the collection could not be refreshed.');
+          error.value = messageFor(cause, t('library.refreshFailed'));
         }
       }
     } catch (cause) {
       if (isCurrentOperation(generation)) {
-        error.value = messageFor(cause, 'The folder could not be removed from the collection.');
+        error.value = messageFor(cause, t('library.removeFailed'));
       }
     } finally {
       endOperation(generation);
@@ -513,7 +517,7 @@ export function useLibrary() {
     }
     const write: IProgressWrite = {folderId, kind: 'save', lessonId, progress, revision, status: 'queued'};
     progressWrites.set(progressWriteKey(write), write);
-    await persistProgressWrite(write, 'The saved progress could not be updated.');
+    await persistProgressWrite(write, t('library.progressWriteFailed'));
   }
 
   async function clearLessonProgress(folderId: string, lessonId: string) {
@@ -542,7 +546,7 @@ export function useLibrary() {
       status: 'queued',
     };
     progressWrites.set(progressWriteKey(write), write);
-    await persistProgressWrite(write, 'The saved progress could not be cleared.');
+    await persistProgressWrite(write, t('library.progressClearFailed'));
   }
 
   async function clearFolderProgress(folderId: string) {
@@ -566,7 +570,7 @@ export function useLibrary() {
       status: 'queued',
     };
     progressWrites.set(progressWriteKey(write), write);
-    await persistProgressWrite(write, 'The saved progress could not be cleared.');
+    await persistProgressWrite(write, t('library.progressClearFailed'));
   }
 
   async function retryProgressWrites() {

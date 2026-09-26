@@ -1,4 +1,11 @@
 export type TMediaKind = 'video' | 'audio';
+export type TTheme = 'system' | 'light' | 'dark';
+export type TLocale = 'en' | 'ru' | 'fr' | 'de' | 'es' | 'it' | 'pt' | 'pt-BR' | 'nl';
+
+export interface IPlayerSettings {
+  theme: TTheme;
+  locale: TLocale;
+}
 
 export interface IMediaLesson {
   id: string;
@@ -49,6 +56,9 @@ export interface ISaveLessonProgressPayload {
 }
 
 export interface IPlayerApi {
+  getSettings(): Promise<IPlayerSettings>;
+  setTheme(theme: TTheme): Promise<void>;
+  setLocale(locale: TLocale): Promise<void>;
   chooseFolder(): Promise<IFolder | null>;
   openRecentFolder(rootPath: string): Promise<IFolder | null>;
   restoreLastFolder(): Promise<IFolder | null>;

@@ -8,10 +8,14 @@ import {pathToFileURL} from 'node:url';
 import type {
   IFolder,
   IMediaLesson,
+  IPlayerSettings,
   IRecentFolder,
   TMediaKind,
+  TLocale,
+  TTheme,
   TFolderProgress,
 } from '../shared/types';
+import {isSupportedLocale, messages} from '../shared/i18n';
 import {
   createDefaultState,
   isPlainRecord,
@@ -21,6 +25,7 @@ import {
   type IStoredState,
 } from './state';
 import {readDurationMap} from './durations';
+import {readSettingsFile, writeSettingsFile} from './settings';
 import {startUpdater} from './updater';
 
 const MEDIA_SCHEME = 'evb-media';
@@ -32,6 +37,7 @@ const authorizedFolderRoots = new Set<string>();
 // Automation runs keep the window off screen so they never take focus from the desktop.
 const HIDE_WINDOW = process.env.EVB_PLAYER_HIDE_WINDOW === '1';
 const stateFilePath = () => join(app.getPath('userData'), 'evb-player-state.json');
+const settingsFilePath = () => join(app.getPath('userData'), 'evb-player-settings.json');
 
 // Source runs get their own name and profile so they never share progress,
 // storage, or the single-instance lock with the installed app. An explicit
@@ -52,6 +58,9 @@ let pendingWriteCount = 0;
 let writeSequence = 0;
 let quitFlushStarted = false;
 let mainWindow: BrowserWindow | null = null;
+let storedSettings: IPlayerSettings | null = null;
+let settingsLoadPromise: Promise<IPlayerSettings> | null = null;
+let settingsMutationQueue = Promise.resolve();
 
 if (!singleInstanceLock) {
   app.quit();
@@ -212,6 +221,75 @@ function ensureState() {
   return stateLoadPromise;
 }
 
+function ensureSettings() {
+  if (storedSettings) {
+    return Promise.resolve(storedSettings);
+  }
+  if (settingsLoadPromise) {
+    return settingsLoadPromise;
+  }
+
+  settingsLoadPromise = readSettingsFile(settingsFilePath(), app.getPreferredSystemLanguages())
+    .then((settings) => {
+      storedSettings = settings;
+      return settings;
+    })
+    .catch((error: unknown) => {
+      settingsLoadPromise = null;
+      throw error;
+    });
+  return settingsLoadPromise;
+}
+
+function isTheme(value: unknown): value is TTheme {
+  return value === 'system' || value === 'light' || value === 'dark';
+}
+
+function localizedMainMessage(locale: TLocale, key: keyof typeof messages.en.main) {
+  return messages[locale].main[key];
+}
+
+function shellBackgroundColor() {
+  return nativeTheme.shouldUseDarkColors ? '#101214' : '#f5f6f7';
+}
+
+function updateWindowBackground() {
+  const backgroundColor = shellBackgroundColor();
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.setBackgroundColor(backgroundColor);
+    }
+  }
+}
+
+function applyTheme(theme: TTheme) {
+  nativeTheme.themeSource = theme;
+  updateWindowBackground();
+}
+
+function updateAboutPanel(locale: TLocale) {
+  if (process.platform !== 'darwin') {
+    return;
+  }
+  app.setAboutPanelOptions({
+    applicationName: 'EVB Player',
+    applicationVersion: app.getVersion(),
+    copyright: `${messages[locale].footer.copyright} © 2026 Eugene Barsky`,
+    website: 'https://evb-stack.com',
+  });
+}
+
+function updateSettings(update: (settings: IPlayerSettings) => IPlayerSettings) {
+  const write = settingsMutationQueue.then(async () => {
+    const settings = update(await ensureSettings());
+    await writeSettingsFile(settingsFilePath(), settings);
+    storedSettings = settings;
+    return settings;
+  });
+  settingsMutationQueue = write.then(() => undefined, () => undefined);
+  return write;
+}
+
 function cloneStoredState(state: IStoredState): IStoredState {
   const progress = Object.create(null) as Record<string, TFolderProgress>;
   for (const [folderId, folderProgress] of Object.entries(state.progress)) {
@@ -358,7 +436,8 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
   const rootPath = await realpath(folderPath);
   const rootStats = await stat(rootPath);
   if (!rootStats.isDirectory()) {
-    throw new Error('The selected path is not a folder.');
+    const settings = await ensureSettings();
+    throw new Error(localizedMainMessage(settings.locale, 'selectedPathNotFolder'));
   }
 
   mediaRoots.add(rootPath);
@@ -662,7 +741,7 @@ function createWindow() {
     minHeight: 700,
     title: 'EVB Player',
     icon: appIconPath,
-    backgroundColor: '#101214',
+    backgroundColor: shellBackgroundColor(),
     show: !HIDE_WINDOW,
     webPreferences: {
       backgroundThrottling: !HIDE_WINDOW,
@@ -719,24 +798,57 @@ function createWindow() {
 }
 
 function registerIpcHandlers() {
+  ipcMain.handle('settings:get', async (event) => {
+    if (!isTrustedRenderer(event.sender)) {
+      return {theme: 'dark', locale: 'en'} satisfies IPlayerSettings;
+    }
+    return {...await ensureSettings()};
+  });
+
+  ipcMain.handle('settings:set-theme', async (event, theme: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isTheme(theme)) {
+      return;
+    }
+    const settings = await updateSettings((current) => ({...current, theme}));
+    applyTheme(settings.theme);
+  });
+
+  ipcMain.handle('settings:set-locale', async (event, locale: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isSupportedLocale(locale)) {
+      return;
+    }
+    const settings = await updateSettings((current) => ({...current, locale}));
+    updateAboutPanel(settings.locale);
+  });
+
   ipcMain.handle('folder:choose', async (event) => {
     if (!isTrustedRenderer(event.sender)) {
       return null;
     }
+    const locale = (await ensureSettings()).locale;
     const result = await dialog.showOpenDialog({
-      title: 'Choose a folder of videos or audio',
+      title: localizedMainMessage(locale, 'chooseFolderTitle'),
+      buttonLabel: localizedMainMessage(locale, 'chooseFolderButton'),
       properties: ['openDirectory'],
     });
     if (result.canceled || !result.filePaths[0]) {
       return null;
     }
-    return scanFolder(result.filePaths[0]);
+    try {
+      return await scanFolder(result.filePaths[0]);
+    } catch (cause) {
+      if (cause instanceof Error && cause.message === localizedMainMessage(locale, 'selectedPathNotFolder')) {
+        throw cause;
+      }
+      throw new Error(localizedMainMessage(locale, 'folderUnavailable'));
+    }
   });
 
   ipcMain.handle('folder:open-recent', async (event, rootPath: unknown) => {
     if (!isTrustedRenderer(event.sender) || !isNonEmptyText(rootPath)) {
       return null;
     }
+    const locale = (await ensureSettings()).locale;
     const state = await ensureState();
     const recentFolder = state.recentFolders.find((candidate) => candidate.rootPath === rootPath);
     if (!recentFolder && !authorizedFolderRoots.has(rootPath)) {
@@ -746,28 +858,34 @@ function registerIpcHandlers() {
     try {
       canonicalPath = await realpath(rootPath);
     } catch {
-      throw new Error('Folder unavailable. It may have been moved or disconnected.');
+      throw new Error(localizedMainMessage(locale, 'folderUnavailable'));
     }
     if (canonicalPath !== rootPath) {
       return null;
     }
-    return scanFolder(canonicalPath);
+    try {
+      return await scanFolder(canonicalPath);
+    } catch {
+      const locale = (await ensureSettings()).locale;
+      throw new Error(localizedMainMessage(locale, 'folderUnavailable'));
+    }
   });
 
   ipcMain.handle('folder:reveal', async (event, rootPath: unknown) => {
     if (!isTrustedRenderer(event.sender) || !isNonEmptyText(rootPath)) {
-      throw new Error('The folder is not authorized.');
+      throw new Error(localizedMainMessage('en', 'folderNotAuthorized'));
     }
+    const locale = (await ensureSettings()).locale;
     const state = await ensureState();
     if (!state.recentFolders.some((folder) => folder.rootPath === rootPath) && !mediaRoots.has(rootPath)) {
-      throw new Error('The folder is not in your library.');
+      throw new Error(localizedMainMessage(locale, 'folderNotInLibrary'));
     }
     try {
       if (await realpath(rootPath) !== rootPath || !(await stat(rootPath)).isDirectory()) {
-        throw new Error('Invalid folder');
+        throw new Error(localizedMainMessage(locale, 'invalidFolder'));
       }
     } catch {
-      throw new Error('Folder unavailable. It may have been moved or disconnected.');
+      throw new Error(localizedMainMessage(locale, 'folderUnavailable'));
     }
     shell.showItemInFolder(rootPath);
   });
@@ -873,19 +991,20 @@ function registerIpcHandlers() {
 
   ipcMain.handle('media:open-external', async (event, mediaUrl: unknown) => {
     if (!isTrustedRenderer(event.sender)) {
-      throw new Error('The media request is not authorized.');
+      throw new Error(localizedMainMessage('en', 'mediaNotAuthorized'));
     }
+    const locale = (await ensureSettings()).locale;
     const requestedPath = mediaPathFromUrl(mediaUrl);
     if (!requestedPath) {
-      throw new Error('Only local EVB Player media can be opened externally.');
+      throw new Error(localizedMainMessage(locale, 'onlyLocalMedia'));
     }
     const filePath = await isAllowedMediaPath(requestedPath);
     if (!filePath) {
-      throw new Error('The media file is not available.');
+      throw new Error(localizedMainMessage(locale, 'mediaFileUnavailable'));
     }
     const openError = await shell.openPath(filePath);
     if (openError) {
-      throw new Error(openError);
+      throw new Error(localizedMainMessage(locale, 'couldNotOpenMedia'));
     }
   });
 
@@ -907,26 +1026,29 @@ app.whenReady().then(() => {
   if (!singleInstanceLock) {
     return;
   }
-  // Dark native title bars on Windows and Linux, matching the app.
-  nativeTheme.themeSource = 'dark';
-  if (process.platform === 'darwin') {
-    app.dock?.setIcon(appIconPath);
-  } else {
-    // macOS keeps its standard app menu; elsewhere Electron's default File/Edit/View bar has nothing to offer.
-    Menu.setApplicationMenu(null);
-  }
-  protocol.handle(MEDIA_SCHEME, handleMediaRequest);
-  protocol.handle(RENDERER_SCHEME, handleRendererRequest);
-  registerIpcHandlers();
-  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
-  session.defaultSession.setPermissionCheckHandler(() => false);
-  createWindow();
-  startUpdater(() => mainWindow, isTrustedRenderer);
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+  return ensureSettings().then((settings) => {
+    applyTheme(settings.theme);
+    nativeTheme.on('updated', updateWindowBackground);
+    updateAboutPanel(settings.locale);
+    if (process.platform === 'darwin') {
+      app.dock?.setIcon(appIconPath);
+    } else {
+      // macOS keeps its standard app menu; elsewhere Electron's default File/Edit/View bar has nothing to offer.
+      Menu.setApplicationMenu(null);
     }
+    protocol.handle(MEDIA_SCHEME, handleMediaRequest);
+    protocol.handle(RENDERER_SCHEME, handleRendererRequest);
+    registerIpcHandlers();
+    session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+    session.defaultSession.setPermissionCheckHandler(() => false);
+    createWindow();
+    startUpdater(() => mainWindow, isTrustedRenderer);
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
   });
 });
 

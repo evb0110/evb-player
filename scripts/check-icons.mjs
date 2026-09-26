@@ -20,7 +20,7 @@ for (const name of Object.keys({...packageJson.dependencies, ...packageJson.devD
   }
 }
 // Longest prefix first so that `i-lucide-lab-x` never resolves as `lucide:lab-x`.
-const prefixes = [...collections.keys()].sort((a, b) => b.length - a.length).map((prefix) => prefix.replaceAll('-', '\\-'));
+const prefixes = [...collections.keys()].sort((a, b) => b.length - a.length);
 const prefixPattern = prefixes.join('|');
 
 async function listFiles(directory) {
