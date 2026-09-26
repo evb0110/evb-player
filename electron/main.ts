@@ -8,6 +8,7 @@ import {pathToFileURL} from 'node:url';
 import type {
   IFolder,
   IMediaTrack,
+  IPlaylist,
   IPlayerSettings,
   TLocale,
   TMenuAction,
@@ -28,6 +29,8 @@ import {
 } from './state';
 import {readDurationMap} from './durations';
 import {readSettingsFile, writeSettingsFile} from './settings';
+import {createPlaylistStore} from './playlists';
+import {playlistTracks, sanitizePlaylist} from '../shared/playlist';
 import {setApplicationMenu} from './menu';
 import {startUpdater} from './updater';
 
@@ -41,6 +44,7 @@ const authorizedFolderRoots = new Set<string>();
 const HIDE_WINDOW = process.env.EVB_PLAYER_HIDE_WINDOW === '1';
 const stateFilePath = () => join(app.getPath('userData'), 'evb-player-state.json');
 const settingsFilePath = () => join(app.getPath('userData'), 'evb-player-settings.json');
+const playlistStore = createPlaylistStore(() => join(app.getPath('userData'), 'evb-player-playlists.json'));
 
 // Source runs get their own name and profile so they never share progress,
 // storage, or the single-instance lock with the installed app. An explicit
@@ -396,6 +400,83 @@ async function collectFileStats(filePaths: string[]) {
   return fileStats;
 }
 
+interface ITrackFile {
+  folderId: string;
+  folderName: string;
+  relativePath: string;
+  filePath: string;
+}
+
+async function buildMediaTracks(trackFiles: ITrackFile[]): Promise<IMediaTrack[]> {
+  const fileStats = await collectFileStats(trackFiles.map((entry) => entry.filePath));
+  const scannableFiles = trackFiles.filter((entry) => fileStats.has(entry.filePath));
+  const durationMap = await readDurationMap(scannableFiles.map((entry) => entry.filePath));
+  return scannableFiles.map((entry, index) => {
+    const fileName = basename(entry.filePath);
+    const {sequence, title} = titleForFile(fileName);
+    const currentFileStats = fileStats.get(entry.filePath);
+    if (!currentFileStats) {
+      return null;
+    }
+    return {
+      id: trackIdForPath(entry.folderId, entry.relativePath),
+      folderId: entry.folderId,
+      sequence: sequence || index + 1,
+      title: title || fileName,
+      fileName,
+      relativePath: entry.relativePath,
+      section: sectionForRelativePath(entry.folderName, entry.relativePath),
+      kind: MEDIA_TYPES[extname(fileName).toLowerCase()],
+      mediaUrl: mediaUrlForPath(entry.filePath),
+      bytes: Number(currentFileStats.size),
+      duration: durationMap.get(entry.filePath) ?? null,
+    } satisfies IMediaTrack;
+  }).filter((track): track is IMediaTrack => track !== null);
+}
+
+async function resolveAddedTracks(folderId: string, playlist: IPlaylist | null) {
+  if (!playlist?.added.length) {
+    return [];
+  }
+  const state = await ensureState();
+  const wantedByFolder = new Map<string, Set<string>>();
+  for (const entry of playlist.added) {
+    if (entry.folderId === folderId) {
+      continue;
+    }
+    const paths = wantedByFolder.get(entry.folderId) ?? new Set<string>();
+    paths.add(entry.relativePath);
+    wantedByFolder.set(entry.folderId, paths);
+  }
+
+  const tracksByPath = new Map<string, IMediaTrack>();
+  for (const [sourceFolderId, relativePaths] of wantedByFolder) {
+    const sourceFolder = state.recentFolders.find((folder) => folder.id === sourceFolderId);
+    if (!sourceFolder) {
+      continue;
+    }
+    mediaRoots.add(sourceFolder.rootPath);
+    const trackFiles: ITrackFile[] = [];
+    for (const relativePath of relativePaths) {
+      const expectedPath = join(sourceFolder.rootPath, ...relativePath.split('/'));
+      const filePath = await isAllowedMediaPath(expectedPath);
+      if (filePath) {
+        trackFiles.push({folderId: sourceFolder.id, folderName: sourceFolder.name, relativePath, filePath});
+      }
+    }
+    const sourceTracks = (await buildMediaTracks(trackFiles))
+      .map((track) => ({...track, section: sourceFolder.name}));
+    for (const track of sourceTracks) {
+      tracksByPath.set(`${sourceFolderId}:${track.relativePath}`, track);
+    }
+  }
+
+  return playlist.added.flatMap((entry) => {
+    const track = tracksByPath.get(`${entry.folderId}:${entry.relativePath}`);
+    return track ? [track] : [];
+  });
+}
+
 async function scanFolder(folderPath: string): Promise<IFolder> {
   const rootPath = await realpath(folderPath);
   const rootStats = await stat(rootPath);
@@ -408,47 +489,24 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
   authorizedFolderRoots.add(rootPath);
   const folderId = folderIdForPath(rootPath);
   const filePaths = (await collectMediaFiles(rootPath, true)).sort(compareMediaPaths);
-  const fileStats = await collectFileStats(filePaths);
-  const scannableFilePaths = filePaths.filter((filePath) => fileStats.has(filePath));
-  const durationMap = await readDurationMap(scannableFilePaths);
-  const tracks: IMediaTrack[] = scannableFilePaths.map((filePath, index) => {
-    const fileName = basename(filePath);
-    const relativePath = relative(rootPath, filePath).split(sep).join('/');
-    const {sequence, title} = titleForFile(fileName);
-    const currentFileStats = fileStats.get(filePath);
-    if (!currentFileStats) {
-      return null;
-    }
-    return {
-      id: trackIdForPath(folderId, relativePath),
-      sequence: sequence || index + 1,
-      title: title || fileName,
-      fileName,
-      relativePath,
-      // Files at the top of the folder are grouped under the folder's own name.
-      section: sectionForRelativePath(basename(rootPath), relativePath),
-      kind: MEDIA_TYPES[extname(fileName).toLowerCase()],
-      mediaUrl: mediaUrlForPath(filePath),
-      bytes: currentFileStats.size,
-      duration: durationMap.get(filePath) ?? null,
-    };
-  }).filter((track): track is IMediaTrack => track !== null);
-
+  const tracks = await buildMediaTracks(filePaths.map((filePath) => ({
+    folderId,
+    folderName: basename(rootPath),
+    relativePath: relative(rootPath, filePath).split(sep).join('/'),
+    filePath,
+  })));
   tracks.sort(compareMediaTracks);
-  const totalDuration = tracks.reduce((total, track) => total + (track.duration ?? 0), 0);
-  const videoCount = tracks.filter((track) => track.kind === 'video').length;
-  const audioCount = tracks.length - videoCount;
+  const playlist = await playlistStore.get(folderId);
   const folder: IFolder = {
     id: folderId,
     name: basename(rootPath),
     rootPath,
     tracks,
-    videoCount,
-    audioCount,
-    totalBytes: tracks.reduce((total, track) => total + track.bytes, 0),
-    totalDuration,
+    addedTracks: await resolveAddedTracks(folderId, playlist),
+    playlist,
     scannedAt: Date.now(),
   };
+  const mediaCount = playlistTracks(folder).length;
 
   await updateState((state) => {
     state.lastFolderPath = rootPath;
@@ -457,7 +515,7 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
         id: folder.id,
         name: folder.name,
         rootPath: folder.rootPath,
-        mediaCount: folder.tracks.length,
+        mediaCount,
         lastOpenedAt: Date.now(),
       },
       ...state.recentFolders.filter((recentFolder) => recentFolder.id !== folder.id),
@@ -465,6 +523,27 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
   });
 
   return folder;
+}
+
+async function getLibraryFolderTracks(folderId: string) {
+  const recentFolder = (await ensureState()).recentFolders.find((folder) => folder.id === folderId);
+  if (!recentFolder) {
+    return [];
+  }
+  const rootPath = await realpath(recentFolder.rootPath).catch(() => null);
+  if (!rootPath || rootPath !== recentFolder.rootPath || !(await stat(rootPath).catch(() => null))?.isDirectory()) {
+    return [];
+  }
+  mediaRoots.add(rootPath);
+  const filePaths = (await collectMediaFiles(rootPath, true)).sort(compareMediaPaths);
+  const tracks = await buildMediaTracks(filePaths.map((filePath) => ({
+    folderId: recentFolder.id,
+    folderName: recentFolder.name,
+    relativePath: relative(rootPath, filePath).split(sep).join('/'),
+    filePath,
+  })));
+  tracks.sort(compareMediaTracks);
+  return tracks;
 }
 
 async function isAllowedMediaPath(filePath: string) {
@@ -890,6 +969,42 @@ function registerIpcHandlers() {
     }
     const state = await ensureState();
     return summarizeRecentFolders(state.recentFolders, state.progress);
+  });
+
+  ipcMain.handle('folder:get-tracks', async (event, folderId: unknown, forFolderId: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(folderId) || !isStoredIdentifier(forFolderId)) {
+      return [];
+    }
+    return getLibraryFolderTracks(folderId);
+  });
+
+  ipcMain.handle('playlist:save', async (event, payload: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isPlainRecord(payload)) {
+      return;
+    }
+    const folderId = payload.folderId;
+    const trackCount = payload.trackCount;
+    const candidatePlaylist = payload.playlist;
+    if (!isStoredIdentifier(folderId)
+      || typeof trackCount !== 'number'
+      || !Number.isSafeInteger(trackCount)
+      || trackCount < 0
+      || (candidatePlaylist !== null && !isPlainRecord(candidatePlaylist))) {
+      return;
+    }
+    const recentFolder = (await ensureState()).recentFolders.find((folder) => folder.id === folderId);
+    if (!recentFolder) {
+      return;
+    }
+    const playlist = candidatePlaylist === null ? null : sanitizePlaylist(candidatePlaylist);
+    await playlistStore.save(folderId, playlist);
+    await updateState((state) => {
+      const folder = state.recentFolders.find((candidate) => candidate.id === folderId);
+      if (!folder || folder.mediaCount === trackCount) {
+        return false;
+      }
+      folder.mediaCount = trackCount;
+    });
   });
 
   ipcMain.handle('folder:remove-recent', async (event, rootPath: unknown) => {

@@ -23,6 +23,7 @@ export type TMenuAction = 'add-folder' | 'keyboard-shortcuts' | 'check-for-updat
 
 export interface IMediaTrack {
   id: string;
+  folderId: string;
   sequence: number;
   title: string;
   fileName: string;
@@ -34,15 +35,31 @@ export interface IMediaTrack {
   duration: number | null;
 }
 
+export interface IPlaylistAddedTrack {
+  folderId: string;
+  relativePath: string;
+}
+
+export interface IPlaylist {
+  order: string[] | null;
+  removed: string[];
+  favorites: string[];
+  added: IPlaylistAddedTrack[];
+}
+
+export interface ISavePlaylistPayload {
+  folderId: string;
+  playlist: IPlaylist | null;
+  trackCount: number;
+}
+
 export interface IFolder {
   id: string;
   name: string;
   rootPath: string;
   tracks: IMediaTrack[];
-  videoCount: number;
-  audioCount: number;
-  totalBytes: number;
-  totalDuration: number;
+  addedTracks: IMediaTrack[];
+  playlist: IPlaylist | null;
   scannedAt: number;
 }
 
@@ -77,6 +94,7 @@ export interface IPlayerCapabilities {
   revealFolder: boolean;
   openMediaExternally: boolean;
   updates: boolean;
+  addFromOtherFolders: boolean;
 }
 
 export interface IPlayerApi {
@@ -88,6 +106,8 @@ export interface IPlayerApi {
   openRecentFolder(rootPath: string, folderId?: string): Promise<IFolder | null>;
   restoreLastFolder(): Promise<IFolder | null>;
   getRecentFolders(): Promise<IRecentFolderSummary[]>;
+  getFolderTracks(folderId: string, forFolderId: string): Promise<IMediaTrack[]>;
+  savePlaylist(payload: ISavePlaylistPayload): Promise<void>;
   removeRecentFolder(rootPath: string, folderId?: string): Promise<void>;
   closeFolder(folderId: string): Promise<void>;
   revealFolder(rootPath: string): Promise<void>;

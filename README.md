@@ -10,7 +10,7 @@ The browser version uses the same player interface for folders, playlists, playb
 
 Chrome and Edge can save folder handles. When access is still granted, the last folder opens on launch; otherwise it stays in the Library and one click can restore permission. Firefox and Safari use a folder file chooser, so a recent folder asks you to choose it again when opened. Progress resumes for a folder with the same name in those browsers.
 
-The browser stores the Library and track progress in local storage under `evb-player-web-state`, and language and skipped update version under `evb-player-web-settings`. The theme toggle follows the browser's system preference until you choose light or dark. An explicit choice is stored for one year in the `theme` cookie; `CH-prefers-color-scheme` records the current system preference so the server can render the correct theme. Both cookies use `SameSite=Lax`, path `/`, and `Secure` on HTTPS. Media stays in the browser and is not uploaded.
+The browser stores the Library and track progress in local storage under `evb-player-web-state`, language and skipped update version under `evb-player-web-settings`, and edited playlists under `evb-player-web-playlists`. The theme toggle follows the browser's system preference until you choose light or dark. An explicit choice is stored for one year in the `theme` cookie; `CH-prefers-color-scheme` records the current system preference so the server can render the correct theme. Both cookies use `SameSite=Lax`, path `/`, and `Secure` on HTTPS. Media stays in the browser and is not uploaded.
 
 Run the browser version with `pnpm dev:web`. `pnpm build:web` creates a Nitro Vercel Build Output API build in `.vercel/output`; the server renders the HTML shell from those cookies. The desktop `pnpm build` remains a static renderer build for the Electron custom protocol.
 
@@ -22,7 +22,8 @@ Run the browser version with `pnpm dev:web`. `pnpm build:web` creates a Nitro Ve
 - The player has play/pause, ten-second skip, seeking, volume, playback speed, theater mode, full window and fullscreen. Volume and speed are remembered.
 - Playback position is saved as you watch. Ended tracks are marked complete and the next one starts.
 - Mark any track complete without watching it by clicking its number in the playlist; click the check again to undo. Tracks with saved progress show a reset button, and the folder menu resets the whole folder.
-- Several folders can be open in tabs. Recent folders and the last opened folder are restored on launch. The Library tab lists your folders; Add folder opens another one.
+- Several folders can be open in tabs. Recent folders and the last opened folder are restored on launch. The Library tab lists your folders as cards or a sortable table with search; Add folder opens another one.
+- Each folder is a playlist you can edit: choose Edit playlist in the folder menu to reorder tracks (drag, or arrow keys on the handle), star favorites, remove tracks, add tracks from other folders in the Library, or reset to the folder as it is on disk. Tracks added from another folder share their progress with it. Removing a track never touches the file.
 - The application menu includes Add Folder, text editing commands, fullscreen, help, and an About panel. On Windows and Linux, press `Alt` to show the menu; on macOS it appears in the system menu bar. Help includes the keyboard shortcuts and EVB Player website.
 - Use the animated theme toggle to switch between light and dark. Until you choose a theme, the app follows the operating system. Switch the interface among English, Russian, French, German, Spanish, Italian, Portuguese, Brazilian Portuguese and Dutch from the language menu.
 - Switching to the Library keeps the current track playing, with a compact player to pause or return.
@@ -44,6 +45,8 @@ Progress and the folder list are stored in `evb-player-state.json` in the app's 
 - Linux: `~/.config/EVB Player/`
 
 Theme, language, and the skipped update version are stored separately in `evb-player-settings.json` in the same folder. Its optional `theme` field is `light` or `dark`; when absent, the app follows the operating system. Old `system` values are treated as absent. The other fields are `locale` and `skippedUpdateVersion`; the last field is `null` until a version is skipped, then stores that version string. When no language is saved, the app chooses the closest supported system language or English.
+
+Edited playlists are stored in `evb-player-playlists.json` in the same folder, keyed by folder id: the custom order (or `null` for the folder's own order), removed and favorite track ids, and tracks added from other folders as a folder id and relative path. Resetting a playlist removes its entry. The progress file doesn't change, so older versions keep reading it.
 
 The About panel shows EVB Player, its current version, and the translated copyright line. On macOS and Windows it lists `evb-stack.com`; on Linux it lists Eugene Barsky and links to [evb-stack.com](https://evb-stack.com).
 

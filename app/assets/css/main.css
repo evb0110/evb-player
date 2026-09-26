@@ -32,6 +32,7 @@
   --shell-error-text: #ffb59a;
   --shell-error-border: rgb(240 120 78 / 35%);
   --shell-green: #79c5a2;
+  --shell-favorite: #e9b447;
   --player-background: #08090a;
   --player-accent: #f0784e;
   --player-accent-hover: #f58c67;
@@ -74,6 +75,7 @@ html.light {
   --shell-error-text: #922b1e;
   --shell-error-border: rgb(146 43 30 / 28%);
   --shell-green: #176b49;
+  --shell-favorite: #946600;
   --ui-primary: #a84422;
   --ui-error: #a61b1b;
   --ui-success: #166534;
@@ -899,7 +901,130 @@ button:disabled {
 }
 
 .playlist-search {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+}
+
+.playlist-search-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   margin: 0 12px 11px;
+}
+
+.playlist-favorites-toggle,
+.playlist-edit-handle,
+.playlist-edit-favorite,
+.playlist-edit-remove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--shell-text-subtle);
+}
+
+.playlist-favorites-toggle {
+  width: 34px;
+  height: 34px;
+}
+
+.playlist-favorites-toggle[aria-pressed='true'],
+.playlist-edit-favorite[aria-pressed='true'],
+.track-row-favorite {
+  color: var(--shell-favorite);
+}
+
+.playlist-favorites-toggle[aria-pressed='true'] .iconify,
+.playlist-edit-favorite[aria-pressed='true'] .iconify,
+.track-row-favorite {
+  fill: var(--shell-favorite);
+}
+
+.playlist-favorites-toggle:hover,
+.playlist-favorites-toggle:focus-visible,
+.playlist-edit-handle:hover,
+.playlist-edit-handle:focus-visible,
+.playlist-edit-favorite:hover,
+.playlist-edit-favorite:focus-visible,
+.playlist-edit-remove:hover,
+.playlist-edit-remove:focus-visible {
+  border-color: var(--shell-border);
+  color: var(--shell-text);
+  background: var(--shell-hover-strong);
+}
+
+.playlist-edit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px 11px;
+}
+
+.playlist-edit-done {
+  margin-left: auto;
+}
+
+.playlist-edit-handle {
+  width: 25px;
+  height: 34px;
+  margin-left: 3px;
+  cursor: grab;
+}
+
+.playlist-edit-handle:active {
+  cursor: grabbing;
+}
+
+.playlist-edit-number {
+  width: 25px;
+  flex: none;
+  color: var(--shell-text-subtle);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.playlist-edit-favorite,
+.playlist-edit-remove {
+  width: 28px;
+  height: 30px;
+  margin-right: 3px;
+}
+
+.playlist-edit-remove:hover,
+.playlist-edit-remove:focus-visible {
+  color: var(--shell-error-text);
+}
+
+.track-row-edit .track-row-select {
+  gap: 5px;
+  padding-left: 3px;
+}
+
+.track-row-edit .track-row-copy {
+  gap: 3px;
+}
+
+.track-row-drop-before::before,
+.track-row-drop-after::after {
+  position: absolute;
+  right: 7px;
+  left: 7px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--shell-accent);
+  content: '';
+  pointer-events: none;
+}
+
+.track-row-drop-before::before {
+  top: -2px;
+}
+
+.track-row-drop-after::after {
+  bottom: -2px;
 }
 
 .playlist-scroll {
@@ -1058,6 +1183,23 @@ button:disabled {
   white-space: nowrap;
 }
 
+.track-row-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.track-row-title strong {
+  min-width: 0;
+}
+
+.track-row-favorite {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+
 .track-row-copy small {
   color: var(--shell-text-subtle);
   font-size: 10px;
@@ -1112,6 +1254,101 @@ button:disabled {
 .playlist-empty .iconify {
   width: 15px;
   height: 15px;
+}
+
+.add-tracks-folder {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
+  color: var(--shell-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.add-tracks-folder select {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--shell-border-strong);
+  border-radius: 7px;
+  color: var(--shell-text);
+  background: var(--shell-surface-raised);
+}
+
+.add-tracks-list {
+  max-height: min(44vh, 420px);
+  overflow: auto;
+  border: 1px solid var(--shell-border);
+  border-radius: 8px;
+}
+
+.add-tracks-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--shell-border);
+  color: var(--shell-text-muted);
+  cursor: pointer;
+}
+
+.add-tracks-option:last-child {
+  border-bottom: 0;
+}
+
+.add-tracks-option input {
+  flex: none;
+  margin: 3px 0 0;
+  accent-color: var(--shell-accent);
+}
+
+.add-tracks-option span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.add-tracks-option strong,
+.add-tracks-option small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-tracks-option strong {
+  color: var(--shell-text);
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.add-tracks-option small {
+  color: var(--shell-text-subtle);
+  font-size: 10px;
+}
+
+.add-tracks-select-all {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  background: var(--shell-surface);
+}
+
+.add-tracks-empty,
+.add-tracks-loading {
+  margin: 0;
+  padding: 20px 4px;
+  color: var(--shell-text-muted);
+  font-size: 13px;
+}
+
+.empty-folder .folder-title-row {
+  width: 100%;
+  align-items: center;
+}
+
+.empty-folder-editing {
+  min-height: 420px;
+  justify-content: flex-start;
+  padding: 40px 24px;
 }
 
 @media (max-width: 1180px) {

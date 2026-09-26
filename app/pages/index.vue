@@ -110,7 +110,7 @@
                 <UIcon name="i-lucide-folder" />
                 <strong>{{ folder.name }}</strong>
                 <span class="folder-card-location" :title="folder.rootPath">{{ folder.rootPath }}</span>
-                <small>{{ formatTrackCount(folder.mediaCount) }}</small>
+                <small>{{ formatTrackCount(folderTrackCount(folder)) }}</small>
                 <span class="folder-card-progress">
                   <span class="folder-progress-bar" role="progressbar" :aria-label="t('library.columnProgress')" :aria-valuenow="folderProgressPercent(folder)" aria-valuemin="0" aria-valuemax="100">
                     <span :style="{width: `${folderProgressPercent(folder)}%`}" />
@@ -200,7 +200,13 @@
         </footer>
 
         <section v-if="currentFolder" v-show="!isLibraryActive" class="folder-view">
-          <div v-if="!currentFolder.tracks.length" class="empty-folder" role="status">
+          <div v-if="!currentTracks.length && !isEditingPlaylist" class="empty-folder" role="status">
+            <div class="folder-title-row">
+              <h1>{{ currentFolder.name }}</h1>
+              <UDropdownMenu :items="folderMenuItems" :content="{align: 'end'}">
+                <UButton color="neutral" icon="i-lucide-ellipsis" variant="ghost" size="sm" :aria-label="t('library.folderActions')" :title="t('library.folderActions')" />
+              </UDropdownMenu>
+            </div>
             <UIcon name="i-lucide-folder-search" />
             <h2>{{ t('library.noTracksFound') }}</h2>
             <p>{{ t('library.emptyFolderHint') }}</p>
@@ -210,8 +216,8 @@
             </div>
           </div>
 
-          <div v-if="currentFolder.tracks.length" class="folder-layout" :class="{ 'folder-layout-theater': isTheaterMode }">
-            <div class="player-column">
+          <div v-if="currentTracks.length || isEditingPlaylist" class="folder-layout" :class="{ 'folder-layout-theater': isTheaterMode }">
+            <div v-if="currentTracks.length" class="player-column">
               <div class="folder-title-row">
                 <h1 :title="currentFolder.rootPath">{{ currentFolder.name }}</h1>
                 <UDropdownMenu :items="folderMenuItems" :content="{align: 'end'}">
@@ -371,7 +377,7 @@
 
               <div class="track-heading">
                 <div>
-                  <p class="track-kicker">{{ t('library.trackKicker', {number: formatTrackNumber(currentTrack?.sequence ?? 0)}) }}</p>
+                  <p class="track-kicker">{{ t('library.trackKicker', {number: formatTrackNumber(currentTrack ? displayTrackNumber(currentTrack) : 0)}) }}</p>
                   <h2>{{ currentTrack?.title }}</h2>
                   <p>{{ currentTrack?.relativePath }}</p>
                 </div>
@@ -387,31 +393,69 @@
                 </div>
               </div>
             </div>
+            <div v-else class="empty-folder empty-folder-editing" role="status">
+              <UIcon name="i-lucide-folder-search" />
+              <h2>{{ t('library.noTracksFound') }}</h2>
+              <p>{{ t('library.emptyFolderHint') }}</p>
+            </div>
 
             <aside class="playlist-panel" :class="{ 'playlist-panel-immersive': isImmersive && isImmersivePlaylistOpen }">
               <div class="playlist-header">
                 <div class="folder-progress" :title="watchedProgressTitle">
                   <span class="folder-progress-bar"><span :style="{width: `${folderProgress}%`}" /></span>
-                  <span>{{ formatPercent(folderProgress) }} · {{ formatNumber(watchedCount) }}/{{ formatNumber(currentFolder.tracks.length) }}</span>
+                  <span>{{ formatPercent(folderProgress) }} · {{ formatNumber(watchedCount) }}/{{ formatNumber(currentTracks.length) }}</span>
                 </div>
                 <p class="folder-meta">{{ folderMeta }}</p>
               </div>
-              <UInput v-model="search" class="playlist-search" icon="i-lucide-search" type="search" :aria-label="t('playlist.searchPlaceholder')" :placeholder="t('playlist.searchPlaceholder')" size="md" />
+              <div v-if="isEditingPlaylist" class="playlist-edit-toolbar">
+                <UButton color="neutral" icon="i-lucide-plus" :label="t('playlist.addTracks')" variant="soft" @click="openAddTracksDialog" />
+                <UButton color="error" icon="i-lucide-rotate-ccw" variant="ghost" :aria-label="t('playlist.resetToFolder')" :title="t('playlist.resetToFolder')" @click="isPlaylistResetDialogOpen = true" />
+                <UButton class="playlist-edit-done" color="primary" :label="t('playlist.doneEditing')" @click="finishPlaylistEditing" />
+              </div>
+              <div v-else class="playlist-search-row">
+                <UInput v-model="search" class="playlist-search" icon="i-lucide-search" type="search" :aria-label="t('playlist.searchPlaceholder')" :placeholder="t('playlist.searchPlaceholder')" size="md" />
+                <button v-if="hasFavorites" class="playlist-favorites-toggle" type="button" :aria-label="t('playlist.favoritesOnly')" :title="t('playlist.favoritesOnly')" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly">
+                    <UIcon name="i-lucide-star" />
+                  </button>
+              </div>
 
               <div ref="playlistRef" class="playlist-scroll">
                 <div v-if="!filteredTracks.length" class="playlist-empty">
-                  <UIcon name="i-lucide-search-x" />
-                  <span>{{ t('playlist.noMatches') }}</span>
+                  <UIcon :name="isEditingPlaylist ? 'i-lucide-list-x' : 'i-lucide-search-x'" />
+                  <span>{{ isEditingPlaylist ? t('playlist.emptyPlaylist') : t('playlist.noMatches') }}</span>
                 </div>
-                <div v-for="group in trackGroups" :key="group.section" class="track-group">
+                <div v-for="group in trackGroups" :key="group.key" class="track-group">
                   <div v-if="trackGroups.length > 1" class="section-heading">{{ group.section }}</div>
                   <div
                     v-for="track in group.tracks"
                     :key="track.id"
                     class="track-row"
-                    :class="{ 'track-row-active': currentTrack?.id === track.id }"
+                    :class="{
+                      'track-row-active': currentTrack?.id === track.id,
+                      'track-row-edit': isEditingPlaylist,
+                      'track-row-drop-before': dropTarget?.trackId === track.id && dropTarget.position === 'before',
+                      'track-row-drop-after': dropTarget?.trackId === track.id && dropTarget.position === 'after',
+                    }"
+                    :data-track-id="track.id"
+                    @dragover="handlePlaylistDragOver($event, track)"
+                    @drop="handlePlaylistDrop($event, track)"
                   >
                     <button
+                      v-if="isEditingPlaylist"
+                      class="playlist-edit-handle"
+                      type="button"
+                      draggable="true"
+                      :aria-label="t('playlist.moveTrack', {name: track.title})"
+                      :title="t('playlist.moveTrack', {name: track.title})"
+                      @dragstart="handlePlaylistDragStart($event, track)"
+                      @dragend="handlePlaylistDragEnd"
+                      @keydown="handlePlaylistHandleKeydown($event, track)"
+                    >
+                      <UIcon name="i-lucide-grip-vertical" />
+                    </button>
+                    <span v-if="isEditingPlaylist" class="playlist-edit-number">{{ formatNumber(displayTrackNumber(track)) }}</span>
+                    <button
+                      v-if="!isEditingPlaylist"
                       class="track-row-done"
                       type="button"
                       :aria-pressed="isTrackComplete(track)"
@@ -420,14 +464,18 @@
                       @click="library.toggleComplete(track)"
                     >
                       <UIcon v-if="isTrackComplete(track)" class="track-row-done-idle track-row-done-check" name="i-lucide-check" />
-                      <span v-else class="track-row-done-idle">{{ String(track.sequence).padStart(2, '0') }}</span>
+                      <span v-else class="track-row-done-idle">{{ String(displayTrackNumber(track)).padStart(2, '0') }}</span>
                       <UIcon class="track-row-done-hover" :name="isTrackComplete(track) ? 'i-lucide-x' : 'i-lucide-circle-check'" />
                     </button>
                     <button class="track-row-select" type="button" :aria-current="currentTrack?.id === track.id ? 'true' : undefined" :title="track.relativePath" @click="handleTrackRowClick(track)">
                       <span class="track-row-copy">
-                        <strong>{{ track.title }}</strong>
-                        <small>{{ track.kind === 'audio' ? `${t('playlist.audio')} · ` : '' }}{{ formatDuration(library.trackProgress(currentFolder.id, track.id)?.duration || track.duration) }}</small>
-                        <span class="track-row-progress" :class="{ 'track-row-progress-empty': !progressForTrack(track) }"><span :style="{width: `${progressForTrack(track)}%`}" /></span>
+                        <span class="track-row-title"><strong>{{ track.title }}</strong><UIcon v-if="!isEditingPlaylist && isFavorite(track)" class="track-row-favorite" name="i-lucide-star" aria-hidden="true" /></span>
+                        <small>
+                          <span v-if="track.folderId !== currentFolder.id">{{ t('playlist.fromFolder', {name: trackHomeFolderName(track)}) }} · </span>
+                          <span v-if="track.kind === 'audio'">{{ t('playlist.audio') }} · </span>
+                          {{ formatDuration(library.trackProgress(track.folderId, track.id)?.duration || track.duration) }}
+                        </small>
+                        <span v-if="!isEditingPlaylist" class="track-row-progress" :class="{ 'track-row-progress-empty': !progressForTrack(track) }"><span :style="{width: `${progressForTrack(track)}%`}" /></span>
                       </span>
                       <template v-if="currentTrack?.id === track.id">
                         <template v-if="isPlaying">
@@ -437,13 +485,20 @@
                         <UIcon v-else class="track-row-playing" name="i-lucide-play" :aria-label="t('player.play')" />
                       </template>
                     </button>
-                    <button v-if="hasTrackProgress(track)" class="track-row-reset" type="button" :aria-label="t('library.resetTrackProgress', {name: track.title})" :title="t('library.resetTrackProgress', {name: track.title})" @click="requestTrackProgressReset(track)">
+                    <button v-if="isEditingPlaylist" class="playlist-edit-favorite" type="button" :aria-label="isFavorite(track) ? t('playlist.removeFavorite') : t('playlist.addFavorite')" :title="isFavorite(track) ? t('playlist.removeFavorite') : t('playlist.addFavorite')" :aria-pressed="isFavorite(track)" @click="toggleFavorite(track)">
+                        <UIcon name="i-lucide-star" />
+                      </button>
+                    <button v-if="isEditingPlaylist" class="playlist-edit-remove" type="button" :aria-label="t('playlist.removeTrack', {name: track.title})" :title="t('playlist.removeTrack', {name: track.title})" @click="removePlaylistTrackFromFolder(track)">
+                        <UIcon name="i-lucide-x" />
+                      </button>
+                    <button v-if="!isEditingPlaylist && hasTrackProgress(track)" class="track-row-reset" type="button" :aria-label="t('library.resetTrackProgress', {name: track.title})" :title="t('library.resetTrackProgress', {name: track.title})" @click="requestTrackProgressReset(track)">
                       <UIcon name="i-lucide-rotate-ccw" />
                     </button>
-                    <span v-else class="track-row-reset-space" />
+                    <span v-else-if="!isEditingPlaylist" class="track-row-reset-space" />
                   </div>
                 </div>
               </div>
+              <span class="sr-only" aria-live="polite" aria-atomic="true">{{ reorderAnnouncement }}</span>
             </aside>
           </div>
         </section>
@@ -457,6 +512,40 @@
       <template #footer>
         <UButton color="neutral" :label="t('reset.cancel')" variant="ghost" :disabled="isResettingProgress" @click="cancelProgressReset" />
         <UButton color="error" icon="i-lucide-rotate-ccw" :label="t('reset.reset')" :loading="isResettingProgress" @click="confirmProgressReset" />
+      </template>
+    </UModal>
+
+    <UModal v-model:open="isAddTracksDialogOpen" :title="t('playlist.addTracks')" :dismissible="!isLoadingAddTracks && !isAddingTracks" :close="!isLoadingAddTracks && !isAddingTracks">
+      <template #body>
+        <label class="add-tracks-folder">
+          <span>{{ t('playlist.selectFolder') }}</span>
+          <select v-model="selectedSourceFolderId" :aria-label="t('playlist.selectFolder')" :disabled="isLoadingAddTracks || isAddingTracks">
+            <option v-for="folder in addSourceFolders" :key="folder.id" :value="folder.id">{{ folder.name }}</option>
+          </select>
+        </label>
+        <div v-if="isLoadingAddTracks" class="add-tracks-loading" role="status">{{ t('playlist.loadingTracks') }}</div>
+        <div v-else-if="availableAddTracks.length" class="add-tracks-list">
+          <label class="add-tracks-option add-tracks-select-all">
+            <input type="checkbox" :checked="areAllAddTracksSelected" :indeterminate="someAddTracksSelected" @change="toggleAllAddTracks">
+            <span>{{ t('playlist.selectAll') }}</span>
+          </label>
+          <label v-for="track in availableAddTracks" :key="track.id" class="add-tracks-option">
+            <input v-model="selectedAddTrackIds" type="checkbox" :value="track.id">
+            <span><strong>{{ track.title }}</strong><small>{{ track.relativePath }}</small></span>
+          </label>
+        </div>
+        <p v-else class="add-tracks-empty">{{ t('playlist.allTracksAdded') }}</p>
+      </template>
+      <template #footer>
+        <UButton color="neutral" :label="t('reset.cancel')" variant="ghost" :disabled="isAddingTracks" @click="isAddTracksDialogOpen = false" />
+        <UButton color="primary" icon="i-lucide-plus" :label="addTracksButtonLabel" :loading="isAddingTracks" :disabled="!selectedAddTrackIds.length || isLoadingAddTracks" @click="addSelectedTracks" />
+      </template>
+    </UModal>
+
+    <UModal v-model:open="isPlaylistResetDialogOpen" :title="t('playlist.resetTitle')" :description="t('playlist.resetDescription')" :dismissible="!isResettingPlaylist" :close="!isResettingPlaylist">
+      <template #footer>
+        <UButton color="neutral" :label="t('reset.cancel')" variant="ghost" :disabled="isResettingPlaylist" @click="isPlaylistResetDialogOpen = false" />
+        <UButton color="error" icon="i-lucide-rotate-ccw" :label="t('playlist.resetToFolder')" :loading="isResettingPlaylist" @click="resetPlaylistToFolder" />
       </template>
     </UModal>
 
@@ -495,7 +584,8 @@ import {useDebounceFn, useResizeObserver, useStorage} from '@vueuse/core';
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useI18n} from 'vue-i18n';
 import type {TableColumn, TableRow} from '@nuxt/ui';
-import type {IMediaTrack, IPlayerApi, IPlayerCapabilities, IRecentFolder, IRecentFolderSummary, IUpdateStatus, TLocale, TMenuAction, TTheme} from '../../shared/types';
+import type {IMediaTrack, IPlayerApi, IPlayerCapabilities, IPlaylist, IRecentFolder, IRecentFolderSummary, IUpdateStatus, TLocale, TMenuAction, TTheme} from '../../shared/types';
+import {addPlaylistTracks, movePlaylistTrack, playlistTracks, removePlaylistTrack as removeTrackFromPlaylist, togglePlaylistFavorite} from '../../shared/playlist';
 import LanguageMenu from '../../shared/ui/LanguageMenu.vue';
 import ThemeToggle from '../../shared/ui/ThemeToggle.vue';
 import {useLibrary} from '../composables/useLibrary';
@@ -522,18 +612,37 @@ interface IPlaybackSession {
   ready: boolean;
 }
 
+interface IAddSourceFolder {
+  id: string;
+  name: string;
+  rootPath: string;
+}
+
 const library = useLibrary();
 const toast = useToast();
 const {t, locale} = useI18n();
 const {theme: activeTheme, chooseTheme} = useActiveTheme();
 const activeLocale = computed(() => locale.value as TLocale);
-const capabilities = ref<IPlayerCapabilities>({revealFolder: false, openMediaExternally: false, updates: false});
+const capabilities = ref<IPlayerCapabilities>({revealFolder: false, openMediaExternally: false, updates: false, addFromOtherFolders: false});
 const recentFolders = library.recentFolders;
 const openFolders = library.openFolders;
 const activeTab = library.activeTab;
 const loading = library.loading;
 const error = library.error;
 const search = ref('');
+const isEditingPlaylist = ref(false);
+const favoritesOnly = ref(false);
+const reorderAnnouncement = ref('');
+const draggedTrackId = ref<string | null>(null);
+const dropTarget = ref<{trackId: string; position: 'before' | 'after'} | null>(null);
+const isAddTracksDialogOpen = ref(false);
+const selectedSourceFolderId = ref('');
+const addTrackCandidates = ref<IMediaTrack[]>([]);
+const selectedAddTrackIds = ref<string[]>([]);
+const isLoadingAddTracks = ref(false);
+const isAddingTracks = ref(false);
+const isPlaylistResetDialogOpen = ref(false);
+const isResettingPlaylist = ref(false);
 const librarySearch = ref('');
 const libraryView = useStorage<TLibraryView>('evb-player-library-view', 'cards');
 if (libraryView.value !== 'cards' && libraryView.value !== 'table') {
@@ -592,6 +701,8 @@ let deferredUpdateDialog: string | null = null;
 
 const currentFolder = library.playbackFolder;
 const currentTrack = library.playbackTrack;
+const currentTracks = computed(() => currentFolder.value ? playlistTracks(currentFolder.value) : []);
+const currentTrackPositions = computed(() => currentFolder.value?.playlist?.order ? new Map(currentTracks.value.map((track, index) => [track.id, index + 1])) : null);
 const isLibraryActive = computed(() => activeTab.value === 'library');
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value));
 
@@ -604,6 +715,7 @@ const filteredRecentFolders = computed(() => {
 });
 const folderTableRows = computed<IFolderLibraryTableRow[]>(() => filteredRecentFolders.value.map((folder) => ({
   ...folder,
+  mediaCount: folderTrackCount(folder),
   completionPercent: folderProgressPercent(folder),
 })));
 const folderTableSorting = ref([{id: 'lastOpenedAt', desc: true}]);
@@ -652,38 +764,47 @@ const folderTableColumns = computed<TableColumn<IFolderLibraryTableRow>[]>(() =>
   },
 ]);
 
+const hasFavorites = computed(() => Boolean(currentFolder.value?.playlist?.favorites.length));
 const filteredTracks = computed(() => {
   const folder = currentFolder.value;
-  const query = search.value.trim().toLocaleLowerCase();
+  const query = search.value.trim().toLocaleLowerCase(locale.value);
   if (!folder) {
     return [];
   }
-  if (!query) {
-    return folder.tracks;
+  let tracks = playlistTracks(folder);
+  if (!isEditingPlaylist.value) {
+    if (favoritesOnly.value) {
+      const favorites = new Set(folder.playlist?.favorites ?? []);
+      tracks = tracks.filter((track) => favorites.has(track.id));
+    }
+    if (query) {
+      tracks = tracks.filter((track) => `${track.title} ${track.fileName} ${track.relativePath}`.toLocaleLowerCase(locale.value).includes(query));
+    }
   }
-  return folder.tracks.filter((track) => `${track.title} ${track.fileName} ${track.relativePath}`.toLocaleLowerCase().includes(query));
+  return tracks;
 });
 
 const trackGroups = computed(() => {
-  const groups = new Map<string, IMediaTrack[]>();
-  for (const track of filteredTracks.value) {
-    const group = groups.get(track.section) ?? [];
-    group.push(track);
-    groups.set(track.section, group);
+  if (isEditingPlaylist.value) {
+    return filteredTracks.value.length ? [{key: 'editing', section: '', tracks: filteredTracks.value}] : [];
   }
-  return [...groups.entries()].map(([section, tracks]) => ({section, tracks}));
+  const groups: Array<{key: string; section: string; tracks: IMediaTrack[]}> = [];
+  for (const track of filteredTracks.value) {
+    const group = groups.at(-1);
+    if (group?.section === track.section) {
+      group.tracks.push(track);
+    } else {
+      groups.push({key: `${track.section}-${groups.length}`, section: track.section, tracks: [track]});
+    }
+  }
+  return groups;
 });
 
 const watchedCount = computed(() => {
-  const folder = currentFolder.value;
-  if (!folder) {
-    return 0;
-  }
-  const progress = library.progressFor(folder.id);
-  return folder.tracks.filter((track) => progress[track.id]?.completed).length;
+  return currentTracks.value.filter((track) => library.trackProgress(track.folderId, track.id)?.completed).length;
 });
 const watchedProgressTitle = computed(() => {
-  const total = currentFolder.value?.tracks.length ?? 0;
+  const total = currentTracks.value.length;
   return t('counts.watched', {
     count: formatNumber(watchedCount.value),
     total: formatNumber(total),
@@ -697,7 +818,7 @@ const volumeIcon = computed(() => volume.value === 0 ? 'i-lucide-volume-x' : vol
 const currentProgress = computed(() => {
   const folder = currentFolder.value;
   const track = currentTrack.value;
-  return folder && track ? library.trackProgress(folder.id, track.id) : null;
+  return folder && track ? library.trackProgress(track.folderId, track.id) : null;
 });
 
 const persistCurrentPosition = useDebounceFn((generation: number) => {
@@ -709,34 +830,38 @@ const persistCurrentPosition = useDebounceFn((generation: number) => {
 
 const visibleFolderTabs = computed(() => openFolders.value);
 const currentTrackIndex = computed(() => {
-  const folder = currentFolder.value;
   const track = currentTrack.value;
-  return folder && track ? folder.tracks.findIndex((candidate) => candidate.id === track.id) : -1;
+  return track ? currentTracks.value.findIndex((candidate) => candidate.id === track.id) : -1;
 });
 const hasPreviousTrack = computed(() => currentTrackIndex.value > 0);
 const hasNextTrack = computed(() => {
   const folder = currentFolder.value;
-  return Boolean(folder && currentTrackIndex.value >= 0 && currentTrackIndex.value < folder.tracks.length - 1);
+  return Boolean(folder && currentTrackIndex.value >= 0 && currentTrackIndex.value < currentTracks.value.length - 1);
 });
-const previousTrack = computed(() => currentFolder.value?.tracks[currentTrackIndex.value - 1]);
-const nextTrack = computed(() => currentFolder.value?.tracks[currentTrackIndex.value + 1]);
+const previousTrack = computed(() => currentTracks.value[currentTrackIndex.value - 1]);
+const nextTrack = computed(() => currentTracks.value[currentTrackIndex.value + 1]);
 const continueLabel = computed(() => folderProgress.value === 100 ? t('library.watchAgain') : watchedCount.value || currentProgress.value?.position ? t('library.continue') : t('library.start'));
 const folderMeta = computed(() => {
   const folder = currentFolder.value;
   if (!folder) {
     return '';
   }
+  const tracks = currentTracks.value;
+  const videoCount = tracks.filter((track) => track.kind === 'video').length;
+  const audioCount = tracks.length - videoCount;
+  const totalDuration = tracks.reduce((total, track) => total + (track.duration ?? 0), 0);
+  const totalBytes = tracks.reduce((total, track) => total + track.bytes, 0);
   const parts = [t('counts.position', {
     current: formatNumber(currentTrackIndex.value + 1),
-    total: formatNumber(folder.tracks.length),
+    total: formatNumber(tracks.length),
   })];
-  if (folder.audioCount && folder.videoCount) {
-    parts.push(`${t('counts.video', {count: formatNumber(folder.videoCount)}, folder.videoCount)}, ${t('counts.audio', {count: formatNumber(folder.audioCount)}, folder.audioCount)}`);
+  if (audioCount && videoCount) {
+    parts.push(`${t('counts.video', {count: formatNumber(videoCount)}, videoCount)}, ${t('counts.audio', {count: formatNumber(audioCount)}, audioCount)}`);
   }
-  if (folder.totalDuration) {
-    parts.push(formatFolderDuration(folder.totalDuration));
+  if (totalDuration) {
+    parts.push(formatFolderDuration(totalDuration));
   }
-  parts.push(formatBytes(folder.totalBytes));
+  parts.push(formatBytes(totalBytes));
   // Keep localized number and unit groups together while allowing breaks between summary parts.
   return parts.map((part) => part.replaceAll(' ', '\u00a0')).join(' · ');
 });
@@ -749,12 +874,37 @@ const folderMenuItems = computed(() => {
     [
       {label: continueLabel.value, icon: 'i-lucide-play', disabled: !currentTrack.value, onSelect: resumeCurrentFolder},
       ...(capabilities.value.revealFolder ? [{label: t('library.showInFolder'), icon: 'i-lucide-folder-search', onSelect: () => revealFolder(folder.rootPath)}] : []),
+      {label: t('playlist.editPlaylist'), icon: 'i-lucide-list-ordered', onSelect: beginPlaylistEditing},
     ],
     [
       {label: t('reset.folderMenu'), icon: 'i-lucide-rotate-ccw', color: 'error' as const, onSelect: requestFolderProgressReset},
     ],
   ];
 });
+const addSourceFolders = computed<IAddSourceFolder[]>(() => {
+  const folder = currentFolder.value;
+  if (!folder) {
+    return [];
+  }
+  const current = {id: folder.id, name: folder.name, rootPath: folder.rootPath};
+  return capabilities.value.addFromOtherFolders
+    ? [current, ...recentFolders.value.filter((recentFolder) => recentFolder.id !== folder.id).map(({id, name, rootPath}) => ({id, name, rootPath}))]
+    : [current];
+});
+const availableAddTracks = computed(() => {
+  const folder = currentFolder.value;
+  if (!folder) {
+    return [];
+  }
+  const existingIds = new Set(currentTracks.value.map((track) => track.id));
+  return addTrackCandidates.value.filter((track) => !existingIds.has(track.id));
+});
+const areAllAddTracksSelected = computed(() => availableAddTracks.value.length > 0
+  && availableAddTracks.value.every((track) => selectedAddTrackIds.value.includes(track.id)));
+const someAddTracksSelected = computed(() => selectedAddTrackIds.value.length > 0 && !areAllAddTracksSelected.value);
+const addTracksButtonLabel = computed(() => t('playlist.addSelectedTracks', {
+  count: formatNumber(selectedAddTrackIds.value.length),
+}, selectedAddTrackIds.value.length));
 const progressResetTitle = computed(() => progressResetRequest.value?.scope === 'folder' ? t('reset.folderTitle') : t('reset.trackTitle'));
 const progressResetDescription = computed(() => {
   const request = progressResetRequest.value;
@@ -779,12 +929,258 @@ function formatFolderCount(count: number) {
   return t('library.folderCount', {count: formatNumber(count)}, count);
 }
 
+function beginPlaylistEditing() {
+  isEditingPlaylist.value = true;
+  favoritesOnly.value = false;
+  search.value = '';
+}
+
+function finishPlaylistEditing() {
+  isEditingPlaylist.value = false;
+  dropTarget.value = null;
+  draggedTrackId.value = null;
+  reorderAnnouncement.value = '';
+}
+
+// A custom order numbers tracks by position; the folder's own order keeps the numbers in the file names.
+function displayTrackNumber(track: IMediaTrack) {
+  return currentTrackPositions.value?.get(track.id) ?? track.sequence;
+}
+
+function isFavorite(track: IMediaTrack) {
+  return Boolean(currentFolder.value?.playlist?.favorites.includes(track.id));
+}
+
+function trackHomeFolderName(track: IMediaTrack) {
+  return recentFolders.value.find((folder) => folder.id === track.folderId)?.name ?? track.folderId;
+}
+
+async function savePlaylistChange(playlist: IPlaylist | null, addedTracks?: IMediaTrack[]) {
+  const folder = currentFolder.value;
+  if (!folder) {
+    return false;
+  }
+  try {
+    await library.savePlaylist(folder.id, playlist, addedTracks ?? folder.addedTracks);
+    return true;
+  } catch {
+    toast.add({title: t('playlist.saveFailed'), color: 'error', icon: 'i-lucide-save-off'});
+    return false;
+  }
+}
+
+async function toggleFavorite(track: IMediaTrack) {
+  const folder = currentFolder.value;
+  if (folder) {
+    await savePlaylistChange(togglePlaylistFavorite(folder.playlist, track.id));
+  }
+}
+
+async function removePlaylistTrackFromFolder(track: IMediaTrack) {
+  const folder = currentFolder.value;
+  if (!folder) {
+    return;
+  }
+  const playlist = removeTrackFromPlaylist(folder, folder.playlist, track);
+  const addedTracks = track.folderId === folder.id
+    ? folder.addedTracks
+    : folder.addedTracks.filter((candidate) => candidate.id !== track.id);
+  await savePlaylistChange(playlist, addedTracks);
+}
+
+async function movePlaylistTrackTo(track: IMediaTrack, targetIndex: number) {
+  const folder = currentFolder.value;
+  if (!folder) {
+    return;
+  }
+  const playlist = movePlaylistTrack(folder, folder.playlist, track.id, targetIndex);
+  if (playlist === folder.playlist) {
+    return;
+  }
+  if (!await savePlaylistChange(playlist)) {
+    return;
+  }
+  const movedTracks = currentTracks.value;
+  const position = movedTracks.findIndex((candidate) => candidate.id === track.id) + 1;
+  reorderAnnouncement.value = t('playlist.positionAnnouncement', {
+    name: track.title,
+    position: formatNumber(position),
+    total: formatNumber(movedTracks.length),
+  });
+  await nextTick();
+  playlistRef.value?.querySelector<HTMLButtonElement>(`[data-track-id="${track.id}"] .playlist-edit-handle`)?.focus();
+}
+
+function handlePlaylistHandleKeydown(event: KeyboardEvent, track: IMediaTrack) {
+  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  const index = currentTracks.value.findIndex((candidate) => candidate.id === track.id);
+  void movePlaylistTrackTo(track, index + (event.key === 'ArrowUp' ? -1 : 1));
+}
+
+function handlePlaylistDragStart(event: DragEvent, track: IMediaTrack) {
+  draggedTrackId.value = track.id;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', track.id);
+  }
+}
+
+function handlePlaylistDragOver(event: DragEvent, track: IMediaTrack) {
+  if (!isEditingPlaylist.value || !draggedTrackId.value || draggedTrackId.value === track.id) {
+    return;
+  }
+  event.preventDefault();
+  const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  dropTarget.value = {trackId: track.id, position: event.clientY < bounds.top + bounds.height / 2 ? 'before' : 'after'};
+}
+
+function handlePlaylistDrop(event: DragEvent, track: IMediaTrack) {
+  if (!isEditingPlaylist.value) {
+    return;
+  }
+  event.preventDefault();
+  const sourceId = event.dataTransfer?.getData('text/plain') || draggedTrackId.value;
+  const source = currentTracks.value.find((candidate) => candidate.id === sourceId);
+  const target = dropTarget.value?.trackId === track.id ? dropTarget.value : null;
+  if (source && target) {
+    const sourceIndex = currentTracks.value.findIndex((candidate) => candidate.id === source.id);
+    const targetIndex = currentTracks.value.findIndex((candidate) => candidate.id === track.id);
+    const insertionIndex = targetIndex + (target.position === 'after' ? 1 : 0);
+    const destinationIndex = insertionIndex > sourceIndex ? insertionIndex - 1 : insertionIndex;
+    void movePlaylistTrackTo(source, destinationIndex);
+  }
+  dropTarget.value = null;
+  draggedTrackId.value = null;
+}
+
+function handlePlaylistDragEnd() {
+  dropTarget.value = null;
+  draggedTrackId.value = null;
+}
+
+function openAddTracksDialog() {
+  const folder = currentFolder.value;
+  if (!folder) {
+    return;
+  }
+  addTrackCandidates.value = [];
+  selectedAddTrackIds.value = [];
+  isAddTracksDialogOpen.value = true;
+  if (selectedSourceFolderId.value === folder.id) {
+    void loadAddTrackCandidates();
+  } else {
+    selectedSourceFolderId.value = folder.id;
+  }
+}
+
+async function loadAddTrackCandidates() {
+  const folder = currentFolder.value;
+  const sourceFolder = addSourceFolders.value.find((candidate) => candidate.id === selectedSourceFolderId.value);
+  if (!folder || !sourceFolder) {
+    addTrackCandidates.value = [];
+    return;
+  }
+  selectedAddTrackIds.value = [];
+  isLoadingAddTracks.value = true;
+  try {
+    if (sourceFolder.id === folder.id) {
+      const included = new Set(currentTracks.value.map((track) => track.id));
+      addTrackCandidates.value = folder.tracks.filter((track) => !included.has(track.id));
+    } else {
+      const tracks = await (await getPlayerApi()).getFolderTracks(sourceFolder.id, folder.id);
+      addTrackCandidates.value = tracks.filter((track) => !currentTracks.value.some((currentTrack) => currentTrack.id === track.id));
+    }
+  } catch {
+    addTrackCandidates.value = [];
+    toast.add({title: t('playlist.loadTracksFailed'), color: 'error'});
+  } finally {
+    isLoadingAddTracks.value = false;
+  }
+}
+
+function toggleAllAddTracks(event: Event) {
+  const shouldSelectAll = (event.target as HTMLInputElement).checked;
+  selectedAddTrackIds.value = shouldSelectAll ? availableAddTracks.value.map((track) => track.id) : [];
+}
+
+async function addSelectedTracks() {
+  const folder = currentFolder.value;
+  if (!folder) {
+    return;
+  }
+  const selectedIds = new Set(selectedAddTrackIds.value);
+  const selectedTracks = availableAddTracks.value.filter((track) => selectedIds.has(track.id));
+  if (!selectedTracks.length) {
+    return;
+  }
+  isAddingTracks.value = true;
+  try {
+    const externalTracks = selectedTracks.filter((track) => track.folderId !== folder.id);
+    if (!await library.loadTrackProgress(externalTracks)) {
+      return;
+    }
+    const playlist = addPlaylistTracks(folder, folder.playlist, selectedTracks);
+    const knownAddedIds = new Set(folder.addedTracks.map((track) => track.id));
+    const addedTracks = [
+      ...folder.addedTracks,
+      ...externalTracks
+        .filter((track) => !knownAddedIds.has(track.id))
+        .map((track) => ({...track, section: trackHomeFolderName(track)})),
+    ];
+    if (await savePlaylistChange(playlist, addedTracks)) {
+      isAddTracksDialogOpen.value = false;
+      selectedAddTrackIds.value = [];
+    }
+  } catch {
+    toast.add({title: t('playlist.loadTracksFailed'), color: 'error'});
+  } finally {
+    isAddingTracks.value = false;
+  }
+}
+
+async function resetPlaylistToFolder() {
+  const folder = currentFolder.value;
+  if (!folder) {
+    return;
+  }
+  isResettingPlaylist.value = true;
+  const selectedTrackId = currentTrack.value?.id;
+  try {
+    if (!await savePlaylistChange(null, [])) {
+      return;
+    }
+    finishPlaylistEditing();
+    isPlaylistResetDialogOpen.value = false;
+    const recentFolder = recentFolders.value.find((candidate) => candidate.id === folder.id);
+    if (recentFolder) {
+      await library.openRecentFolder(recentFolder);
+      const selectedTrack = currentTracks.value.find((track) => track.id === selectedTrackId);
+      if (selectedTrack && currentTrack.value?.id !== selectedTrack.id) {
+        library.selectTrack(selectedTrack);
+      }
+    }
+  } catch {
+    toast.add({title: t('playlist.saveFailed'), color: 'error', icon: 'i-lucide-save-off'});
+  } finally {
+    isResettingPlaylist.value = false;
+  }
+}
+
 function folderProgressPercent(folder: IRecentFolderSummary) {
   const openFolder = openFolders.value.find((candidate) => candidate.id === folder.id);
   if (openFolder) {
     return library.progressPercent(openFolder);
   }
   return folder.mediaCount > 0 ? Math.round((folder.completedCount / folder.mediaCount) * 100) : 0;
+}
+
+function folderTrackCount(folder: IRecentFolderSummary) {
+  const openFolder = openFolders.value.find((candidate) => candidate.id === folder.id);
+  return openFolder ? playlistTracks(openFolder).length : folder.mediaCount;
 }
 
 function formatLastOpened(timestamp: number) {
@@ -898,11 +1294,7 @@ function formatBytes(bytes: number) {
 }
 
 function progressForTrack(track: IMediaTrack) {
-  const folder = currentFolder.value;
-  if (!folder) {
-    return 0;
-  }
-  const progress = library.trackProgress(folder.id, track.id);
+  const progress = library.trackProgress(track.folderId, track.id);
   const duration = progress?.duration || track.duration || 0;
   if (progress?.completed) {
     return 100;
@@ -911,13 +1303,11 @@ function progressForTrack(track: IMediaTrack) {
 }
 
 function isTrackComplete(track: IMediaTrack) {
-  const folder = currentFolder.value;
-  return Boolean(folder && library.trackProgress(folder.id, track.id)?.completed);
+  return Boolean(library.trackProgress(track.folderId, track.id)?.completed);
 }
 
 function hasTrackProgress(track: IMediaTrack) {
-  const folder = currentFolder.value;
-  const progress = folder ? library.trackProgress(folder.id, track.id) : null;
+  const progress = library.trackProgress(track.folderId, track.id);
   return Boolean(progress && (progress.completed || progress.position > 0));
 }
 
@@ -928,7 +1318,7 @@ function requestTrackProgressReset(track: IMediaTrack) {
   }
   progressResetRequest.value = {
     scope: 'track',
-    folderId: folder.id,
+    folderId: track.folderId,
     trackId: track.id,
     trackTitle: track.title,
   };
@@ -977,10 +1367,10 @@ async function confirmProgressReset() {
   }
   isResettingProgress.value = true;
   const isCurrentFolder = currentFolder.value?.id === request.folderId;
-  const resetsCurrentTrack = request.scope === 'folder' || request.trackId === currentTrack.value?.id;
-  const resetMedia = resetsCurrentTrack && isCurrentFolder ? mediaRef.value : null;
+  const resetsCurrentTrack = request.scope === 'folder' ? isCurrentFolder : request.trackId === currentTrack.value?.id;
+  const resetMedia = resetsCurrentTrack ? mediaRef.value : null;
   const previousPosition = resetMedia?.currentTime ?? 0;
-  if (resetsCurrentTrack && isCurrentFolder) {
+  if (resetsCurrentTrack) {
     progressPersistenceGeneration += 1;
     isProgressPersistenceSuspended = true;
   }
@@ -997,7 +1387,7 @@ async function confirmProgressReset() {
         icon: 'i-lucide-rotate-ccw',
       });
     } else if (request.trackId) {
-      if (isCurrentFolder && request.trackId === currentTrack.value?.id) {
+      if (request.trackId === currentTrack.value?.id) {
         resetCurrentMedia();
       }
       await library.clearTrackProgress(request.folderId, request.trackId);
@@ -1085,8 +1475,8 @@ function navigateTrack(direction: 1 | -1) {
   if (!folder || !track) {
     return;
   }
-  const index = folder.tracks.findIndex((candidate) => candidate.id === track.id);
-  const nextTrack = folder.tracks[index + direction];
+  const index = currentTracks.value.findIndex((candidate) => candidate.id === track.id);
+  const nextTrack = currentTracks.value[index + direction];
   if (nextTrack) {
     selectTrack(nextTrack);
   }
@@ -1386,8 +1776,8 @@ async function handleEnded(event: Event) {
   }
   const folder = currentFolder.value;
   const track = currentTrack.value;
-  const trackIndex = folder && track ? folder.tracks.findIndex((candidate) => candidate.id === track.id) : -1;
-  const nextTrack = folder && trackIndex >= 0 ? folder.tracks[trackIndex + 1] : null;
+  const trackIndex = folder && track ? currentTracks.value.findIndex((candidate) => candidate.id === track.id) : -1;
+  const nextTrack = folder && trackIndex >= 0 ? currentTracks.value[trackIndex + 1] : null;
   isPlaying.value = false;
   showPlayerControls();
   await saveCurrentProgress(true);
@@ -1416,6 +1806,9 @@ function handleKeyboard(event: KeyboardEvent) {
     return;
   }
   const target = event.target;
+  if (target instanceof HTMLElement && target.closest('.playlist-edit-handle')) {
+    return;
+  }
   if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable)) {
     return;
   }
@@ -1509,7 +1902,7 @@ function handleKeyboard(event: KeyboardEvent) {
   }
 }
 
-watch([() => currentFolder.value?.id, () => currentTrack.value?.id], async ([folderId, trackId]) => {
+watch([() => currentFolder.value?.id, () => currentTrack.value?.id, () => currentTrack.value?.mediaUrl], async ([folderId, trackId]) => {
   const requestId = ++trackLoadRequest;
   void saveCurrentProgress();
   playbackSession?.media.pause();
@@ -1538,7 +1931,11 @@ watch([() => currentFolder.value?.id, () => currentTrack.value?.id], async ([fol
   if (!folderId || !trackId) {
     return;
   }
-  playbackSession = {folderId, trackId, media, ready: false};
+  const track = currentTrack.value;
+  if (!track) {
+    return;
+  }
+  playbackSession = {folderId: track.folderId, trackId, media, ready: false};
   const shouldAutoplay = autoplayTrackId.value === trackId;
   autoplayTrackId.value = null;
   media.load();
@@ -1631,7 +2028,18 @@ async function retryProgressWrites() {
   }
 }
 
-watch(() => currentFolder.value?.id, () => {search.value = '';});
+watch(() => currentFolder.value?.id, () => {
+  search.value = '';
+  favoritesOnly.value = false;
+  finishPlaylistEditing();
+  isAddTracksDialogOpen.value = false;
+  isPlaylistResetDialogOpen.value = false;
+});
+watch(activeTab, (tabId) => {
+  if (tabId === 'library') {
+    finishPlaylistEditing();
+  }
+});
 watch(isPlaying, (playing) => {
   if (playing || !deferredUpdateDialog) {
     return;
@@ -1652,6 +2060,8 @@ watch(isLibraryActive, (libraryActive) => {
 // Each full window or fullscreen session starts with only the video.
 watch(isImmersive, (immersive) => {if (!immersive) isImmersivePlaylistOpen.value = false;});
 watch(search, async () => {if (!search.value) {await nextTick(); revealCurrentTrack();}});
+// A select's change event can run before v-model updates, so the dialog follows the value itself.
+watch(selectedSourceFolderId, () => {if (isAddTracksDialogOpen.value) void loadAddTrackCandidates();});
 
 watch(() => isFullscreen.value || isFullWindow.value, syncFullscreenDocumentClass);
 

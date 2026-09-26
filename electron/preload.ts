@@ -1,9 +1,11 @@
 import {contextBridge, ipcRenderer} from 'electron';
 import type {
   IFolder,
+  IMediaTrack,
   IPlayerSettings,
   IPlayerApi,
   IRecentFolderSummary,
+  ISavePlaylistPayload,
   ISaveTrackProgressPayload,
   IUpdateStatus,
   TLocale,
@@ -13,7 +15,7 @@ import type {
 } from '../shared/types';
 
 const api: IPlayerApi = {
-  capabilities: {revealFolder: true, openMediaExternally: true, updates: true},
+  capabilities: {revealFolder: true, openMediaExternally: true, updates: true, addFromOtherFolders: true},
   getSettings: () => ipcRenderer.invoke('settings:get') as Promise<IPlayerSettings>,
   setTheme: (theme: TTheme) => ipcRenderer.invoke('settings:set-theme', theme) as Promise<void>,
   setLocale: (locale: TLocale) => ipcRenderer.invoke('settings:set-locale', locale) as Promise<void>,
@@ -21,6 +23,8 @@ const api: IPlayerApi = {
   openRecentFolder: (rootPath: string) => ipcRenderer.invoke('folder:open-recent', rootPath) as Promise<IFolder | null>,
   restoreLastFolder: () => ipcRenderer.invoke('folder:restore-last') as Promise<IFolder | null>,
   getRecentFolders: () => ipcRenderer.invoke('folder:get-recent') as Promise<IRecentFolderSummary[]>,
+  getFolderTracks: (folderId: string, forFolderId: string) => ipcRenderer.invoke('folder:get-tracks', folderId, forFolderId) as Promise<IMediaTrack[]>,
+  savePlaylist: (payload: ISavePlaylistPayload) => ipcRenderer.invoke('playlist:save', payload) as Promise<void>,
   removeRecentFolder: (rootPath: string) => ipcRenderer.invoke('folder:remove-recent', rootPath) as Promise<void>,
   closeFolder: async () => undefined,
   revealFolder: (rootPath: string) => ipcRenderer.invoke('folder:reveal', rootPath) as Promise<void>,

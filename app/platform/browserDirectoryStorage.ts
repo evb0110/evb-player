@@ -56,13 +56,6 @@ export async function putDirectoryHandle(folderId: string, handle: FileSystemDir
   await transactionDone(transaction);
 }
 
-export async function deleteDirectoryHandle(folderId: string) {
-  const database = await openDatabase();
-  const transaction = database.transaction('roots', 'readwrite');
-  transaction.objectStore('roots').delete(folderId);
-  await transactionDone(transaction);
-}
-
 export async function getAllDirectoryHandles() {
   const database = await openDatabase();
   const transaction = database.transaction('roots', 'readonly');

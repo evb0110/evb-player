@@ -2,6 +2,7 @@ import {parseBlob} from 'music-metadata';
 import type {
   IFolder,
   IMediaTrack,
+  IPlaylist,
   IPlayerApi,
   IPlayerSettings,
   IRecentFolder,
@@ -30,8 +31,8 @@ import {
   sectionForRelativePath,
   titleForFile,
 } from '../../shared/media';
+import {playlistTracks, sanitizePlaylist, sanitizePlaylists} from '../../shared/playlist';
 import {
-  deleteDirectoryHandle,
   getDirectoryHandle,
   getAllDirectoryHandles,
   putDirectoryHandle,
@@ -59,11 +60,14 @@ interface IPermissionDirectoryHandle extends FileSystemDirectoryHandle {
 
 const STATE_KEY = 'evb-player-web-state';
 const SETTINGS_KEY = 'evb-player-web-settings';
+const PLAYLISTS_KEY = 'evb-player-web-playlists';
 const stateDefault = (): IStoredBrowserState => ({recentFolders: [], progress: Object.create(null) as Record<string, TFolderProgress>, lastFolderId: null});
 let browserState: IStoredBrowserState | null = null;
 let stateCanBeWritten = true;
 let browserSettings: IPlayerSettings | null = null;
 let settingsCanBeWritten = true;
+let browserPlaylists: Record<string, IPlaylist> | null = null;
+let playlistsCanBeWritten = true;
 const mediaUrlsByFolder = new Map<string, Set<string>>();
 const idleUpdateStatus: IUpdateStatus = {phase: 'idle', currentVersion: '', manual: false, requiresPassword: false};
 
@@ -171,6 +175,43 @@ function writeStoredSettings() {
   }
 }
 
+function readStoredPlaylists() {
+  if (browserPlaylists) {
+    return browserPlaylists;
+  }
+  try {
+    const saved = localStorage.getItem(PLAYLISTS_KEY);
+    if (saved === null) {
+      browserPlaylists = Object.create(null) as Record<string, IPlaylist>;
+      return browserPlaylists;
+    }
+    const parsed: unknown = JSON.parse(saved);
+    if (!isPlainRecord(parsed)) {
+      playlistsCanBeWritten = false;
+      browserPlaylists = Object.create(null) as Record<string, IPlaylist>;
+      return browserPlaylists;
+    }
+    browserPlaylists = sanitizePlaylists(parsed);
+  } catch {
+    playlistsCanBeWritten = false;
+    browserPlaylists = Object.create(null) as Record<string, IPlaylist>;
+  }
+  return browserPlaylists;
+}
+
+function writeStoredPlaylists(playlists: Record<string, IPlaylist>) {
+  if (!playlistsCanBeWritten) {
+    throw new Error('Saved playlists could not be read.');
+  }
+  try {
+    localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(playlists));
+    browserPlaylists = playlists;
+  } catch (cause) {
+    playlistsCanBeWritten = false;
+    throw cause;
+  }
+}
+
 function hashHex(bytes: ArrayBuffer) {
   return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
@@ -225,6 +266,86 @@ async function readDurations(files: IScannedFile[]) {
   return durations;
 }
 
+async function buildMediaTracks(
+  folderId: string,
+  name: string,
+  files: IScannedFile[],
+  mediaOwnerFolderId: string,
+) {
+  const durations = await readDurations(files);
+  const tracks: IMediaTrack[] = await Promise.all(files.map(async ({file, relativePath}, index) => {
+    const fileName = file.name;
+    const {sequence, title} = titleForFile(fileName);
+    return {
+      id: await trackIdForPath(folderId, relativePath),
+      folderId,
+      sequence: sequence || index + 1,
+      title: title || fileName,
+      fileName,
+      relativePath,
+      section: sectionForRelativePath(name, relativePath),
+      kind: MEDIA_TYPES[extensionForFileName(fileName)] as IMediaTrack['kind'],
+      mediaUrl: createMediaUrl(mediaOwnerFolderId, file),
+      bytes: file.size,
+      duration: durations.get(relativePath) ?? null,
+    };
+  }));
+  return tracks;
+}
+
+async function resolveFileFromDirectory(root: FileSystemDirectoryHandle, relativePath: string) {
+  const segments = relativePath.split('/');
+  if (!segments.length || segments.some((segment) => !segment || segment === '.' || segment === '..')) {
+    return null;
+  }
+  try {
+    let directory = root;
+    for (const segment of segments.slice(0, -1)) {
+      directory = await directory.getDirectoryHandle(segment);
+    }
+    const fileHandle = await directory.getFileHandle(segments.at(-1)!);
+    return await fileHandle.getFile();
+  } catch {
+    return null;
+  }
+}
+
+async function resolveAddedTracks(folderId: string, playlist: IPlaylist | null) {
+  const pickerWindow = window as IFolderPickerWindow;
+  if (!pickerWindow.showDirectoryPicker || !playlist?.added.length) {
+    return [];
+  }
+  const recentFolders = readStoredState().recentFolders;
+  const tracksByPath = new Map<string, IMediaTrack>();
+  const sourceFolderIds = [...new Set(playlist.added.map((entry) => entry.folderId).filter((sourceId) => sourceId !== folderId))];
+  for (const sourceFolderId of sourceFolderIds) {
+    const sourceFolder = recentFolders.find((folder) => folder.id === sourceFolderId);
+    if (!sourceFolder) {
+      continue;
+    }
+    const handle = await getDirectoryHandle(sourceFolderId).catch(() => null);
+    if (!handle || !await permissionGranted(handle, false)) {
+      continue;
+    }
+    const resolvedFiles: IScannedFile[] = [];
+    for (const entry of playlist.added.filter((candidate) => candidate.folderId === sourceFolderId)) {
+      const file = await resolveFileFromDirectory(handle, entry.relativePath);
+      if (file && MEDIA_TYPES[extensionForFileName(file.name)]) {
+        resolvedFiles.push({file, relativePath: entry.relativePath});
+      }
+    }
+    const tracks = (await buildMediaTracks(sourceFolder.id, sourceFolder.name, resolvedFiles, folderId))
+      .map((track) => ({...track, section: sourceFolder.name}));
+    for (const track of tracks) {
+      tracksByPath.set(`${sourceFolderId}:${track.relativePath}`, track);
+    }
+  }
+  return playlist.added.flatMap((entry) => {
+    const track = tracksByPath.get(`${entry.folderId}:${entry.relativePath}`);
+    return track ? [track] : [];
+  });
+}
+
 async function finishFolderScan(
   folderId: string,
   name: string,
@@ -232,39 +353,22 @@ async function finishFolderScan(
 ): Promise<IFolder> {
   revokeFolderMedia(folderId);
   files.sort((left, right) => compareMediaPaths(left.relativePath, right.relativePath));
-  const durations = await readDurations(files);
-  const tracks: IMediaTrack[] = await Promise.all(files.map(async ({file, relativePath}, index) => {
-    const fileName = file.name;
-    const {sequence, title} = titleForFile(fileName);
-    return {
-      id: await trackIdForPath(folderId, relativePath),
-      sequence: sequence || index + 1,
-      title: title || fileName,
-      fileName,
-      relativePath,
-      section: sectionForRelativePath(name, relativePath),
-      kind: MEDIA_TYPES[extensionForFileName(fileName)] as IMediaTrack['kind'],
-      mediaUrl: createMediaUrl(folderId, file),
-      bytes: file.size,
-      duration: durations.get(relativePath) ?? null,
-    };
-  }));
+  const tracks = await buildMediaTracks(folderId, name, files, folderId);
   tracks.sort(compareMediaTracks);
+  const playlist = readStoredPlaylists()[folderId] ?? null;
   const state = readStoredState();
   const folder: IFolder = {
     id: folderId,
     name,
     rootPath: name,
     tracks,
-    videoCount: tracks.filter((track) => track.kind === 'video').length,
-    audioCount: tracks.filter((track) => track.kind === 'audio').length,
-    totalBytes: tracks.reduce((total, track) => total + track.bytes, 0),
-    totalDuration: tracks.reduce((total, track) => total + (track.duration ?? 0), 0),
+    addedTracks: await resolveAddedTracks(folderId, playlist),
+    playlist,
     scannedAt: Date.now(),
   };
   state.lastFolderId = folderId;
   state.recentFolders = [
-    {id: folderId, name, rootPath: name, mediaCount: tracks.length, lastOpenedAt: Date.now()},
+    {id: folderId, name, rootPath: name, mediaCount: playlistTracks(folder).length, lastOpenedAt: Date.now()},
     ...state.recentFolders.filter((recentFolder) => recentFolder.id !== folderId),
   ].slice(0, MAX_LIBRARY_FOLDERS);
   writeStoredState();
@@ -309,6 +413,21 @@ async function scanDirectoryHandle(handle: FileSystemDirectoryHandle, folderId: 
   const folder = await finishFolderScan(folderId, handle.name, files);
   await putDirectoryHandle(folderId, handle).catch(() => undefined);
   return folder;
+}
+
+async function getLibraryFolderTracks(folderId: string, forFolderId: string) {
+  const recentFolder = readStoredState().recentFolders.find((folder) => folder.id === folderId);
+  if (!recentFolder) {
+    return [];
+  }
+  const handle = await getDirectoryHandle(folderId).catch(() => null);
+  if (!handle || !await permissionGranted(handle, true)) {
+    return [];
+  }
+  const files = (await collectFromDirectory(handle)).sort((left, right) => compareMediaPaths(left.relativePath, right.relativePath));
+  const tracks = await buildMediaTracks(folderId, recentFolder.name, files, forFolderId);
+  tracks.sort(compareMediaTracks);
+  return tracks;
 }
 
 async function chooseDirectoryHandle() {
@@ -372,7 +491,12 @@ async function permissionGranted(handle: FileSystemDirectoryHandle, allowPrompt:
 }
 
 export const browserPlayerApi: IPlayerApi = {
-  capabilities: {revealFolder: false, openMediaExternally: false, updates: false},
+  capabilities: {
+    revealFolder: false,
+    openMediaExternally: false,
+    updates: false,
+    addFromOtherFolders: typeof (window as IFolderPickerWindow).showDirectoryPicker === 'function',
+  },
   async getSettings() {
     return {...readStoredSettings()};
   },
@@ -428,6 +552,30 @@ export const browserPlayerApi: IPlayerApi = {
     const state = readStoredState();
     return summarizeRecentFolders(state.recentFolders, state.progress);
   },
+  async getFolderTracks(folderId: string, forFolderId: string) {
+    return getLibraryFolderTracks(folderId, forFolderId);
+  },
+  async savePlaylist(payload) {
+    if (!isStoredIdentifier(payload.folderId) || !Number.isSafeInteger(payload.trackCount) || payload.trackCount < 0) {
+      return;
+    }
+    const state = readStoredState();
+    if (!state.recentFolders.some((folder) => folder.id === payload.folderId)) {
+      return;
+    }
+    const playlist = payload.playlist === null ? null : sanitizePlaylist(payload.playlist);
+    const nextPlaylists = {...readStoredPlaylists()};
+    if (playlist) {
+      nextPlaylists[payload.folderId] = playlist;
+    } else {
+      delete nextPlaylists[payload.folderId];
+    }
+    writeStoredPlaylists(nextPlaylists);
+    state.recentFolders = state.recentFolders.map((folder) => folder.id === payload.folderId
+      ? {...folder, mediaCount: payload.trackCount}
+      : folder);
+    writeStoredState();
+  },
   async removeRecentFolder(rootPath: string, folderId?: string) {
     const state = readStoredState();
     const recentFolder = state.recentFolders.find((candidate) => candidate.id === folderId)
@@ -441,7 +589,7 @@ export const browserPlayerApi: IPlayerApi = {
     }
     revokeFolderMedia(recentFolder.id);
     writeStoredState();
-    await deleteDirectoryHandle(recentFolder.id).catch(() => undefined);
+    // Keep the handle identity so reselecting this folder restores its id and playlist references.
   },
   async closeFolder(folderId: string) {
     revokeFolderMedia(folderId);

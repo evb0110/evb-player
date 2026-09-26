@@ -1,6 +1,8 @@
-import type {IFolder, ITrackProgress, IMediaTrack, IRecentFolder, IRecentFolderSummary, TFolderProgress} from '../../shared/types';
+import type {IFolder, IPlaylist, ITrackProgress, IMediaTrack, IRecentFolder, IRecentFolderSummary, TFolderProgress} from '../../shared/types';
+import {toRaw} from 'vue';
 import {useI18n} from 'vue-i18n';
 import {messages} from '../../shared/i18n';
+import {playlistTracks} from '../../shared/playlist';
 import {getPlayerApi} from '../utils/playerApi';
 
 interface IProgressMutation {
@@ -45,6 +47,7 @@ export function useLibrary() {
   const error = useState<string>('evb-player-error', () => '');
   const progressError = useState<string>('evb-player-progress-error', () => '');
   let progressWriteQueue: Promise<void> = Promise.resolve();
+  let playlistWriteQueue: Promise<void> = Promise.resolve();
   let operationGeneration = 0;
   const progressRevisionByFolder = new Map<string, number>();
   const progressMutationsByFolder = new Map<string, IProgressMutationState>();
@@ -60,7 +63,8 @@ export function useLibrary() {
       return null;
     }
     const selectedTrackId = selectedTrackByFolder.value[folder.id];
-    return folder.tracks.find((track) => track.id === selectedTrackId) ?? folder.tracks[0] ?? null;
+    const tracks = playlistTracks(folder);
+    return tracks.find((track) => track.id === selectedTrackId) ?? tracks[0] ?? null;
   }
 
   function getApi() {
@@ -112,14 +116,14 @@ export function useLibrary() {
   }
 
   function findResumeTrack(folder: IFolder) {
-    const progress = progressFor(folder.id);
-    const inProgressTracks = folder.tracks
+    const tracks = playlistTracks(folder);
+    const inProgressTracks = tracks
       .filter((track) => {
-        const trackState = progress[track.id];
+        const trackState = trackProgress(track.folderId, track.id);
         return Boolean(trackState && !trackState.completed && trackState.position > 1);
       })
-      .sort((left, right) => (progress[right.id]?.updatedAt ?? 0) - (progress[left.id]?.updatedAt ?? 0));
-    return inProgressTracks[0] ?? folder.tracks.find((track) => !progress[track.id]?.completed) ?? folder.tracks[0] ?? null;
+      .sort((left, right) => (trackProgress(right.folderId, right.id)?.updatedAt ?? 0) - (trackProgress(left.folderId, left.id)?.updatedAt ?? 0));
+    return inProgressTracks[0] ?? tracks.find((track) => !trackProgress(track.folderId, track.id)?.completed) ?? tracks[0] ?? null;
   }
 
   function mutationStateFor(folderId: string) {
@@ -291,27 +295,41 @@ export function useLibrary() {
     progressWrites.delete(progressWriteKey(write));
   }
 
-  async function loadFolderProgress(folder: IFolder, generation: number) {
+  async function loadFolderProgress(folderId: string, generation: number) {
     const api = await getApi();
     if (!api) {
       return true;
     }
-    const snapshot = progressReadSnapshot(folder.id);
-    const loadedProgress = await api.getFolderProgress(folder.id);
+    const snapshot = progressReadSnapshot(folderId);
+    const loadedProgress = await api.getFolderProgress(folderId);
     if (!isCurrentOperation(generation)) {
       return false;
     }
-    const nextProgress = mergeProgressRead(folder.id, loadedProgress ?? {}, snapshot);
+    const nextProgress = mergeProgressRead(folderId, loadedProgress ?? {}, snapshot);
     progressByFolder.value = {
       ...progressByFolder.value,
-      [folder.id]: nextProgress,
+      [folderId]: nextProgress,
     };
     return true;
   }
 
+  async function loadTrackProgress(tracks: IMediaTrack[]) {
+    const generation = operationGeneration;
+    const folderIds = [...new Set(tracks.map((track) => track.folderId))];
+    for (const folderId of folderIds) {
+      if (!await loadFolderProgress(folderId, generation)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   async function openFolderTab(folder: IFolder, generation: number) {
-    if (!await loadFolderProgress(folder, generation) || !isCurrentOperation(generation)) {
-      return false;
+    const progressFolderIds = [...new Set([folder.id, ...folder.addedTracks.map((track) => track.folderId)])];
+    for (const folderId of progressFolderIds) {
+      if (!await loadFolderProgress(folderId, generation) || !isCurrentOperation(generation)) {
+        return false;
+      }
     }
 
     const existingFolder = openFolders.value.find((tab) => tab.id === folder.id);
@@ -320,7 +338,8 @@ export function useLibrary() {
       : [...openFolders.value, folder];
 
     const selectedTrackId = selectedTrackByFolder.value[folder.id];
-    if (!folder.tracks.some((track) => track.id === selectedTrackId)) {
+    const tracks = playlistTracks(folder);
+    if (!tracks.some((track) => track.id === selectedTrackId)) {
       selectedTrackByFolder.value = {
         ...selectedTrackByFolder.value,
         [folder.id]: findResumeTrack(folder)?.id ?? '',
@@ -465,7 +484,7 @@ export function useLibrary() {
 
   function selectTrack(track: IMediaTrack) {
     const folder = playbackFolder.value;
-    if (!folder || !folder.tracks.some((candidate) => candidate.id === track.id)) {
+    if (!folder || !playlistTracks(folder).some((candidate) => candidate.id === track.id)) {
       return;
     }
     invalidatePendingOperations();
@@ -623,12 +642,12 @@ export function useLibrary() {
 
   async function toggleComplete(track: IMediaTrack) {
     const folder = playbackFolder.value;
-    if (!folder || !folder.tracks.some((candidate) => candidate.id === track.id)) {
+    if (!folder || !playlistTracks(folder).some((candidate) => candidate.id === track.id)) {
       return;
     }
-    const previous = trackProgress(folder.id, track.id);
+    const previous = trackProgress(track.folderId, track.id);
     try {
-      await saveProgress(folder.id, track.id, {
+      await saveProgress(track.folderId, track.id, {
         position: previous?.position ?? 0,
         duration: previous?.duration || track.duration || 0,
         completed: !previous?.completed,
@@ -644,11 +663,46 @@ export function useLibrary() {
   }
 
   function progressPercent(folder: IFolder) {
-    if (folder.tracks.length === 0) {
+    const tracks = playlistTracks(folder);
+    if (tracks.length === 0) {
       return 0;
     }
-    const progress = progressFor(folder.id);
-    return Math.round((folder.tracks.filter((track) => progress[track.id]?.completed).length / folder.tracks.length) * 100);
+    const completedCount = tracks.filter((track) => trackProgress(track.folderId, track.id)?.completed).length;
+    return Math.round((completedCount / tracks.length) * 100);
+  }
+
+  function showPlaylist(folder: IFolder) {
+    const tracks = playlistTracks(folder);
+    openFolders.value = openFolders.value.map((candidate) => candidate.id === folder.id ? folder : candidate);
+    if (!tracks.some((track) => track.id === selectedTrackByFolder.value[folder.id])) {
+      selectedTrackByFolder.value = {...selectedTrackByFolder.value, [folder.id]: tracks[0]?.id ?? ''};
+    }
+    recentFolders.value = recentFolders.value.map((recentFolder) => recentFolder.id === folder.id
+      ? {...recentFolder, mediaCount: tracks.length, completedCount: Math.min(tracks.length, recentFolder.completedCount)}
+      : recentFolder);
+    return tracks.length;
+  }
+
+  // The edit shows at once, so quick successive edits build on each other; a failed save undoes it.
+  async function savePlaylist(folderId: string, playlist: IPlaylist | null, addedTracks: IMediaTrack[]) {
+    const folder = openFolders.value.find((candidate) => candidate.id === folderId);
+    const api = await getApi();
+    if (!folder || !api) {
+      return;
+    }
+    const trackCount = showPlaylist({...folder, playlist, addedTracks});
+    // Edits copy arrays out of reactive state, and Electron's bridge can't clone Vue proxies.
+    const savedPlaylist = playlist && JSON.parse(JSON.stringify(playlist)) as IPlaylist;
+    const write = playlistWriteQueue.then(() => api.savePlaylist({folderId, playlist: savedPlaylist, trackCount}));
+    playlistWriteQueue = write.catch(() => undefined);
+    try {
+      await write;
+    } catch (cause) {
+      if (toRaw(openFolders.value.find((candidate) => candidate.id === folderId)?.playlist) === playlist) {
+        showPlaylist(folder);
+      }
+      throw cause;
+    }
   }
 
   return {
@@ -672,6 +726,7 @@ export function useLibrary() {
     closeFolder,
     setActiveTab,
     findResumeTrack,
+    loadTrackProgress,
     progressFor,
     trackProgress,
     saveProgress,
@@ -681,5 +736,6 @@ export function useLibrary() {
     toggleComplete,
     clearProgressError,
     progressPercent,
+    savePlaylist,
   };
 }
