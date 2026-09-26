@@ -121,7 +121,7 @@
                 <span :title="folder.rootPath">{{ folder.rootPath }}</span>
                 <small>{{ formatLessonCount(folder.mediaCount) }}</small>
               </button>
-              <UButton class="folder-card-reveal" color="neutral" icon="i-lucide-folder-search" :label="t('library.showInFolder')" variant="ghost" @click="revealFolder(folder.rootPath)" />
+              <UButton v-if="capabilities.revealFolder" class="folder-card-reveal" color="neutral" icon="i-lucide-folder-search" :label="t('library.showInFolder')" variant="ghost" @click="revealFolder(folder.rootPath)" />
               <button class="folder-card-remove" type="button" :aria-label="t('library.removeFromCollection', {name: folder.name})" :title="t('library.removeFolder')" @click="removeFolder(folder)"><UIcon name="i-lucide-x" /></button>
             </article>
           </div>
@@ -141,7 +141,7 @@
         </section>
 
         <footer v-if="isLibraryActive && !loading" class="library-footer">
-          {{ t('footer.copyright') }} © 2026 Eugene Barsky · <a href="https://evb-stack.com" target="_blank" rel="noreferrer">evb-stack.com</a>
+          {{ t('footer.copyright') }} © 2026 Eugene Barsky · <a href="https://evb-stack.com" target="_blank" rel="noreferrer">evb-stack.com</a><template v-if="!capabilities.revealFolder"> · <a href="https://evb-player.vercel.app/" target="_blank" rel="noreferrer">{{ t('footer.desktopDownloads') }}</a></template>
         </footer>
 
         <section v-if="currentFolder" v-show="!isLibraryActive" class="folder-view">
@@ -151,7 +151,7 @@
             <p>{{ t('library.emptyFolderHint') }}</p>
             <div class="empty-folder-actions">
               <UButton color="primary" icon="i-lucide-folder-open" :label="t('library.chooseAnotherFolder')" @click="library.openFolder" />
-              <UButton color="neutral" icon="i-lucide-folder-search" :label="t('library.showInFolder')" variant="ghost" @click="revealFolder(currentFolder.rootPath)" />
+              <UButton v-if="capabilities.revealFolder" color="neutral" icon="i-lucide-folder-search" :label="t('library.showInFolder')" variant="ghost" @click="revealFolder(currentFolder.rootPath)" />
             </div>
           </div>
 
@@ -231,7 +231,7 @@
                   <p>{{ playbackError }}</p>
                   <div>
                     <UButton :label="t('player.tryAgain')" color="primary" @click="retryPlayback" />
-                    <UButton :label="t('player.openDefaultApp')" color="neutral" variant="soft" @click="openMediaExternally" />
+                    <UButton v-if="capabilities.openMediaExternally" :label="t('player.openDefaultApp')" color="neutral" variant="soft" @click="openMediaExternally" />
                   </div>
                 </div>
                 <div v-else-if="isBuffering" class="buffering-indicator" role="status" :aria-label="t('player.buffering')"><UIcon class="spin" name="i-lucide-loader-circle" /></div>
@@ -429,8 +429,9 @@ import {useDebounceFn, useResizeObserver, useStorage} from '@vueuse/core';
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useI18n} from 'vue-i18n';
 import {UI_LOCALES} from '../../shared/i18n';
-import type {IMediaLesson, IRecentFolder, TLocale, TTheme} from '../../shared/types';
+import type {IMediaLesson, IPlayerCapabilities, IRecentFolder, TLocale, TTheme} from '../../shared/types';
 import {useLibrary} from '../composables/useLibrary';
+import {getPlayerApi} from '../utils/playerApi';
 
 type TProgressResetRequest = {
   scope: 'lesson' | 'folder';
@@ -450,6 +451,7 @@ const library = useLibrary();
 const toast = useToast();
 const {t, locale} = useI18n();
 const colorMode = useColorMode();
+const capabilities = ref<IPlayerCapabilities>({revealFolder: false, openMediaExternally: false, updates: false});
 const recentFolders = library.recentFolders;
 const openFolders = library.openFolders;
 const activeTab = library.activeTab;
@@ -629,7 +631,7 @@ const folderMenuItems = computed(() => {
   return [
     [
       {label: continueLabel.value, icon: 'i-lucide-play', disabled: !currentLesson.value, onSelect: resumeCurrentFolder},
-      {label: t('library.showInFolder'), icon: 'i-lucide-folder-search', onSelect: () => revealFolder(folder.rootPath)},
+      ...(capabilities.value.revealFolder ? [{label: t('library.showInFolder'), icon: 'i-lucide-folder-search', onSelect: () => revealFolder(folder.rootPath)}] : []),
     ],
     [
       {label: t('reset.folderMenu'), icon: 'i-lucide-rotate-ccw', color: 'error' as const, onSelect: requestFolderProgressReset},
@@ -670,11 +672,8 @@ function formatUnit(value: number, unit: 'hour' | 'minute') {
 
 async function selectTheme(theme: TTheme) {
   colorMode.preference = theme;
-  if (!window.evbPlayer) {
-    return;
-  }
   try {
-    await window.evbPlayer.setTheme(theme);
+    await (await getPlayerApi()).setTheme(theme);
   } catch {
     toast.add({title: t('settings.themeSaveFailed'), color: 'error'});
   }
@@ -682,11 +681,8 @@ async function selectTheme(theme: TTheme) {
 
 async function selectLocale(nextLocale: TLocale) {
   locale.value = nextLocale;
-  if (!window.evbPlayer) {
-    return;
-  }
   try {
-    await window.evbPlayer.setLocale(nextLocale);
+    await (await getPlayerApi()).setLocale(nextLocale);
   } catch {
     toast.add({title: t('settings.languageSaveFailed'), color: 'error'});
   }
@@ -866,9 +862,11 @@ function playMedia(media: HTMLMediaElement) {
     if (mediaRef.value === media) {
       isPlaying.value = false;
       if (!(cause instanceof DOMException && cause.name === 'AbortError')) {
-        playbackError.value = cause instanceof DOMException && cause.name === 'NotAllowedError'
-          ? t('player.playbackStartPrompt')
-          : t('player.playbackFailed');
+        if (cause instanceof DOMException && cause.name === 'NotAllowedError') {
+          playbackError.value = t('player.playbackStartPrompt');
+        } else {
+          playbackError.value = capabilities.value.openMediaExternally ? t('player.playbackFailed') : t('player.cannotPlayInBrowser');
+        }
       }
       isBuffering.value = false;
       showPlayerControls();
@@ -1115,16 +1113,8 @@ async function toggleFullscreen() {
   }
 
   try {
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-      return;
-    }
-    const api = import.meta.client ? window.evbPlayer : null;
-    if (api) {
-      isFullscreen.value = await api.setWindowFullscreen(!isFullscreen.value);
-      return;
-    }
-    await playerStageRef.value?.requestFullscreen();
+    const api = await getPlayerApi();
+    isFullscreen.value = await api.setWindowFullscreen(!isFullscreen.value);
   } catch {
     toast.add({title: t('player.fullscreenUnavailable'), color: 'error'});
   }
@@ -1368,11 +1358,7 @@ watch([() => currentFolder.value?.id, () => currentLesson.value?.id], async ([fo
   const media = mediaRef.value;
   if (!media) {
     if (isFullscreen.value) {
-      if (document.fullscreenElement) {
-        void document.exitFullscreen().catch(() => undefined);
-      } else {
-        void window.evbPlayer?.setWindowFullscreen(false);
-      }
+      void getPlayerApi().then((api) => api.setWindowFullscreen(false)).catch(() => undefined);
       isFullscreen.value = false;
     }
     isFullWindow.value = false;
@@ -1408,7 +1394,7 @@ function handleMediaError(event: Event) {
   if (!isCurrentMediaEvent(event)) return;
   isPlaying.value = false;
   isBuffering.value = false;
-  playbackError.value = t('player.mediaUnavailable');
+  playbackError.value = capabilities.value.openMediaExternally ? t('player.mediaUnavailable') : t('player.cannotPlayInBrowser');
   showPlayerControls();
 }
 
@@ -1422,18 +1408,18 @@ function retryPlayback() {
 }
 
 async function openMediaExternally() {
-  if (!currentLesson.value || !window.evbPlayer) return;
+  if (!currentLesson.value || !capabilities.value.openMediaExternally) return;
   try {
-    await window.evbPlayer.openMediaExternally(currentLesson.value.mediaUrl);
+    await (await getPlayerApi()).openMediaExternally(currentLesson.value.mediaUrl);
   } catch {
     toast.add({title: t('player.openFileFailed'), description: t('player.checkFolderAvailable'), color: 'error'});
   }
 }
 
 async function revealFolder(rootPath: string) {
+  if (!capabilities.value.revealFolder) return;
   try {
-    if (!window.evbPlayer) throw new Error(t('player.showFolderDesktopOnly'));
-    await window.evbPlayer.revealFolder(rootPath);
+    await (await getPlayerApi()).revealFolder(rootPath);
   } catch (cause) {
     toast.add({title: t('player.showFolderFailed'), description: cause instanceof Error ? cause.message : t('player.checkFolderAvailable'), color: 'error'});
   }
@@ -1483,13 +1469,14 @@ watch(search, async () => {if (!search.value) {await nextTick(); revealCurrentLe
 watch(() => isFullscreen.value || isFullWindow.value, syncFullscreenDocumentClass);
 
 function announceUpdate(version: string) {
+  if (!capabilities.value.updates) return;
   toast.add({
     id: 'update-ready',
     title: t('toast.updateReady', {version}),
     description: t('toast.updateDescription'),
     icon: 'i-lucide-download',
     duration: 0,
-    actions: [{label: t('toast.restartNow'), color: 'primary', onClick: () => void window.evbPlayer.installUpdate()}],
+    actions: [{label: t('toast.restartNow'), color: 'primary', onClick: () => void getPlayerApi().then((api) => api.installUpdate())}],
   });
 }
 
@@ -1498,12 +1485,20 @@ onMounted(async () => {
   document.addEventListener('keydown', handleKeyboard);
   window.addEventListener('pagehide', saveBeforeLeaving);
   window.addEventListener('beforeunload', saveBeforeLeaving);
-  if (import.meta.client && window.evbPlayer) {
-    removeWindowFullscreenListener = window.evbPlayer.onWindowFullscreenChanged((fullscreen) => {
-      isFullscreen.value = fullscreen;
-    });
-    removeUpdateListener = window.evbPlayer.onUpdateReady(announceUpdate);
-    void window.evbPlayer.getReadyUpdate().then((version) => version && announceUpdate(version));
+  if (import.meta.client) {
+    try {
+      const api = await getPlayerApi();
+      capabilities.value = api.capabilities;
+      removeWindowFullscreenListener = api.onWindowFullscreenChanged((fullscreen) => {
+        isFullscreen.value = fullscreen;
+      });
+      if (api.capabilities.updates) {
+        removeUpdateListener = api.onUpdateReady(announceUpdate);
+        void api.getReadyUpdate().then((version) => version && announceUpdate(version));
+      }
+    } catch {
+      // The renderer stays usable if the platform API cannot initialize.
+    }
   }
   syncFullscreenDocumentClass(isFullscreen.value || isFullWindow.value);
   await library.load();

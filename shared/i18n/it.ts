@@ -98,6 +98,7 @@ const it = {
     playbackStartPrompt: 'Premi Riproduci per iniziare questa lezione.',
     playbackFailed: 'Impossibile riprodurre questa lezione. Riprova o apri il file nell’app predefinita.',
     mediaUnavailable: 'File non disponibile o formato non supportato. Riprova o aprilo nell’app predefinita.',
+    cannotPlayInBrowser: 'Questo formato di file non può essere riprodotto nel browser.',
     openFileFailed: 'Impossibile aprire il file',
     checkFolderAvailable: 'Controlla che la cartella sia ancora disponibile.',
     showFolderFailed: 'Impossibile mostrare la cartella',
@@ -163,6 +164,7 @@ const it = {
   },
   footer: {
     copyright: 'Copyright',
+    desktopDownloads: 'Scarica l’app desktop',
   },
   main: {
     chooseFolderTitle: 'Scegli una cartella con video o file audio',

@@ -98,6 +98,7 @@ const nl = {
     playbackStartPrompt: 'Druk op Afspelen om deze les te starten.',
     playbackFailed: 'Deze les kon niet worden afgespeeld. Probeer het opnieuw of open het bestand in de standaardapp.',
     mediaUnavailable: 'Bestand niet beschikbaar of formaat niet ondersteund. Probeer het opnieuw of open het in de standaardapp.',
+    cannotPlayInBrowser: 'Dit bestandsformaat kan niet in de browser worden afgespeeld.',
     openFileFailed: 'Dit bestand kon niet worden geopend',
     checkFolderAvailable: 'Controleer of de map nog beschikbaar is.',
     showFolderFailed: 'De map kon niet worden getoond',
@@ -163,6 +164,7 @@ const nl = {
   },
   footer: {
     copyright: 'Auteursrecht',
+    desktopDownloads: 'Desktop-app downloaden',
   },
   main: {
     chooseFolderTitle: 'Kies een map met video- of audiobestanden',

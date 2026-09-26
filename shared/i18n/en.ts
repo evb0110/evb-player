@@ -96,6 +96,7 @@ const en = {
     playbackStartPrompt: 'Press Play to start this lesson.',
     playbackFailed: 'This lesson could not be played. Try again or open it in your default media app.',
     mediaUnavailable: 'This file is unavailable or its format is not supported. Try again or open it in your default media app.',
+    cannotPlayInBrowser: 'This file format cannot be played in the browser.',
     openFileFailed: 'Could not open this file',
     checkFolderAvailable: 'Check that the folder is still available.',
     showFolderFailed: 'Could not show the folder',
@@ -161,6 +162,7 @@ const en = {
   },
   footer: {
     copyright: 'Copyright',
+    desktopDownloads: 'Download the desktop app',
   },
   main: {
     chooseFolderTitle: 'Choose a folder of videos or audio',

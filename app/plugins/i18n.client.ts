@@ -1,6 +1,7 @@
 import {watch} from 'vue';
 import {createI18n} from 'vue-i18n';
 import {messages, pluralRules, resolveSupportedLocale} from '../../shared/i18n';
+import {getPlayerApi} from '../utils/playerApi';
 
 export default defineNuxtPlugin(async (nuxtApp) => {
   const colorMode = useColorMode();
@@ -15,14 +16,13 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 
   let theme: 'system' | 'light' | 'dark' = 'dark';
   let locale = resolveSupportedLocale(navigator.languages.length ? navigator.languages : [navigator.language]);
-  if (window.evbPlayer) {
-    try {
-      const settings = await window.evbPlayer.getSettings();
-      theme = settings.theme;
-      locale = settings.locale;
-    } catch {
-      // Keep a usable browser-language interface if settings IPC is unavailable.
-    }
+  try {
+    const api = await getPlayerApi();
+    const settings = await api.getSettings();
+    theme = settings.theme;
+    locale = settings.locale;
+  } catch {
+    // Keep a usable browser-language interface if platform settings are unavailable.
   }
 
   colorMode.preference = theme;

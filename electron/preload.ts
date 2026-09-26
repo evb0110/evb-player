@@ -11,6 +11,7 @@ import type {
 } from '../shared/types';
 
 const api: IPlayerApi = {
+  capabilities: {revealFolder: true, openMediaExternally: true, updates: true},
   getSettings: () => ipcRenderer.invoke('settings:get') as Promise<IPlayerSettings>,
   setTheme: (theme: TTheme) => ipcRenderer.invoke('settings:set-theme', theme) as Promise<void>,
   setLocale: (locale: TLocale) => ipcRenderer.invoke('settings:set-locale', locale) as Promise<void>,
@@ -19,6 +20,7 @@ const api: IPlayerApi = {
   restoreLastFolder: () => ipcRenderer.invoke('folder:restore-last') as Promise<IFolder | null>,
   getRecentFolders: () => ipcRenderer.invoke('folder:get-recent') as Promise<IRecentFolder[]>,
   removeRecentFolder: (rootPath: string) => ipcRenderer.invoke('folder:remove-recent', rootPath) as Promise<void>,
+  closeFolder: async () => undefined,
   revealFolder: (rootPath: string) => ipcRenderer.invoke('folder:reveal', rootPath) as Promise<void>,
   getFolderProgress: (folderId: string) => ipcRenderer.invoke('progress:get', folderId) as Promise<TFolderProgress>,
   saveLessonProgress: (payload: ISaveLessonProgressPayload) => ipcRenderer.invoke('progress:save', payload) as Promise<void>,

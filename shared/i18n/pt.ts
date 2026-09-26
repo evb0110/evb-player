@@ -98,6 +98,7 @@ const pt = {
     playbackStartPrompt: 'Prima Reproduzir para iniciar esta aula.',
     playbackFailed: 'Não foi possível reproduzir esta aula. Tente novamente ou abra o ficheiro na aplicação predefinida.',
     mediaUnavailable: 'O ficheiro não está disponível ou o formato não é suportado. Tente novamente ou abra-o na aplicação predefinida.',
+    cannotPlayInBrowser: 'Este formato de ficheiro não pode ser reproduzido no navegador.',
     openFileFailed: 'Não foi possível abrir este ficheiro',
     checkFolderAvailable: 'Verifique se a pasta continua disponível.',
     showFolderFailed: 'Não foi possível mostrar a pasta',
@@ -163,6 +164,7 @@ const pt = {
   },
   footer: {
     copyright: 'Direitos de autor',
+    desktopDownloads: 'Descarregar a aplicação para computador',
   },
   main: {
     chooseFolderTitle: 'Escolha uma pasta com vídeos ou ficheiros de áudio',

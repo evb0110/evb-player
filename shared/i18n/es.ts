@@ -98,6 +98,7 @@ const es = {
     playbackStartPrompt: 'Pulsa Reproducir para empezar esta lección.',
     playbackFailed: 'No se pudo reproducir esta lección. Inténtalo de nuevo o abre el archivo en la aplicación predeterminada.',
     mediaUnavailable: 'El archivo no está disponible o el formato no es compatible. Inténtalo de nuevo o ábrelo en la aplicación predeterminada.',
+    cannotPlayInBrowser: 'Este formato de archivo no se puede reproducir en el navegador.',
     openFileFailed: 'No se pudo abrir el archivo',
     checkFolderAvailable: 'Comprueba que la carpeta siga disponible.',
     showFolderFailed: 'No se pudo mostrar la carpeta',
@@ -163,6 +164,7 @@ const es = {
   },
   footer: {
     copyright: 'Derechos de autor',
+    desktopDownloads: 'Descargar la aplicación de escritorio',
   },
   main: {
     chooseFolderTitle: 'Elige una carpeta con vídeos o audio',

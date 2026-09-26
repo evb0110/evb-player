@@ -1,6 +1,7 @@
 import type {IFolder, ILessonProgress, IMediaLesson, IRecentFolder, TFolderProgress} from '../../shared/types';
 import {useI18n} from 'vue-i18n';
 import {messages} from '../../shared/i18n';
+import {getPlayerApi} from '../utils/playerApi';
 
 interface IProgressMutation {
   revision: number;
@@ -63,7 +64,7 @@ export function useLibrary() {
   }
 
   function getApi() {
-    return import.meta.client ? window.evbPlayer : null;
+    return import.meta.client ? getPlayerApi() : null;
   }
 
   function messageFor(cause: unknown, fallback: string) {
@@ -253,7 +254,7 @@ export function useLibrary() {
   }
 
   async function persistProgressWrite(write: IProgressWrite, fallback: string) {
-    const api = getApi();
+    const api = await getApi();
     if (!api) {
       markProgressPersisted(write);
       return;
@@ -291,7 +292,7 @@ export function useLibrary() {
   }
 
   async function loadFolderProgress(folder: IFolder, generation: number) {
-    const api = getApi();
+    const api = await getApi();
     if (!api) {
       return true;
     }
@@ -331,7 +332,7 @@ export function useLibrary() {
   }
 
   async function load() {
-    const api = getApi();
+    const api = await getApi();
     if (!api) {
       return;
     }
@@ -363,7 +364,7 @@ export function useLibrary() {
   }
 
   async function openFolder() {
-    const api = getApi();
+    const api = await getApi();
     if (!api) {
       return;
     }
@@ -391,13 +392,13 @@ export function useLibrary() {
   }
 
   async function openRecentFolder(recentFolder: IRecentFolder) {
-    const api = getApi();
+    const api = await getApi();
     if (!api) {
       return;
     }
     const generation = beginOperation(t('library.openingFolder'));
     try {
-      const folder = await api.openRecentFolder(recentFolder.rootPath);
+      const folder = await api.openRecentFolder(recentFolder.rootPath, recentFolder.id);
       if (!folder || !isCurrentOperation(generation)) {
         return;
       }
@@ -419,13 +420,13 @@ export function useLibrary() {
   }
 
   async function removeRecentFolder(recentFolder: IRecentFolder) {
-    const api = getApi();
+    const api = await getApi();
     if (!api) {
       return;
     }
     const generation = beginOperation(t('library.removingFolder'));
     try {
-      await api.removeRecentFolder(recentFolder.rootPath);
+      await api.removeRecentFolder(recentFolder.rootPath, recentFolder.id);
       if (!isCurrentOperation(generation)) {
         return;
       }
@@ -486,6 +487,10 @@ export function useLibrary() {
   function closeFolder(folderId: string) {
     invalidatePendingOperations();
     closeFolderState(folderId);
+    const apiPromise = getApi();
+    if (apiPromise) {
+      void apiPromise.then((api) => api.closeFolder(folderId)).catch(() => undefined);
+    }
   }
 
   function setActiveTab(tabId: string) {
@@ -510,7 +515,7 @@ export function useLibrary() {
         [lessonId]: progress,
       },
     };
-    const api = getApi();
+    const api = await getApi();
     if (!api) {
       mutationStateFor(folderId).pendingRevisions.delete(revision);
       return;
@@ -532,7 +537,7 @@ export function useLibrary() {
       nextProgress[folderId] = folderProgress;
     }
     progressByFolder.value = nextProgress;
-    const api = getApi();
+    const api = await getApi();
     if (!api) {
       mutationStateFor(folderId).pendingRevisions.delete(revision);
       return;
@@ -557,7 +562,7 @@ export function useLibrary() {
     const nextProgress = {...progressByFolder.value};
     delete nextProgress[folderId];
     progressByFolder.value = nextProgress;
-    const api = getApi();
+    const api = await getApi();
     if (!api) {
       mutationStateFor(folderId).pendingRevisions.delete(revision);
       return;

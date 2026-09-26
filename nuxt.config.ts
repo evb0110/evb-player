@@ -11,7 +11,7 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2026-09-22',
   app: {
-    baseURL: process.env.EVB_PLAYER_DEV_SERVER_URL ? '/' : './',
+    baseURL: process.env.EVB_PLAYER_WEB === '1' || process.env.EVB_PLAYER_DEV_SERVER_URL || process.env.NODE_ENV === 'development' ? '/' : './',
     head: {
       title: 'EVB Player',
       link: [{rel: 'icon', type: 'image/png', href: './favicon.png'}],

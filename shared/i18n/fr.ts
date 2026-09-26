@@ -98,6 +98,7 @@ const fr = {
     playbackStartPrompt: 'Appuyez sur Lire pour commencer cette leçon.',
     playbackFailed: 'Impossible de lire cette leçon. Réessayez ou ouvrez le fichier dans votre application par défaut.',
     mediaUnavailable: 'Fichier indisponible ou format non pris en charge. Réessayez ou ouvrez-le dans votre application par défaut.',
+    cannotPlayInBrowser: 'Ce format de fichier ne peut pas être lu dans le navigateur.',
     openFileFailed: 'Impossible d’ouvrir ce fichier',
     checkFolderAvailable: 'Vérifiez que le dossier est toujours accessible.',
     showFolderFailed: 'Impossible d’afficher le dossier',
@@ -163,6 +164,7 @@ const fr = {
   },
   footer: {
     copyright: 'Droits d’auteur',
+    desktopDownloads: 'Télécharger l’application de bureau',
   },
   main: {
     chooseFolderTitle: 'Choisissez un dossier de vidéos ou de fichiers audio',

@@ -10,12 +10,12 @@ import type {
   IMediaLesson,
   IPlayerSettings,
   IRecentFolder,
-  TMediaKind,
   TLocale,
   TTheme,
   TFolderProgress,
 } from '../shared/types';
 import {isSupportedLocale, messages} from '../shared/i18n';
+import {compareMediaLessons, compareMediaPaths, MEDIA_MIME_TYPES, MEDIA_TYPES, sectionForRelativePath, titleForFile} from '../shared/media';
 import {
   createDefaultState,
   isPlainRecord,
@@ -80,39 +80,6 @@ if (!singleInstanceLock) {
   });
 }
 
-const MEDIA_TYPES: Record<string, TMediaKind> = {
-  '.aac': 'audio',
-  '.flac': 'audio',
-  '.m4a': 'audio',
-  '.mp3': 'audio',
-  '.ogg': 'audio',
-  '.opus': 'audio',
-  '.wav': 'audio',
-  '.avi': 'video',
-  '.flv': 'video',
-  '.m4v': 'video',
-  '.mkv': 'video',
-  '.mov': 'video',
-  '.mp4': 'video',
-  '.ogv': 'video',
-  '.webm': 'video',
-  '.wmv': 'video',
-};
-
-const MEDIA_MIME_TYPES: Record<string, string> = {
-  '.aac': 'audio/aac',
-  '.flac': 'audio/flac',
-  '.m4a': 'audio/mp4',
-  '.mkv': 'video/x-matroska',
-  '.mov': 'video/quicktime',
-  '.mp3': 'audio/mpeg',
-  '.mp4': 'video/mp4',
-  '.ogg': 'audio/ogg',
-  '.opus': 'audio/ogg',
-  '.wav': 'audio/wav',
-  '.webm': 'video/webm',
-};
-
 protocol.registerSchemesAsPrivileged([{
   scheme: MEDIA_SCHEME,
   privileges: {
@@ -143,19 +110,6 @@ function lessonIdForPath(folderId: string, relativePath: string) {
 
 function mediaUrlForPath(filePath: string) {
   return `${MEDIA_SCHEME}://local?path=${encodeURIComponent(filePath)}`;
-}
-
-function titleForFile(fileName: string) {
-  const withoutExtension = basename(fileName, extname(fileName));
-  const numberedName = withoutExtension.match(/^(\d{1,5})\s*[._)\-]+\s*(.+)$/u);
-  if (!numberedName) {
-    return {sequence: 0, title: withoutExtension.replace(/[._]+/gu, ' ').trim()};
-  }
-
-  return {
-    sequence: Number(numberedName[1]),
-    title: numberedName[2].replace(/[._]+/gu, ' ').replace(/\s+/gu, ' ').trim(),
-  };
 }
 
 function errorCode(error: unknown) {
@@ -443,14 +397,13 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
   mediaRoots.add(rootPath);
   authorizedFolderRoots.add(rootPath);
   const folderId = folderIdForPath(rootPath);
-  const filePaths = (await collectMediaFiles(rootPath, true)).sort((left, right) => left.localeCompare(right, undefined, {numeric: true}));
+  const filePaths = (await collectMediaFiles(rootPath, true)).sort(compareMediaPaths);
   const fileStats = await collectFileStats(filePaths);
   const scannableFilePaths = filePaths.filter((filePath) => fileStats.has(filePath));
   const durationMap = await readDurationMap(scannableFilePaths);
   const lessons: IMediaLesson[] = scannableFilePaths.map((filePath, index) => {
     const fileName = basename(filePath);
     const relativePath = relative(rootPath, filePath).split(sep).join('/');
-    const parentPath = dirname(relativePath);
     const {sequence, title} = titleForFile(fileName);
     const currentFileStats = fileStats.get(filePath);
     if (!currentFileStats) {
@@ -463,7 +416,7 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
       fileName,
       relativePath,
       // Files at the top of the folder are grouped under the folder's own name.
-      section: parentPath === '.' ? basename(rootPath) : parentPath,
+      section: sectionForRelativePath(basename(rootPath), relativePath),
       kind: MEDIA_TYPES[extname(fileName).toLowerCase()],
       mediaUrl: mediaUrlForPath(filePath),
       bytes: currentFileStats.size,
@@ -471,7 +424,7 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
     };
   }).filter((lesson): lesson is IMediaLesson => lesson !== null);
 
-  lessons.sort((left, right) => left.sequence - right.sequence || left.title.localeCompare(right.title, undefined, {numeric: true}));
+  lessons.sort(compareMediaLessons);
   const totalDuration = lessons.reduce((total, lesson) => total + (lesson.duration ?? 0), 0);
   const videoCount = lessons.filter((lesson) => lesson.kind === 'video').length;
   const audioCount = lessons.length - videoCount;

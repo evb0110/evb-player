@@ -98,6 +98,7 @@ const de = {
     playbackStartPrompt: 'Drücke auf Wiedergeben, um diese Lektion zu starten.',
     playbackFailed: 'Diese Lektion konnte nicht abgespielt werden. Versuche es erneut oder öffne die Datei in der Standard-App.',
     mediaUnavailable: 'Datei nicht verfügbar oder Format nicht unterstützt. Versuche es erneut oder öffne sie in der Standard-App.',
+    cannotPlayInBrowser: 'Dieses Dateiformat kann im Browser nicht abgespielt werden.',
     openFileFailed: 'Datei konnte nicht geöffnet werden',
     checkFolderAvailable: 'Prüfe, ob der Ordner noch verfügbar ist.',
     showFolderFailed: 'Ordner konnte nicht angezeigt werden',
@@ -163,6 +164,7 @@ const de = {
   },
   footer: {
     copyright: 'Urheberrecht',
+    desktopDownloads: 'Desktop-App herunterladen',
   },
   main: {
     chooseFolderTitle: 'Ordner mit Video- oder Audiodateien auswählen',

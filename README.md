@@ -4,6 +4,16 @@ EVB Player plays folders of video and audio files stored on your computer. Point
 
 Downloads for macOS (Apple Silicon), Windows 10 and 11 (x64), and Ubuntu (x64 `.deb`) are on [evb-player.vercel.app](https://evb-player.vercel.app) and on the [releases page](https://github.com/evb0110/evb-player/releases/latest). Installed apps update themselves from new releases.
 
+## Browser version
+
+The browser version uses the same player interface for folders, playlists, playback progress, theme and language settings, theater mode, and fullscreen. It scans a selected folder recursively and plays media formats supported by the visitor's browser. AVI, WMV, and FLV files cannot be played in the browser. Use the desktop app to play those in the system media app, reveal folders in the file manager, or receive app updates.
+
+Chrome and Edge can save folder handles. When access is still granted, the last folder opens on launch; otherwise it stays in the Library and one click can restore permission. Firefox and Safari use a folder file chooser, so a recent folder asks you to choose it again when opened. Progress resumes for a folder with the same name in those browsers.
+
+The browser stores the Library and lesson progress in local storage under `evb-player-web-state`, and theme and language under `evb-player-web-settings`. Chrome and Edge folder handles are stored in IndexedDB under `evb-player-web-folders`. Media stays in the browser and is not uploaded.
+
+Run the browser version with `pnpm dev:web`. Build the static site with `pnpm build:web`; the deployable files are in `.output/public`.
+
 ## Features
 
 - Folders are scanned recursively. Lessons are sorted by numeric filename prefixes such as `0001.` or `12 -`, and subfolders become playlist sections.

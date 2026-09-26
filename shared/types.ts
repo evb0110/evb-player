@@ -55,15 +55,23 @@ export interface ISaveLessonProgressPayload {
   progress: ILessonProgress;
 }
 
+export interface IPlayerCapabilities {
+  revealFolder: boolean;
+  openMediaExternally: boolean;
+  updates: boolean;
+}
+
 export interface IPlayerApi {
+  capabilities: IPlayerCapabilities;
   getSettings(): Promise<IPlayerSettings>;
   setTheme(theme: TTheme): Promise<void>;
   setLocale(locale: TLocale): Promise<void>;
   chooseFolder(): Promise<IFolder | null>;
-  openRecentFolder(rootPath: string): Promise<IFolder | null>;
+  openRecentFolder(rootPath: string, folderId?: string): Promise<IFolder | null>;
   restoreLastFolder(): Promise<IFolder | null>;
   getRecentFolders(): Promise<IRecentFolder[]>;
-  removeRecentFolder(rootPath: string): Promise<void>;
+  removeRecentFolder(rootPath: string, folderId?: string): Promise<void>;
+  closeFolder(folderId: string): Promise<void>;
   revealFolder(rootPath: string): Promise<void>;
   getFolderProgress(folderId: string): Promise<TFolderProgress>;
   saveLessonProgress(payload: ISaveLessonProgressPayload): Promise<void>;
