@@ -80,16 +80,25 @@ try {
         console.log(`Recording ${flowName}: ${locale} / ${theme}`);
         const app = await electron.launch({
             executablePath: launch.executablePath,
-            args: [REPO, `--user-data-dir=${profile}`],
+            // Two device pixels per CSS pixel keep the QA screenshots and the poster sharp on any display.
+            args: [REPO, `--user-data-dir=${profile}`, '--force-device-scale-factor=2'],
             env,
             timeout: 60_000,
         });
         try {
             const win = await app.firstWindow();
+            await win.waitForLoadState('load');
+            // Resize once the window has painted: before its first frame, the compositor's initial
+            // configure can still override the request. A film recorded at another size leaves blank
+            // strips, so check before recording.
+            await win.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
             await app.evaluate(({ BrowserWindow }, { width, height }) => {
                 BrowserWindow.getAllWindows()[0].setContentSize(width, height);
             }, size);
-            await win.waitForLoadState('load');
+            await win.waitForFunction(({ width, height }) => innerWidth === width && innerHeight === height, size, { timeout: 10_000 }).catch(async () => {
+                const actual = await win.evaluate(() => `${innerWidth}x${innerHeight}`);
+                throw new Error(`The window is ${actual}, not ${size.width}x${size.height}. On Linux, record inside scripts/with-nested-display.sh.`);
+            });
             await win.waitForTimeout(1500);
             await win.evaluate((map) => {
                 window.__filmVideoFrames = map;
