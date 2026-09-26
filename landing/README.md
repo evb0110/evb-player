@@ -24,6 +24,28 @@ node recorder/social-cards.mjs --locale ru
 
 Telegram and Facebook cache images by URL. The initial cards use version 1; whenever published cards are re-rendered, increment `SOCIAL_CARD_VERSION` in `app/pages/index.vue` so shared links use a fresh image URL. `robots.txt` points crawlers to the generated `sitemap.xml`. Root requests from link-preview and search crawlers keep the English page even if they send a different language or an old locale cookie; browser language selection remains enabled.
 
+## Analytics
+
+The landing counts page views and downloads in the table `evb_player_landing_event` of the shared Neon database, created by `server/analytics.sql`. The server records them, with no script, cookie or stored address in the browser: a page view when a landing page renders, and a download when an installer button goes through `/download/<platform>`, which then redirects to the installer in the latest GitHub release. Crawlers and prefetches are skipped. Each row keeps the kind, the landing language, the platform, the downloaded version, the country from Vercel's edge, the host of an external referrer, and a visitor hash that changes every day. Production reads the database from `NUXT_DATABASE_URL`; without it, nothing is recorded.
+
+```sql
+-- Daily traffic
+select created_at::date as day, count(*) as views, count(distinct visitor) as visitors
+from evb_player_landing_event where kind = 'view' group by 1 order by 1 desc;
+
+-- Countries
+select coalesce(country, '?') as country, count(*) as views
+from evb_player_landing_event where kind = 'view' group by 1 order by 2 desc;
+
+-- Downloads by country and platform
+select coalesce(country, '?') as country, platform, count(*) as downloads
+from evb_player_landing_event where kind = 'download' group by 1, 2 order by 3 desc;
+
+-- Where visitors come from
+select referrer_host, count(*) as views
+from evb_player_landing_event where kind = 'view' and referrer_host is not null group by 1 order by 2 desc;
+```
+
 ## Films
 
 The film is recorded from the real app, not drawn by hand. `recorder/` drives the app with Playwright, captures each state as SVG with dom-to-svg, and writes each locale/theme variant to `public/films/<film>/<locale>-<theme>/` with a manifest at `app/films/manifests/<film>.<locale>.<theme>.json`. `app/films/RealFilm.tsx` plays the selected recording with Remotion, adding the pointer, clicks and camera moves. The player loads only the selected manifest; when a recording is missing, it tries English in the same theme and then English dark.

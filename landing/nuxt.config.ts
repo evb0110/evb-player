@@ -18,6 +18,9 @@ export default defineNuxtConfig({
     serverBundle: 'local',
   },
   runtimeConfig: {
+    // The shared Neon database for landing analytics, set at runtime by NUXT_DATABASE_URL (server only).
+    // Without it, nothing is recorded.
+    databaseUrl: '',
     public: { siteUrl },
   },
   app: {

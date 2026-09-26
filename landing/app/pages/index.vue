@@ -60,7 +60,7 @@
               </button>
             </div>
 
-            <a class="download-row" :href="selectedAsset?.url ?? RELEASES_URL" :target="selectedAsset ? undefined : '_blank'" rel="noreferrer" role="tabpanel">
+            <a class="download-row" :href="selectedAsset ? `/download/${platform}` : RELEASES_URL" :target="selectedAsset ? undefined : '_blank'" :rel="selectedAsset ? 'nofollow' : 'noreferrer'" role="tabpanel">
               <span class="download-copy">
                 <strong>{{ selectedDetails.title }}</strong>
                 <span>{{ selectedDetails.detail }}</span>

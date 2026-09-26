@@ -17,6 +17,7 @@
     "@iconify-json/circle-flags": "^1.2.11",
     "@iconify-json/lucide": "^1.2.136",
     "@iconify-json/simple-icons": "^1.2.97",
+    "@neondatabase/serverless": "^1.1.0",
     "@nuxt/ui": "4.11.1",
     "@nuxtjs/i18n": "10.5.0",
     "@remotion/player": "4.0.528",
