@@ -32,7 +32,8 @@ export default defineNuxtConfig({
     preset: isBrowserBuild ? 'vercel' : 'static',
     plugins: isBrowserBuild ? [fileURLToPath(new URL('./server/browser-shell.ts', import.meta.url))] : [],
     // Vercel serves a Build Output API directory as built, so response headers belong here rather than in vercel.json.
-    routeRules: isBrowserBuild ? {'/**': {headers: {'x-content-type-options': 'nosniff'}}} : {},
+    // Nitro's own /_nuxt cache route matches first on Vercel, so the assets need the header there too.
+    routeRules: isBrowserBuild ? {'/**': {headers: {'x-content-type-options': 'nosniff'}}, '/_nuxt/**': {headers: {'x-content-type-options': 'nosniff'}}} : {},
   },
   typescript: {
     strict: true,
