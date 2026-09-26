@@ -115,7 +115,6 @@ try {
         }));
         const framePath = join(filmDir, frameName);
         let svg = await readFile(framePath, 'utf8');
-        svg = svg.replace('viewBox="0 0 1280 800"', 'viewBox="0 0 1040 700"');
         svg = await inlineFilmAssets(svg, filmDir);
 
         const html = `<!doctype html>
@@ -132,9 +131,9 @@ try {
     .icon { display: block; width: 62px; height: 62px; border-radius: 15px; }
     .brand-name { color: ${cardColors.ink}; font-size: 31px; font-weight: 680; letter-spacing: -1.2px; }
     .brand-label { margin-top: 4px; color: ${cardColors.subtle}; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; }
-    .tagline { position: absolute; z-index: 2; top: 220px; left: 80px; width: 385px; margin: 0; color: ${cardColors.ink}; font-size: 33px; font-weight: 590; line-height: 1.19; letter-spacing: -1.05px; text-wrap: pretty; }
+    .tagline { position: absolute; z-index: 2; top: 220px; left: 80px; width: 350px; margin: 0; color: ${cardColors.ink}; font-size: 33px; font-weight: 590; line-height: 1.19; letter-spacing: -1.05px; text-wrap: pretty; }
     .accent { position: absolute; top: 474px; left: 80px; width: 48px; height: 4px; border-radius: 3px; background: ${cardColors.accent}; }
-    .frame { position: absolute; top: 106px; right: 34px; width: 650px; height: 438px; overflow: hidden; border: 1px solid ${cardColors.line}; border-radius: 15px; background: ${cardColors.raised}; box-shadow: 0 22px 58px rgb(0 0 0 / 42%); }
+    .frame { position: absolute; top: 100px; right: 34px; width: 690px; height: 431px; overflow: hidden; border: 1px solid ${cardColors.line}; border-radius: 15px; background: ${cardColors.raised}; box-shadow: 0 22px 58px rgb(0 0 0 / 42%); }
     .frame svg { display: block; width: 100%; height: 100%; }
   </style>
 </head>

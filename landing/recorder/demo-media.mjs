@@ -20,11 +20,11 @@ const typescript = {
         ['01 Getting started', '03. Your first type', 485, 'let title: string = "Hello";\nlet count: number = 3;\nlet done: boolean = false;'],
         ['02 Core types', '04. Primitives and literals', 572, 'type Direction = "up" | "down";\n\nconst move = (to: Direction) =>\n  console.log(`Moving ${to}`);'],
         ['02 Core types', '05. Arrays and tuples', 461, 'const scores: number[] = [9, 7, 10];\nconst point: [number, number] = [4, 2];'],
-        ['02 Core types', '06. Objects and interfaces', 680, 'interface Lesson {\n  title: string;\n  minutes: number;\n  done?: boolean;\n}'],
+        ['02 Core types', '06. Objects and interfaces', 680, 'interface Video {\n  title: string;\n  minutes: number;\n  done?: boolean;\n}'],
         ['02 Core types', '07. Unions and narrowing', 777, 'function label(id: string | number) {\n  if (typeof id === "number") {\n    return `#${id.toFixed(0)}`;\n  }\n  return id.toUpperCase();\n}'],
         ['02 Core types', '08. Q&A - common questions', 843, null],
         ['03 Going further', '09. Generics', 816, 'function first<T>(items: T[]): T | undefined {\n  return items[0];\n}\n\nconst part = first(plan.parts);'],
-        ['03 Going further', '10. Utility types', 612, 'type Draft = Partial<Lesson>;\ntype Summary = Pick<Lesson, "title">;\ntype Locked = Readonly<Lesson>;'],
+        ['03 Going further', '10. Utility types', 612, 'type Draft = Partial<Video>;\ntype Summary = Pick<Video, "title">;\ntype Locked = Readonly<Video>;'],
         ['03 Going further', '11. Modules and packages', 524, 'export function formatMinutes(m: number) {\n  return `${Math.floor(m / 60)}h ${m % 60}m`;\n}'],
         ['03 Going further', '12. Wrapping up', 185, 'const next = [\n  "Build a small project",\n  "Read the handbook",\n  "Try strict mode everywhere",\n];'],
     ],
@@ -83,7 +83,7 @@ function slide(folder, title, code) {
             font: 22px/1.55 ui-monospace, "SF Mono", Menlo, monospace; color: #e8e4da; white-space: pre; box-shadow: 0 30px 60px rgb(0 0 0 / 35%); }
         i { font-style: normal; } .k { color: #f0784e; } .s { color: #91c5b1; } .n { color: #e6c07b; } .c { color: #6b757a; }
     </style></head><body>
-        <div><div class="kicker">LESSON ${number}</div><h1>${escape(words.join('. '))}</h1><div class="folder">${escape(folder.name)}</div><div class="bar"></div></div>
+        <div><div class="kicker">PART ${number}</div><h1>${escape(words.join('. '))}</h1><div class="folder">${escape(folder.name)}</div><div class="bar"></div></div>
         <pre>${highlight(code)}</pre>
     </body></html>`;
 }
