@@ -6,8 +6,12 @@
     "ogDescription": "Speel mediabestanden uit je mappen op volgorde af. Offline op macOS, Windows en Linux.",
     "ogImageAlt": "EVB Player speelt een video uit een mediamap af"
   },
-  "header": { "github": "EVB Player op GitHub", "language": "Taal", "theme": "Thema" },
-  "theme": { "system": "Systeem", "light": "Licht", "dark": "Donker" },
+  "header": {
+    "github": "EVB Player op GitHub",
+    "language": "Taal",
+    "switchToLightTheme": "Overschakelen naar licht thema",
+    "switchToDarkTheme": "Overschakelen naar donker thema"
+  },
   "hero": {
     "kicker": "Offline mediaspeler",
     "title": "Speel mediabestanden uit je mappen op volgorde af",

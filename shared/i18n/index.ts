@@ -9,7 +9,7 @@ import ptBR from './pt-BR';
 import ru from './ru';
 import type {TLocale} from '../types';
 
-export {UI_LOCALES, isSupportedLocale, resolveSupportedLocale} from './locales';
+export {LOCALE_OPTIONS, isSupportedLocale, resolveSupportedLocale} from './locales';
 export {pluralRules, createLocalePluralRule} from './plural-rules';
 
 export const messages = {

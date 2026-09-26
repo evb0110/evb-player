@@ -2,11 +2,9 @@ import en from './en';
 
 const nl = {
   settings: {
-    theme: 'Thema',
     language: 'Taal',
-    system: 'Systeem',
-    light: 'Licht',
-    dark: 'Donker',
+    switchToLightTheme: 'Overschakelen naar licht thema',
+    switchToDarkTheme: 'Overschakelen naar donker thema',
     themeSaveFailed: 'Het thema kon niet worden opgeslagen.',
     languageSaveFailed: 'De taal kon niet worden opgeslagen.',
   },

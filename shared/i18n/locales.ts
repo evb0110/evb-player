@@ -2,22 +2,24 @@ import type {TLocale} from '../types';
 
 export interface ILocaleOption {
   code: TLocale;
+  language: string;
   nativeName: string;
+  flagIcon: string;
 }
 
-export const UI_LOCALES: readonly ILocaleOption[] = [
-  {code: 'en', nativeName: 'English'},
-  {code: 'ru', nativeName: 'Русский'},
-  {code: 'fr', nativeName: 'Français'},
-  {code: 'de', nativeName: 'Deutsch'},
-  {code: 'es', nativeName: 'Español'},
-  {code: 'it', nativeName: 'Italiano'},
-  {code: 'pt', nativeName: 'Português'},
-  {code: 'pt-BR', nativeName: 'Português (Brasil)'},
-  {code: 'nl', nativeName: 'Nederlands'},
+export const LOCALE_OPTIONS: readonly ILocaleOption[] = [
+  {code: 'en', language: 'en-US', nativeName: 'English', flagIcon: 'i-circle-flags-gb'},
+  {code: 'ru', language: 'ru-RU', nativeName: 'Русский', flagIcon: 'i-circle-flags-ru'},
+  {code: 'fr', language: 'fr-FR', nativeName: 'Français', flagIcon: 'i-circle-flags-fr'},
+  {code: 'de', language: 'de-DE', nativeName: 'Deutsch', flagIcon: 'i-circle-flags-de'},
+  {code: 'es', language: 'es-ES', nativeName: 'Español', flagIcon: 'i-circle-flags-es'},
+  {code: 'it', language: 'it-IT', nativeName: 'Italiano', flagIcon: 'i-circle-flags-it'},
+  {code: 'pt', language: 'pt-PT', nativeName: 'Português', flagIcon: 'i-circle-flags-pt'},
+  {code: 'pt-BR', language: 'pt-BR', nativeName: 'Português (Brasil)', flagIcon: 'i-circle-flags-br'},
+  {code: 'nl', language: 'nl-NL', nativeName: 'Nederlands', flagIcon: 'i-circle-flags-nl'},
 ];
 
-const supportedLocaleCodes = new Set<string>(UI_LOCALES.map(({code}) => code));
+const supportedLocaleCodes = new Set<string>(LOCALE_OPTIONS.map(({code}) => code));
 
 export function isSupportedLocale(value: unknown): value is TLocale {
   return typeof value === 'string' && supportedLocaleCodes.has(value);
@@ -30,7 +32,7 @@ export function resolveSupportedLocale(candidates: readonly string[]): TLocale {
       if (!canonical) {
         continue;
       }
-      const exact = UI_LOCALES.find(({code}) => code.toLowerCase() === canonical.toLowerCase());
+      const exact = LOCALE_OPTIONS.find(({code}) => code.toLowerCase() === canonical.toLowerCase());
       if (exact) {
         return exact.code;
       }
@@ -38,7 +40,7 @@ export function resolveSupportedLocale(candidates: readonly string[]): TLocale {
       if (!language) {
         continue;
       }
-      const closest = UI_LOCALES.find(({code}) => code.toLowerCase() === language);
+      const closest = LOCALE_OPTIONS.find(({code}) => code.toLowerCase() === language);
       if (closest) {
         return closest.code;
       }

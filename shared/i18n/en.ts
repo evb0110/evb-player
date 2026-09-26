@@ -1,10 +1,8 @@
 const en = {
   settings: {
-    theme: 'Theme',
     language: 'Language',
-    system: 'System',
-    light: 'Light',
-    dark: 'Dark',
+    switchToLightTheme: 'Switch to light theme',
+    switchToDarkTheme: 'Switch to dark theme',
     themeSaveFailed: 'The theme setting could not be saved.',
     languageSaveFailed: 'The language setting could not be saved.',
   },

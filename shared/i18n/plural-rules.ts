@@ -1,4 +1,4 @@
-import {UI_LOCALES} from './locales';
+import {LOCALE_OPTIONS} from './locales';
 import type {TLocale} from '../types';
 
 export function createLocalePluralRule(locale: TLocale) {
@@ -13,5 +13,5 @@ export function createLocalePluralRule(locale: TLocale) {
 }
 
 export const pluralRules = Object.fromEntries(
-  UI_LOCALES.map(({code}) => [code, createLocalePluralRule(code)]),
+  LOCALE_OPTIONS.map(({code}) => [code, createLocalePluralRule(code)]),
 ) as Record<TLocale, ReturnType<typeof createLocalePluralRule>>;

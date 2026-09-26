@@ -66,8 +66,7 @@ let handle: IPlayerHandle | null = null;
 let ready = false;
 let mountVersion = 0;
 
-// Both posters are CSS backgrounds keyed on the color-mode class, which is set before the first paint,
-// so the server render never knows the theme yet the browser fetches only the matching still.
+// CSS selects the poster that matches the theme already rendered on the html element.
 const posterStyle = computed(() => ({
   '--poster-light': `url(/films/${resolveFilmVariant(props.id, props.locale, 'light').path}/poster.jpg)`,
   '--poster-dark': `url(/films/${resolveFilmVariant(props.id, props.locale, 'dark').path}/poster.jpg)`,

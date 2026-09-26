@@ -8,14 +8,13 @@ let writeSequence = 0;
 
 export function createDefaultSettings(preferredLanguages: readonly string[]): IPlayerSettings {
   return {
-    theme: 'dark',
     locale: resolveSupportedLocale(preferredLanguages),
     skippedUpdateVersion: null,
   };
 }
 
 function isTheme(value: unknown): value is TTheme {
-  return value === 'system' || value === 'light' || value === 'dark';
+  return value === 'light' || value === 'dark';
 }
 
 function isVersion(value: unknown): value is string {
@@ -30,8 +29,9 @@ export function sanitizeSettings(value: unknown, preferredLanguages: readonly st
     return defaults;
   }
 
+  const theme = isTheme(value.theme) ? value.theme : undefined;
   return {
-    theme: isTheme(value.theme) ? value.theme : defaults.theme,
+    ...(theme ? {theme} : {}),
     locale: isSupportedLocale(value.locale) ? value.locale : defaults.locale,
     skippedUpdateVersion: isVersion(value.skippedUpdateVersion) ? value.skippedUpdateVersion : null,
   };

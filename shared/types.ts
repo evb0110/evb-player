@@ -1,9 +1,9 @@
 export type TMediaKind = 'video' | 'audio';
-export type TTheme = 'system' | 'light' | 'dark';
+export type TTheme = 'light' | 'dark';
 export type TLocale = 'en' | 'ru' | 'fr' | 'de' | 'es' | 'it' | 'pt' | 'pt-BR' | 'nl';
 
 export interface IPlayerSettings {
-  theme: TTheme;
+  theme?: TTheme;
   locale: TLocale;
   skippedUpdateVersion: string | null;
 }

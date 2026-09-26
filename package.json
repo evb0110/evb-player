@@ -16,7 +16,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx scripts/dev.ts",
-    "dev:web": "nuxi dev --host 127.0.0.1",
+    "dev:web": "node scripts/dev-web.mjs",
     "build": "pnpm run build:desktop:renderer && pnpm run build:electron",
     "build:web": "node scripts/build-web.mjs",
     "build:desktop:renderer": "nuxi generate && node scripts/patch-static-output.mjs && node scripts/check-icons.mjs",

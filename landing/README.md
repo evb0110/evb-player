@@ -7,7 +7,9 @@ pnpm install
 pnpm dev
 ```
 
-The download panel reads the latest GitHub release through `server/api/release.get.ts`. Vercel regenerates the page at most every ten minutes, so a new release shows up without a redeploy.
+The download panel reads the latest GitHub release through `server/api/release.get.ts`, which caches release data for ten minutes.
+
+The animated theme toggle follows the browser's system preference until you choose light or dark. An explicit choice is stored for one year in the `theme` cookie. `CH-prefers-color-scheme` stores the current system preference so the server can render the right theme on the first page response. Both cookies use `SameSite=Lax`, path `/`, and `Secure` on HTTPS. A small head script updates a missing or stale preference cookie and reloads once if the page was rendered in the other theme; later system changes update the page without a reload.
 
 ## Films
 
@@ -24,4 +26,4 @@ node recorder/record.mjs player --theme dark            # all locales in one the
 node recorder/record.mjs player --locale pt-BR --theme light
 ```
 
-The recorder writes `evb-player-settings.json` (`{"theme":"light|dark|system","locale":"<code>"}`) into each isolated app profile before launch. The demo folders are generated slides and tones, so no real media is ever recorded. On macOS, set `FILM_ELECTRON` to an Electron binary whose app bundle sets `LSUIElement`, so no Dock icon appears while recording. On Linux a hidden Wayland window gets no frames, so record inside a nested compositor such as `kwin_wayland --virtual` with `FILM_SHOW_WINDOW=1`, which keeps the window off your desktop.
+The recorder writes `evb-player-settings.json` (`{"theme":"light|dark","locale":"<code>"}`) into each isolated app profile before launch. The demo folders are generated slides and tones, so no real media is ever recorded. On macOS, set `FILM_ELECTRON` to an Electron binary whose app bundle sets `LSUIElement`, so no Dock icon appears while recording. On Linux a hidden Wayland window gets no frames, so record inside a nested compositor such as `kwin_wayland --virtual` with `FILM_SHOW_WINDOW=1`, which keeps the window off your desktop.

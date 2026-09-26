@@ -198,7 +198,7 @@ function ensureSettings() {
 }
 
 function isTheme(value: unknown): value is TTheme {
-  return value === 'system' || value === 'light' || value === 'dark';
+  return value === 'light' || value === 'dark';
 }
 
 function localizedMainMessage(locale: TLocale, key: keyof typeof messages.en.main) {
@@ -218,8 +218,8 @@ function updateWindowBackground() {
   }
 }
 
-function applyTheme(theme: TTheme) {
-  nativeTheme.themeSource = theme;
+function applyTheme(theme: TTheme | undefined) {
+  nativeTheme.themeSource = theme ?? 'system';
   updateWindowBackground();
 }
 
@@ -768,9 +768,15 @@ function createWindow() {
 }
 
 function registerIpcHandlers() {
+  // Read synchronously by the preload so the page can apply the theme before its first frame. On Linux,
+  // prefers-color-scheme keeps following the system even when themeSource is set, so the page can't ask CSS.
+  ipcMain.on('settings:initial-theme', (event) => {
+    event.returnValue = isTrustedRenderer(event.sender) && nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+  });
+
   ipcMain.handle('settings:get', async (event) => {
     if (!isTrustedRenderer(event.sender)) {
-      return {theme: 'dark', locale: 'en', skippedUpdateVersion: null} satisfies IPlayerSettings;
+      return {locale: 'en', skippedUpdateVersion: null} satisfies IPlayerSettings;
     }
     return {...await ensureSettings()};
   });

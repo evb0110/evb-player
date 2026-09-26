@@ -1,19 +1,20 @@
 import { transform } from 'esbuild';
-import { LOCALE_OPTIONS } from './app/i18n/languages';
+import { fileURLToPath } from 'node:url';
+import { LOCALE_OPTIONS } from '../shared/i18n/locales';
 
 const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://evb-player.vercel.app';
+const sourceTsconfig = fileURLToPath(new URL('./tsconfig.json', import.meta.url));
 
 export default defineNuxtConfig({
   modules: ['@nuxt/ui', '@nuxtjs/i18n'],
   css: ['~/assets/css/main.css'],
   devtools: { enabled: false },
   compatibilityDate: '2026-09-22',
-  ui: { fonts: false },
-  colorMode: { preference: 'system', fallback: 'light' },
+  ui: { fonts: false, colorMode: false },
   // Icons ship with the page instead of loading from the Iconify API.
   icon: {
     provider: 'none',
-    clientBundle: { scan: { globInclude: ['app/**/*.{vue,ts}'] } },
+    clientBundle: { scan: { globInclude: ['app/**/*.{vue,ts}', '../shared/ui/**/*.{vue,ts}', '../shared/i18n/locales.ts'] } },
     serverBundle: 'local',
   },
   runtimeConfig: {
@@ -22,24 +23,14 @@ export default defineNuxtConfig({
   app: {
     head: {
       link: [{ rel: 'icon', type: 'image/png', href: '/favicon.png' }],
-      meta: [
-        { name: 'theme-color', content: '#f4f1ea', media: '(prefers-color-scheme: light)' },
-        { name: 'theme-color', content: '#17150f', media: '(prefers-color-scheme: dark)' },
-      ],
     },
   },
-  // The page embeds the latest release; Vercel regenerates it at most every ten minutes.
   routeRules: {
-    '/': { isr: 600 },
-    ...Object.fromEntries(LOCALE_OPTIONS.flatMap(({ code }) => code === 'en' ? [] : [
-      [`/${code}`, { isr: 600 }],
-      [`/${code}/**`, { isr: 600 }],
-    ])),
     '/films/**': { headers: { 'cache-control': 'public, max-age=86400' } },
   },
   i18n: {
     restructureDir: 'i18n',
-    locales: LOCALE_OPTIONS.map(({ code, name }) => ({ code, language: code, name, file: `${code}.json` })),
+    locales: LOCALE_OPTIONS.map(({ code, language, nativeName }) => ({ code, language, name: nativeName, file: `${code}.json` })),
     defaultLocale: 'en',
     langDir: 'locales',
     strategy: 'prefix_except_default',
@@ -52,6 +43,8 @@ export default defineNuxtConfig({
     },
   },
   vite: {
+    tsconfig: sourceTsconfig,
+    resolve: { dedupe: ['vue', '@nuxt/ui'] },
     // Films in app/films are React (Remotion); keep Vue's JSX plugin away from them.
     vueJsx: { exclude: [/app\/films\//] },
     plugins: [

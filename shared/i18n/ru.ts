@@ -2,11 +2,9 @@ import en from './en';
 
 const ru = {
   settings: {
-    theme: 'Тема',
     language: 'Язык',
-    system: 'Системная',
-    light: 'Светлая',
-    dark: 'Тёмная',
+    switchToLightTheme: 'Переключить на светлую тему',
+    switchToDarkTheme: 'Переключить на тёмную тему',
     themeSaveFailed: 'Не удалось сохранить тему.',
     languageSaveFailed: 'Не удалось сохранить язык.',
   },

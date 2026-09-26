@@ -27,12 +27,13 @@
         </button>
       </div>
       <div class="tab-strip-actions">
-        <UDropdownMenu :items="themeMenuItems" :content="{align: 'end'}">
-          <UButton color="neutral" :icon="themeIcon" variant="ghost" :aria-label="t('settings.theme')" :title="t('settings.theme')" />
-        </UDropdownMenu>
-        <UDropdownMenu :items="languageMenuItems" :content="{align: 'end'}">
-          <UButton color="neutral" :icon="languageFlag" variant="ghost" :aria-label="t('settings.language')" :title="t('settings.language')" />
-        </UDropdownMenu>
+        <ThemeToggle
+          :theme="activeTheme"
+          :switch-to-light-label="t('settings.switchToLightTheme')"
+          :switch-to-dark-label="t('settings.switchToDarkTheme')"
+          @change="selectTheme"
+        />
+        <LanguageMenu :locale="activeLocale" :label="t('settings.language')" @change="selectLocale" />
         <UButton color="neutral" icon="i-lucide-keyboard" variant="ghost" :aria-label="t('player.keyboardShortcuts')" :title="t('player.keyboardShortcuts')" @click="isShortcutsOpen = true" />
       </div>
     </nav>
@@ -439,9 +440,11 @@
 import {useDebounceFn, useResizeObserver, useStorage} from '@vueuse/core';
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useI18n} from 'vue-i18n';
-import {UI_LOCALES} from '../../shared/i18n';
 import type {IMediaLesson, IPlayerApi, IPlayerCapabilities, IRecentFolder, IUpdateStatus, TLocale, TMenuAction, TTheme} from '../../shared/types';
+import LanguageMenu from '../../shared/ui/LanguageMenu.vue';
+import ThemeToggle from '../../shared/ui/ThemeToggle.vue';
 import {useLibrary} from '../composables/useLibrary';
+import {useActiveTheme} from '../composables/useActiveTheme';
 import {getPlayerApi} from '../utils/playerApi';
 
 type TProgressResetRequest = {
@@ -461,7 +464,8 @@ interface IPlaybackSession {
 const library = useLibrary();
 const toast = useToast();
 const {t, locale} = useI18n();
-const colorMode = useColorMode();
+const {theme: activeTheme, chooseTheme} = useActiveTheme();
+const activeLocale = computed(() => locale.value as TLocale);
 const capabilities = ref<IPlayerCapabilities>({revealFolder: false, openMediaExternally: false, updates: false});
 const recentFolders = library.recentFolders;
 const openFolders = library.openFolders;
@@ -469,34 +473,6 @@ const activeTab = library.activeTab;
 const loading = library.loading;
 const error = library.error;
 const search = ref('');
-const languageFlagIcons: Record<TLocale, string> = {
-  en: 'i-circle-flags-gb',
-  ru: 'i-circle-flags-ru',
-  fr: 'i-circle-flags-fr',
-  de: 'i-circle-flags-de',
-  es: 'i-circle-flags-es',
-  it: 'i-circle-flags-it',
-  pt: 'i-circle-flags-pt',
-  'pt-BR': 'i-circle-flags-br',
-  nl: 'i-circle-flags-nl',
-};
-const themeIcon = computed(() => ({
-  system: 'i-lucide-monitor',
-  light: 'i-lucide-sun',
-  dark: 'i-lucide-moon',
-}[colorMode.preference as TTheme]));
-const languageFlag = computed(() => languageFlagIcons[locale.value as TLocale]);
-const themeMenuItems = computed(() => ([
-  {label: t('settings.system'), icon: 'i-lucide-monitor', onSelect: () => void selectTheme('system'), ...(colorMode.preference === 'system' ? {trailingIcon: 'i-lucide-check'} : {})},
-  {label: t('settings.light'), icon: 'i-lucide-sun', onSelect: () => void selectTheme('light'), ...(colorMode.preference === 'light' ? {trailingIcon: 'i-lucide-check'} : {})},
-  {label: t('settings.dark'), icon: 'i-lucide-moon', onSelect: () => void selectTheme('dark'), ...(colorMode.preference === 'dark' ? {trailingIcon: 'i-lucide-check'} : {})},
-]));
-const languageMenuItems = computed(() => UI_LOCALES.map(({code, nativeName}) => ({
-  label: nativeName,
-  icon: languageFlagIcons[code],
-  ...(locale.value === code ? {trailingIcon: 'i-lucide-check'} : {}),
-  onSelect: () => void selectLocale(code),
-})));
 const mediaRef = ref<HTMLVideoElement | HTMLAudioElement | null>(null);
 const playerStageRef = ref<HTMLElement | null>(null);
 const playlistRef = ref<HTMLElement | null>(null);
@@ -689,7 +665,7 @@ function formatUnit(value: number, unit: 'hour' | 'minute') {
 }
 
 async function selectTheme(theme: TTheme) {
-  colorMode.preference = theme;
+  chooseTheme(theme);
   try {
     await (await getPlayerApi()).setTheme(theme);
   } catch {

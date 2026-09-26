@@ -6,8 +6,12 @@
     "ogDescription": "Lisez les fichiers de vos dossiers dans l'ordre. Hors ligne sur macOS, Windows et Linux.",
     "ogImageAlt": "EVB Player lisant une vidéo d'un dossier multimédia"
   },
-  "header": { "github": "EVB Player sur GitHub", "language": "Langue", "theme": "Thème" },
-  "theme": { "system": "Système", "light": "Clair", "dark": "Sombre" },
+  "header": {
+    "github": "EVB Player sur GitHub",
+    "language": "Langue",
+    "switchToLightTheme": "Passer au thème clair",
+    "switchToDarkTheme": "Passer au thème sombre"
+  },
   "hero": {
     "kicker": "Lecteur multimédia hors ligne",
     "title": "Lisez les fichiers de vos dossiers dans l'ordre",

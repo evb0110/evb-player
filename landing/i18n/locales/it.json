@@ -6,8 +6,12 @@
     "ogDescription": "Riproduci in ordine i file delle tue cartelle. Offline su macOS, Windows e Linux.",
     "ogImageAlt": "EVB Player riproduce un video da una cartella multimediale"
   },
-  "header": { "github": "EVB Player su GitHub", "language": "Lingua", "theme": "Tema" },
-  "theme": { "system": "Sistema", "light": "Chiaro", "dark": "Scuro" },
+  "header": {
+    "github": "EVB Player su GitHub",
+    "language": "Lingua",
+    "switchToLightTheme": "Passa al tema chiaro",
+    "switchToDarkTheme": "Passa al tema scuro"
+  },
   "hero": {
     "kicker": "Lettore multimediale offline",
     "title": "Riproduci in ordine i file delle tue cartelle",

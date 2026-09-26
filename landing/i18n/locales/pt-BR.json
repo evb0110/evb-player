@@ -6,8 +6,12 @@
     "ogDescription": "Reproduza os arquivos das suas pastas em ordem. Offline no macOS, Windows e Linux.",
     "ogImageAlt": "EVB Player reproduzindo um vídeo de uma pasta de mídia"
   },
-  "header": { "github": "EVB Player no GitHub", "language": "Idioma", "theme": "Tema" },
-  "theme": { "system": "Sistema", "light": "Claro", "dark": "Escuro" },
+  "header": {
+    "github": "EVB Player no GitHub",
+    "language": "Idioma",
+    "switchToLightTheme": "Mudar para o tema claro",
+    "switchToDarkTheme": "Mudar para o tema escuro"
+  },
   "hero": {
     "kicker": "Reprodutor de mídia offline",
     "title": "Reproduza os arquivos das suas pastas em ordem",

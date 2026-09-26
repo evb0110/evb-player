@@ -6,8 +6,12 @@
     "ogDescription": "Spielen Sie Medien aus Ihren Ordnern der Reihe nach ab. Offline auf macOS, Windows und Linux.",
     "ogImageAlt": "EVB Player spielt ein Video aus einem Medienordner ab"
   },
-  "header": { "github": "EVB Player auf GitHub", "language": "Sprache", "theme": "Darstellung" },
-  "theme": { "system": "System", "light": "Hell", "dark": "Dunkel" },
+  "header": {
+    "github": "EVB Player auf GitHub",
+    "language": "Sprache",
+    "switchToLightTheme": "Zum hellen Design wechseln",
+    "switchToDarkTheme": "Zum dunklen Design wechseln"
+  },
   "hero": {
     "kicker": "Offline-Mediaplayer",
     "title": "Medienordner der Reihe nach abspielen",

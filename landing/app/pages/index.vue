@@ -7,12 +7,13 @@
         <span v-if="release" class="brand-version">v{{ release.version }}</span>
       </NuxtLink>
       <div class="header-actions">
-        <UDropdownMenu :items="themeItems" :content="{ align: 'end' }">
-          <UButton color="neutral" :icon="activeTheme.icon" variant="ghost" :aria-label="t('header.theme')" :title="t('header.theme')" class="theme-control" />
-        </UDropdownMenu>
-        <UDropdownMenu :items="languageItems" :content="{ align: 'end' }">
-          <UButton color="neutral" :icon="activeLanguage.icon" variant="ghost" :aria-label="t('header.language')" :title="t('header.language')" class="language-control" />
-        </UDropdownMenu>
+        <ThemeToggle
+          :theme="resolvedTheme"
+          :switch-to-light-label="t('header.switchToLightTheme')"
+          :switch-to-dark-label="t('header.switchToDarkTheme')"
+          @change="chooseTheme"
+        />
+        <LanguageMenu :locale="activeLocale" :label="t('header.language')" @change="selectLocale" />
         <UButton color="neutral" icon="i-simple-icons-github" variant="ghost" to="https://github.com/evb0110/evb-player" :aria-label="t('header.github')" :title="t('header.github')" />
       </div>
     </header>
@@ -109,17 +110,15 @@
 
 <script setup lang="ts">
 import { RELEASES_URL, type ILatestRelease, type TPlatform } from '#shared/release';
-import { LOCALE_OPTIONS, type TLocale } from '~/i18n/languages';
+import { LOCALE_OPTIONS } from '../../../shared/i18n/locales';
+import type { TLocale } from '../../../shared/types';
+import LanguageMenu from '../../../shared/ui/LanguageMenu.vue';
+import ThemeToggle from '../../../shared/ui/ThemeToggle.vue';
+import { useTheme } from '../composables/useTheme';
 
 interface IPlatformOption {
   id: TPlatform;
   icon: string;
-}
-
-interface IThemeOption {
-  value: 'system' | 'light' | 'dark';
-  icon: string;
-  label: string;
 }
 
 const platforms: IPlatformOption[] = [
@@ -154,30 +153,8 @@ const features = computed(() => featureIcons.map(({ key, icon }) => ({
   title: t(`features.items.${key}.title`),
   text: t(`features.items.${key}.text`),
 })));
-const activeLanguage = computed(() => LOCALE_OPTIONS.find((option) => option.code === locale.value) ?? LOCALE_OPTIONS[0]);
-const themeOptions = computed<IThemeOption[]>(() => [
-  { value: 'system', icon: 'i-lucide-monitor', label: t('theme.system') },
-  { value: 'light', icon: 'i-lucide-sun', label: t('theme.light') },
-  { value: 'dark', icon: 'i-lucide-moon', label: t('theme.dark') },
-]);
-const colorMode = useColorMode();
-const resolvedTheme = computed(() => colorMode.value === 'dark' ? 'dark' : 'light');
-const activeTheme = computed(() => themeOptions.value.find((option) => option.value === colorMode.preference) ?? themeOptions.value[0]!);
-// The same menus as the app's top row: an icon and label per item, with a check on the active one.
-const themeItems = computed(() => themeOptions.value.map((option) => ({
-  label: option.label,
-  icon: option.icon,
-  onSelect: () => {
-    colorMode.preference = option.value;
-  },
-  ...(option.value === colorMode.preference ? { trailingIcon: 'i-lucide-check' } : {}),
-})));
-const languageItems = computed(() => LOCALE_OPTIONS.map((option) => ({
-  label: option.name,
-  icon: option.icon,
-  onSelect: () => void selectLocale(option.code),
-  ...(option.code === locale.value ? { trailingIcon: 'i-lucide-check' } : {}),
-})));
+const activeLocale = computed(() => locale.value as TLocale);
+const { theme: resolvedTheme, chooseTheme } = useTheme();
 
 function formatSize(bytes: number) {
   return new Intl.NumberFormat(locale.value, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 0 }).format(bytes / 1024 ** 2);
@@ -189,7 +166,6 @@ async function selectLocale(code: TLocale) {
   }
 }
 
-// The page is cached for everyone, so the visitor's system is picked in the browser.
 onMounted(() => {
   const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
   const system = `${nav.userAgentData?.platform ?? ''} ${navigator.platform} ${navigator.userAgent}`.toLowerCase();

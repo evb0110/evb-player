@@ -2,11 +2,9 @@ import en from './en';
 
 const de = {
   settings: {
-    theme: 'Darstellung',
     language: 'Sprache',
-    system: 'System',
-    light: 'Hell',
-    dark: 'Dunkel',
+    switchToLightTheme: 'Zum hellen Design wechseln',
+    switchToDarkTheme: 'Zum dunklen Design wechseln',
     themeSaveFailed: 'Die Darstellung konnte nicht gespeichert werden.',
     languageSaveFailed: 'Die Sprache konnte nicht gespeichert werden.',
   },

@@ -13,6 +13,7 @@ import type {
   TMenuAction,
 } from '../../shared/types';
 import {isSupportedLocale, resolveSupportedLocale} from '../../shared/i18n';
+import {isTheme, readCookieValue, THEME_COOKIE, writeBrowserCookie} from '../../shared/theme';
 import {
   isPlainRecord,
   isStoredIdentifier,
@@ -113,10 +114,14 @@ function writeStoredState() {
 
 function defaultSettings(): IPlayerSettings {
   return {
-    theme: 'dark',
     locale: resolveSupportedLocale(navigator.languages.length ? navigator.languages : [navigator.language]),
     skippedUpdateVersion: null,
   };
+}
+
+function readThemeCookie() {
+  const theme = readCookieValue(document.cookie, THEME_COOKIE);
+  return isTheme(theme) ? theme : undefined;
 }
 
 function readStoredSettings() {
@@ -131,7 +136,6 @@ function readStoredSettings() {
     }
     const parsed: unknown = JSON.parse(saved);
     if (!isPlainRecord(parsed)
-      || !(['system', 'light', 'dark'] as unknown[]).includes(parsed.theme)
       || !isSupportedLocale(parsed.locale)
       || (parsed.skippedUpdateVersion !== undefined
         && parsed.skippedUpdateVersion !== null
@@ -141,7 +145,7 @@ function readStoredSettings() {
       return browserSettings;
     }
     browserSettings = {
-      theme: parsed.theme as TTheme,
+      theme: readThemeCookie(),
       locale: parsed.locale as TLocale,
       skippedUpdateVersion: typeof parsed.skippedUpdateVersion === 'string' ? parsed.skippedUpdateVersion : null,
     };
@@ -157,7 +161,9 @@ function writeStoredSettings() {
     return;
   }
   try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(readStoredSettings()));
+    const savedSettings = {...readStoredSettings()};
+    delete savedSettings.theme;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(savedSettings));
   } catch {
     settingsCanBeWritten = false;
   }
@@ -369,6 +375,7 @@ export const browserPlayerApi: IPlayerApi = {
     return {...readStoredSettings()};
   },
   async setTheme(theme: TTheme) {
+    writeBrowserCookie(THEME_COOKIE, theme);
     readStoredSettings().theme = theme;
     writeStoredSettings();
   },

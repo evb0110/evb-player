@@ -6,8 +6,12 @@
     "ogDescription": "Reproduce los archivos de tus carpetas en orden. Sin conexión en macOS, Windows y Linux.",
     "ogImageAlt": "EVB Player reproduciendo un vídeo de una carpeta multimedia"
   },
-  "header": { "github": "EVB Player en GitHub", "language": "Idioma", "theme": "Tema" },
-  "theme": { "system": "Sistema", "light": "Claro", "dark": "Oscuro" },
+  "header": {
+    "github": "EVB Player en GitHub",
+    "language": "Idioma",
+    "switchToLightTheme": "Cambiar al tema claro",
+    "switchToDarkTheme": "Cambiar al tema oscuro"
+  },
   "hero": {
     "kicker": "Reproductor multimedia sin conexión",
     "title": "Reproduce los archivos de tus carpetas en orden",

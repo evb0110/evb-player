@@ -57,3 +57,4 @@ const api: IPlayerApi = {
 };
 
 contextBridge.exposeInMainWorld('evbPlayer', api);
+contextBridge.exposeInMainWorld('evbPlayerInitialTheme', ipcRenderer.sendSync('settings:initial-theme') as TTheme);

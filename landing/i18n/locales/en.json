@@ -9,12 +9,8 @@
   "header": {
     "github": "EVB Player on GitHub",
     "language": "Language",
-    "theme": "Theme"
-  },
-  "theme": {
-    "system": "System",
-    "light": "Light",
-    "dark": "Dark"
+    "switchToLightTheme": "Switch to light theme",
+    "switchToDarkTheme": "Switch to dark theme"
   },
   "hero": {
     "kicker": "Offline media player",

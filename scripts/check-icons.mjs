@@ -1,17 +1,30 @@
 // The app renders icons from the client bundle only (icon.provider = 'none' in nuxt.config.ts),
-// so an icon that the build cannot see or resolve renders blank. This check runs after
-// `nuxi generate` and fails the build when an icon name is assembled at runtime, does not exist
+// so an icon that the build cannot see or resolve renders blank. This check runs after a Nuxt build
+// and fails when an icon name is assembled at runtime, does not exist
 // in its installed @iconify-json collection, or is missing from the generated client bundle.
-import {readFile, readdir} from 'node:fs/promises';
+import {access, readFile, readdir} from 'node:fs/promises';
 import {createRequire} from 'node:module';
-import {join, relative} from 'node:path';
+import {dirname, join, relative, resolve} from 'node:path';
 
-const root = process.argv[2] ?? process.cwd();
-const sourceDir = join(root, 'app');
-const bundleDir = join(root, '.output', 'public', '_nuxt');
-const require = createRequire(join(process.cwd(), 'package.json'));
+const root = resolve(process.argv[2] ?? process.cwd());
+const repository = root.endsWith('/landing') ? dirname(root) : root;
+const sourceDirs = [join(root, 'app'), join(repository, 'shared', 'ui'), join(repository, 'shared', 'i18n')];
+const bundleCandidates = process.env.EVB_PLAYER_WEB === '1'
+  ? [join(root, '.vercel', 'output', 'static', '_nuxt'), join(root, '.output', 'public', '_nuxt')]
+  : [join(root, '.output', 'public', '_nuxt'), join(root, '.vercel', 'output', 'static', '_nuxt')];
+let bundleDir;
+for (const candidate of bundleCandidates) {
+  try {
+    await access(candidate);
+    bundleDir = candidate;
+    break;
+  } catch {
+    continue;
+  }
+}
+const require = createRequire(join(root, 'package.json'));
 
-const packageJson = JSON.parse(await readFile(join(process.cwd(), 'package.json'), 'utf8'));
+const packageJson = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 const collections = new Map();
 for (const name of Object.keys({...packageJson.dependencies, ...packageJson.devDependencies})) {
   if (name.startsWith('@iconify-json/')) {
@@ -30,7 +43,7 @@ async function listFiles(directory) {
 
 const problems = [];
 const used = new Map();
-for (const file of await listFiles(sourceDir)) {
+for (const file of (await Promise.all(sourceDirs.map(listFiles))).flat()) {
   const lines = (await readFile(file, 'utf8')).split('\n');
   lines.forEach((line, index) => {
     const location = `${relative(root, file)}:${index + 1}`;
@@ -45,17 +58,19 @@ for (const file of await listFiles(sourceDir)) {
 }
 
 const bundled = new Set();
-for (const file of (await readdir(bundleDir)).filter((name) => name.endsWith('.js'))) {
-  const source = await readFile(join(bundleDir, file), 'utf8');
-  for (const chunk of source.split('{"prefix":"').slice(1)) {
-    const prefix = chunk.slice(0, chunk.indexOf('"'));
-    for (const match of chunk.matchAll(/"([a-z0-9-]+)":\{"(?:width|height|body|parent)"/gu)) {
-      bundled.add(`${prefix}:${match[1]}`);
+if (bundleDir) {
+  for (const file of (await readdir(bundleDir)).filter((name) => name.endsWith('.js'))) {
+    const source = await readFile(join(bundleDir, file), 'utf8');
+    for (const chunk of source.split('{"prefix":"').slice(1)) {
+      const prefix = chunk.slice(0, chunk.indexOf('"'));
+      for (const match of chunk.matchAll(/"([a-z0-9-]+)":\{"(?:width|height|body|parent)"/gu)) {
+        bundled.add(`${prefix}:${match[1]}`);
+      }
     }
   }
 }
-if (!bundled.size) {
-  problems.push(`${relative(root, bundleDir)}: no bundled icon collection found. Run this after \`nuxi generate\`.`);
+if (!bundleDir || !bundled.size) {
+  problems.push(`${relative(root, bundleDir ?? join(root, '.output', 'public', '_nuxt'))}: no bundled icon collection found. Run this after a Nuxt build.`);
 }
 
 for (const [icon, location] of used) {
@@ -71,4 +86,4 @@ if (problems.length) {
   console.error(`Icon check failed:\n${problems.map((problem) => `  ${problem}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`Icon check passed: ${used.size} icons used in app/, all bundled.`);
+console.log(`Icon check passed: ${used.size} icons used in ${relative(repository, root) || 'app'} and shared UI, all bundled.`);

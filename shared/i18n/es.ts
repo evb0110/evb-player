@@ -2,11 +2,9 @@ import en from './en';
 
 const es = {
   settings: {
-    theme: 'Tema',
     language: 'Idioma',
-    system: 'Sistema',
-    light: 'Claro',
-    dark: 'Oscuro',
+    switchToLightTheme: 'Cambiar al tema claro',
+    switchToDarkTheme: 'Cambiar al tema oscuro',
     themeSaveFailed: 'No se pudo guardar el tema.',
     languageSaveFailed: 'No se pudo guardar el idioma.',
   },

@@ -6,8 +6,12 @@
     "ogDescription": "Смотрите и слушайте файлы из папок по порядку. Офлайн на macOS, Windows и Linux.",
     "ogImageAlt": "EVB Player воспроизводит видео из медиапапки"
   },
-  "header": { "github": "EVB Player на GitHub", "language": "Язык", "theme": "Тема" },
-  "theme": { "system": "Системная", "light": "Светлая", "dark": "Тёмная" },
+  "header": {
+    "github": "EVB Player на GitHub",
+    "language": "Язык",
+    "switchToLightTheme": "Переключить на светлую тему",
+    "switchToDarkTheme": "Переключить на тёмную тему"
+  },
   "hero": {
     "kicker": "Офлайн-медиаплеер",
     "title": "Воспроизводите файлы из папок по порядку",
