@@ -1,19 +1,19 @@
 // Main landing film: open a folder from the Library, play, mark an unwatched video as done,
-// switch lessons, go full window, and return to the Library while the lesson keeps playing.
+// switch tracks, go full window, and return to the Library while the track keeps playing.
 export const title = 'EVB Player';
 export const size = { width: 1280, height: 800 };
 
 const TS = 'TypeScript Fundamentals';
 const SQL = 'Practical SQL';
 const SPANISH = 'Spanish Listening Practice';
-const TS_LESSONS = [
+const TS_TRACKS = [
     '01 Getting started/01. Welcome.mp4',
     '01 Getting started/02. Setting up your editor.mp4',
     '01 Getting started/03. Your first type.mp4',
 ];
 
 /** Three folders in the Library, each with some progress; the TypeScript folder resumes video 3. */
-export function seed({ folders, folderId, lessonId }) {
+export function seed({ folders, folderId, trackId }) {
     const done = (updatedAt, duration) => ({ position: duration, duration, completed: true, updatedAt });
     return {
         recentFolders: [
@@ -23,13 +23,13 @@ export function seed({ folders, folderId, lessonId }) {
         ],
         progress: {
             [folderId(TS)]: {
-                [lessonId(TS, TS_LESSONS[0])]: done(1, 134),
-                [lessonId(TS, TS_LESSONS[1])]: done(2, 408),
-                [lessonId(TS, TS_LESSONS[2])]: { position: 190, duration: 485, completed: false, updatedAt: 3 },
+                [trackId(TS, TS_TRACKS[0])]: done(1, 134),
+                [trackId(TS, TS_TRACKS[1])]: done(2, 408),
+                [trackId(TS, TS_TRACKS[2])]: { position: 190, duration: 485, completed: false, updatedAt: 3 },
             },
             [folderId(SQL)]: {
-                [lessonId(SQL, '01. Why SQL still matters.mp4')]: done(1, 245),
-                [lessonId(SQL, '02. Filtering rows.mp4')]: done(2, 512),
+                [trackId(SQL, '01. Why SQL still matters.mp4')]: done(1, 245),
+                [trackId(SQL, '02. Filtering rows.mp4')]: done(2, 512),
             },
         },
         lastFolderPath: null,
@@ -75,14 +75,14 @@ export default async function flow(win, rec, { folders }) {
     await win.waitForTimeout(1300);
     await snap({ dur: 44 });
 
-    // Mark lesson 4 complete without watching it: zoom into the playlist.
+    // Mark track 4 complete without watching it: zoom into the playlist.
     const playlist = await rec.rect(win.locator('.playlist-panel'), 12);
-    const primitives = win.locator('.lesson-row', { hasText: 'Primitives and literals' });
+    const primitives = win.locator('.track-row', { hasText: 'Primitives and literals' });
     const row = await rec.rect(primitives, 0);
     // A 1.6:1 frame around the row, kept inside the window.
     const rowCenter = Math.round(row[1] + row[3] / 2);
     const zoom = [Math.min(playlist[0] - 90, size.width - 500), rowCenter - 156, 500, 312];
-    const markDone = primitives.locator('.lesson-row-done');
+    const markDone = primitives.locator('.track-row-done');
     await markDone.hover();
     await win.waitForTimeout(250);
     await snap({ dur: 34, cursor: await rec.center(markDone), focus: zoom });
@@ -92,8 +92,8 @@ export default async function flow(win, rec, { folders }) {
     await win.waitForTimeout(400);
     await snap({ dur: 44, cursor: [playlist[0] + playlist[2] - 70, rowCenter + 64], focus: zoom });
 
-    // Switch to lesson 6; it starts playing.
-    const next = win.locator('.lesson-row-select', { hasText: 'Objects and interfaces' });
+    // Switch to track 6; it starts playing.
+    const next = win.locator('.track-row-select', { hasText: 'Objects and interfaces' });
     await snap({ dur: 22, cursor: await rec.center(next), click: true });
     await next.click();
     await win.waitForFunction(() => {
@@ -115,7 +115,7 @@ export default async function flow(win, rec, { folders }) {
     await win.keyboard.press('Escape');
     await win.waitForTimeout(500);
 
-    // Back to the Library: the lesson keeps playing in the compact player.
+    // Back to the Library: the track keeps playing in the compact player.
     const libraryTab = win.locator('.app-tab-library');
     await snap({ dur: 30, cursor: await rec.center(libraryTab), click: true });
     await libraryTab.click();

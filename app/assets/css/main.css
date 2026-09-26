@@ -930,7 +930,7 @@ button:disabled {
   border-color: var(--shell-accent);
 }
 
-.lesson-heading {
+.track-heading {
   display: block;
   align-items: flex-start;
   justify-content: space-between;
@@ -939,12 +939,12 @@ button:disabled {
   padding: 23px 3px 20px;
 }
 
-.lesson-heading > div:first-child {
+.track-heading > div:first-child {
   min-width: 0;
   flex: 1 1 160px;
 }
 
-.lesson-heading-actions {
+.track-heading-actions {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -953,7 +953,7 @@ button:disabled {
   margin-top: 12px;
 }
 
-.lesson-heading h2 {
+.track-heading h2 {
   margin: 6px 0 5px;
   color: var(--shell-text);
   font-size: 20px;
@@ -961,7 +961,7 @@ button:disabled {
   letter-spacing: -0.03em;
 }
 
-.lesson-heading p:last-child {
+.track-heading p:last-child {
   max-width: 680px;
   margin: 0;
   overflow: hidden;
@@ -971,12 +971,13 @@ button:disabled {
   white-space: nowrap;
 }
 
-.lesson-kicker {
+.track-kicker {
   margin: 0;
   color: var(--shell-accent);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .progress-reset-dialog-copy {
@@ -1080,7 +1081,7 @@ button:disabled {
   text-transform: uppercase;
 }
 
-.lesson-row {
+.track-row {
   position: relative;
   display: flex;
   align-items: center;
@@ -1094,7 +1095,7 @@ button:disabled {
   transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 }
 
-.lesson-row-done {
+.track-row-done {
   display: grid;
   width: 24px;
   height: 24px;
@@ -1108,33 +1109,33 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
-.lesson-row-done:hover,
-.lesson-row-done:focus-visible {
+.track-row-done:hover,
+.track-row-done:focus-visible {
   color: var(--shell-text);
   background: var(--shell-hover-strong);
 }
 
-.lesson-row-done .iconify {
+.track-row-done .iconify {
   width: 14px;
   height: 14px;
 }
 
-.lesson-row-done-check {
+.track-row-done-check {
   color: var(--shell-green);
 }
 
-.lesson-row-done-hover,
-.lesson-row-done:hover .lesson-row-done-idle,
-.lesson-row-done:focus-visible .lesson-row-done-idle {
+.track-row-done-hover,
+.track-row-done:hover .track-row-done-idle,
+.track-row-done:focus-visible .track-row-done-idle {
   display: none;
 }
 
-.lesson-row-done:hover .lesson-row-done-hover,
-.lesson-row-done:focus-visible .lesson-row-done-hover {
+.track-row-done:hover .track-row-done-hover,
+.track-row-done:focus-visible .track-row-done-hover {
   display: block;
 }
 
-.lesson-row-select {
+.track-row-select {
   display: flex;
   flex: 1;
   min-width: 0;
@@ -1144,13 +1145,13 @@ button:disabled {
   text-align: left;
 }
 
-.lesson-row-reset-space {
+.track-row-reset-space {
   flex: none;
   width: 30px;
   margin-right: 6px;
 }
 
-.lesson-row-reset {
+.track-row-reset {
   display: grid;
   flex: none;
   width: 30px;
@@ -1161,28 +1162,28 @@ button:disabled {
   color: var(--shell-text-muted);
 }
 
-.lesson-row-reset:hover,
-.lesson-row-reset:focus-visible {
+.track-row-reset:hover,
+.track-row-reset:focus-visible {
   color: var(--shell-accent);
   background: var(--shell-accent-soft);
 }
 
-.lesson-row:hover {
+.track-row:hover {
   border-color: var(--shell-border);
   background: var(--shell-hover);
 }
 
-.lesson-row-active {
+.track-row-active {
   border-color: var(--shell-accent-border);
   color: var(--shell-text);
   background: var(--shell-accent-soft);
 }
 
-.lesson-row-active .lesson-row-done {
+.track-row-active .track-row-done {
   color: var(--shell-accent);
 }
 
-.lesson-row-copy {
+.track-row-copy {
   display: flex;
   min-width: 0;
   flex: 1;
@@ -1190,7 +1191,7 @@ button:disabled {
   gap: 4px;
 }
 
-.lesson-row-copy strong {
+.track-row-copy strong {
   overflow: hidden;
   color: inherit;
   font-size: 12px;
@@ -1200,12 +1201,12 @@ button:disabled {
   white-space: nowrap;
 }
 
-.lesson-row-copy small {
+.track-row-copy small {
   color: var(--shell-text-subtle);
   font-size: 10px;
 }
 
-.lesson-row-progress {
+.track-row-progress {
   display: block;
   width: 100%;
   height: 2px;
@@ -1214,18 +1215,18 @@ button:disabled {
   background: var(--shell-track-background);
 }
 
-.lesson-row-progress span {
+.track-row-progress span {
   display: block;
   height: 100%;
   background: var(--shell-accent);
 }
 
 /* Kept in the layout so rows keep their height when progress appears or is cleared. */
-.lesson-row-progress-empty {
+.track-row-progress-empty {
   visibility: hidden;
 }
 
-.lesson-row-playing {
+.track-row-playing {
   width: 13px;
   height: 13px;
   flex: none;
@@ -1233,12 +1234,12 @@ button:disabled {
   color: var(--shell-accent);
 }
 
-.lesson-row-playing-hover,
-.lesson-row-select:hover .lesson-row-playing-idle {
+.track-row-playing-hover,
+.track-row-select:hover .track-row-playing-idle {
   display: none;
 }
 
-.lesson-row-select:hover .lesson-row-playing-hover {
+.track-row-select:hover .track-row-playing-hover {
   display: block;
 }
 
@@ -1300,16 +1301,16 @@ button:disabled {
     padding: 25px 15px 44px;
   }
 
-  .lesson-heading {
+  .track-heading {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .lesson-heading .u-button {
+  .track-heading .u-button {
     align-self: flex-start;
   }
 
-  .lesson-heading-actions {
+  .track-heading-actions {
     align-self: flex-start;
   }
 

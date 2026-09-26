@@ -7,7 +7,7 @@ import {Readable} from 'node:stream';
 import {pathToFileURL} from 'node:url';
 import type {
   IFolder,
-  IMediaLesson,
+  IMediaTrack,
   IPlayerSettings,
   IRecentFolder,
   TLocale,
@@ -16,12 +16,12 @@ import type {
   TFolderProgress,
 } from '../shared/types';
 import {isSupportedLocale, messages} from '../shared/i18n';
-import {compareMediaLessons, compareMediaPaths, MEDIA_MIME_TYPES, MEDIA_TYPES, sectionForRelativePath, titleForFile} from '../shared/media';
+import {compareMediaTracks, compareMediaPaths, MEDIA_MIME_TYPES, MEDIA_TYPES, sectionForRelativePath, titleForFile} from '../shared/media';
 import {
   createDefaultState,
   isPlainRecord,
   isStoredIdentifier,
-  sanitizeLessonProgress,
+  sanitizeTrackProgress,
   sanitizeStoredState,
   type IStoredState,
 } from './state';
@@ -106,7 +106,7 @@ function folderIdForPath(rootPath: string) {
   return createHash('sha256').update(rootPath).digest('hex').slice(0, 16);
 }
 
-function lessonIdForPath(folderId: string, relativePath: string) {
+function trackIdForPath(folderId: string, relativePath: string) {
   return createHash('sha256').update(`${folderId}:${relativePath}`).digest('hex').slice(0, 16);
 }
 
@@ -257,8 +257,8 @@ function cloneStoredState(state: IStoredState): IStoredState {
   const progress = Object.create(null) as Record<string, TFolderProgress>;
   for (const [folderId, folderProgress] of Object.entries(state.progress)) {
     const clonedFolderProgress = Object.create(null) as TFolderProgress;
-    for (const [lessonId, lessonProgress] of Object.entries(folderProgress)) {
-      clonedFolderProgress[lessonId] = {...lessonProgress};
+    for (const [trackId, trackProgress] of Object.entries(folderProgress)) {
+      clonedFolderProgress[trackId] = {...trackProgress};
     }
     progress[folderId] = clonedFolderProgress;
   }
@@ -410,7 +410,7 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
   const fileStats = await collectFileStats(filePaths);
   const scannableFilePaths = filePaths.filter((filePath) => fileStats.has(filePath));
   const durationMap = await readDurationMap(scannableFilePaths);
-  const lessons: IMediaLesson[] = scannableFilePaths.map((filePath, index) => {
+  const tracks: IMediaTrack[] = scannableFilePaths.map((filePath, index) => {
     const fileName = basename(filePath);
     const relativePath = relative(rootPath, filePath).split(sep).join('/');
     const {sequence, title} = titleForFile(fileName);
@@ -419,7 +419,7 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
       return null;
     }
     return {
-      id: lessonIdForPath(folderId, relativePath),
+      id: trackIdForPath(folderId, relativePath),
       sequence: sequence || index + 1,
       title: title || fileName,
       fileName,
@@ -431,20 +431,20 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
       bytes: currentFileStats.size,
       duration: durationMap.get(filePath) ?? null,
     };
-  }).filter((lesson): lesson is IMediaLesson => lesson !== null);
+  }).filter((track): track is IMediaTrack => track !== null);
 
-  lessons.sort(compareMediaLessons);
-  const totalDuration = lessons.reduce((total, lesson) => total + (lesson.duration ?? 0), 0);
-  const videoCount = lessons.filter((lesson) => lesson.kind === 'video').length;
-  const audioCount = lessons.length - videoCount;
+  tracks.sort(compareMediaTracks);
+  const totalDuration = tracks.reduce((total, track) => total + (track.duration ?? 0), 0);
+  const videoCount = tracks.filter((track) => track.kind === 'video').length;
+  const audioCount = tracks.length - videoCount;
   const folder: IFolder = {
     id: folderId,
     name: basename(rootPath),
     rootPath,
-    lessons,
+    tracks,
     videoCount,
     audioCount,
-    totalBytes: lessons.reduce((total, lesson) => total + lesson.bytes, 0),
+    totalBytes: tracks.reduce((total, track) => total + track.bytes, 0),
     totalDuration,
     scannedAt: Date.now(),
   };
@@ -456,7 +456,7 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
         id: folder.id,
         name: folder.name,
         rootPath: folder.rootPath,
-        mediaCount: folder.lessons.length,
+        mediaCount: folder.tracks.length,
         lastOpenedAt: Date.now(),
       },
       ...state.recentFolders.filter((recentFolder) => recentFolder.id !== folder.id),
@@ -921,11 +921,11 @@ function registerIpcHandlers() {
       return;
     }
     const folderId = payload.folderId;
-    const lessonId = payload.lessonId;
-    if (!isStoredIdentifier(folderId) || !isStoredIdentifier(lessonId)) {
+    const trackId = payload.trackId;
+    if (!isStoredIdentifier(folderId) || !isStoredIdentifier(trackId)) {
       return;
     }
-    const progress = sanitizeLessonProgress(payload.progress);
+    const progress = sanitizeTrackProgress(payload.progress);
     if (!progress) {
       return;
     }
@@ -933,21 +933,21 @@ function registerIpcHandlers() {
       const folderProgress = state.progress[folderId] ?? Object.create(null);
       state.progress[folderId] = {
         ...folderProgress,
-        [lessonId]: progress,
+        [trackId]: progress,
       };
     });
   });
 
-  ipcMain.handle('progress:clear-lesson', async (event, folderId: unknown, lessonId: unknown) => {
-    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(folderId) || !isStoredIdentifier(lessonId)) {
+  ipcMain.handle('progress:clear-track', async (event, folderId: unknown, trackId: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(folderId) || !isStoredIdentifier(trackId)) {
       return;
     }
     await updateState((state) => {
       const folderProgress = state.progress[folderId];
-      if (!folderProgress || !(lessonId in folderProgress)) {
+      if (!folderProgress || !(trackId in folderProgress)) {
         return false;
       }
-      delete folderProgress[lessonId];
+      delete folderProgress[trackId];
       if (Object.keys(folderProgress).length === 0) {
         delete state.progress[folderId];
       }

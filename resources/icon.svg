@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- EVB family frame (see EVB Viewer's icon): a flat rounded square in the app's accent. -->
   <rect x="40" y="40" width="432" height="432" rx="96" fill="#F0784E"/>
-  <!-- A playlist: two watched lessons, two to go. -->
+  <!-- A playlist: two watched tracks, two to go. -->
   <g transform="translate(256, 256) scale(0.92) translate(-205, -235)">
     <rect x="108" y="93" width="200" height="290" rx="18" fill="#9A3412" opacity="0.2"/>
     <rect x="105" y="90" width="200" height="290" rx="18" fill="#FFFFFF"/>

@@ -1,11 +1,11 @@
 import {parseBlob} from 'music-metadata';
 import type {
   IFolder,
-  IMediaLesson,
+  IMediaTrack,
   IPlayerApi,
   IPlayerSettings,
   IRecentFolder,
-  ISaveLessonProgressPayload,
+  ISaveTrackProgressPayload,
   IUpdateStatus,
   TFolderProgress,
   TLocale,
@@ -21,7 +21,7 @@ import {
   sanitizeRecentFolders,
 } from '../../shared/state';
 import {
-  compareMediaLessons,
+  compareMediaTracks,
   compareMediaPaths,
   extensionForFileName,
   MEDIA_TYPES,
@@ -177,7 +177,7 @@ async function folderIdForName(name: string) {
   return hashHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`name:${name}`))).slice(0, 16);
 }
 
-async function lessonIdForPath(folderId: string, relativePath: string) {
+async function trackIdForPath(folderId: string, relativePath: string) {
   return hashHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${folderId}:${relativePath}`))).slice(0, 16);
 }
 
@@ -231,38 +231,38 @@ async function finishFolderScan(
   revokeFolderMedia(folderId);
   files.sort((left, right) => compareMediaPaths(left.relativePath, right.relativePath));
   const durations = await readDurations(files);
-  const lessons: IMediaLesson[] = await Promise.all(files.map(async ({file, relativePath}, index) => {
+  const tracks: IMediaTrack[] = await Promise.all(files.map(async ({file, relativePath}, index) => {
     const fileName = file.name;
     const {sequence, title} = titleForFile(fileName);
     return {
-      id: await lessonIdForPath(folderId, relativePath),
+      id: await trackIdForPath(folderId, relativePath),
       sequence: sequence || index + 1,
       title: title || fileName,
       fileName,
       relativePath,
       section: sectionForRelativePath(name, relativePath),
-      kind: MEDIA_TYPES[extensionForFileName(fileName)] as IMediaLesson['kind'],
+      kind: MEDIA_TYPES[extensionForFileName(fileName)] as IMediaTrack['kind'],
       mediaUrl: createMediaUrl(folderId, file),
       bytes: file.size,
       duration: durations.get(relativePath) ?? null,
     };
   }));
-  lessons.sort(compareMediaLessons);
+  tracks.sort(compareMediaTracks);
   const state = readStoredState();
   const folder: IFolder = {
     id: folderId,
     name,
     rootPath: name,
-    lessons,
-    videoCount: lessons.filter((lesson) => lesson.kind === 'video').length,
-    audioCount: lessons.filter((lesson) => lesson.kind === 'audio').length,
-    totalBytes: lessons.reduce((total, lesson) => total + lesson.bytes, 0),
-    totalDuration: lessons.reduce((total, lesson) => total + (lesson.duration ?? 0), 0),
+    tracks,
+    videoCount: tracks.filter((track) => track.kind === 'video').length,
+    audioCount: tracks.filter((track) => track.kind === 'audio').length,
+    totalBytes: tracks.reduce((total, track) => total + track.bytes, 0),
+    totalDuration: tracks.reduce((total, track) => total + (track.duration ?? 0), 0),
     scannedAt: Date.now(),
   };
   state.lastFolderId = folderId;
   state.recentFolders = [
-    {id: folderId, name, rootPath: name, mediaCount: lessons.length, lastOpenedAt: Date.now()},
+    {id: folderId, name, rootPath: name, mediaCount: tracks.length, lastOpenedAt: Date.now()},
     ...state.recentFolders.filter((recentFolder) => recentFolder.id !== folderId),
   ].slice(0, 12);
   writeStoredState();
@@ -447,12 +447,12 @@ export const browserPlayerApi: IPlayerApi = {
   async getFolderProgress(folderId: string) {
     return {...(readStoredState().progress[folderId] ?? {})};
   },
-  async saveLessonProgress({folderId, lessonId, progress}: ISaveLessonProgressPayload) {
-    updateFolderProgress(folderId, (folderProgress) => ({...folderProgress, [lessonId]: progress}));
+  async saveTrackProgress({folderId, trackId, progress}: ISaveTrackProgressPayload) {
+    updateFolderProgress(folderId, (folderProgress) => ({...folderProgress, [trackId]: progress}));
   },
-  async clearLessonProgress(folderId: string, lessonId: string) {
+  async clearTrackProgress(folderId: string, trackId: string) {
     updateFolderProgress(folderId, (folderProgress) => {
-      delete folderProgress[lessonId];
+      delete folderProgress[trackId];
       return folderProgress;
     });
   },

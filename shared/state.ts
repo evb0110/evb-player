@@ -1,4 +1,4 @@
-import type {ILessonProgress, IRecentFolder, TFolderProgress} from './types';
+import type {ITrackProgress, IRecentFolder, TFolderProgress} from './types';
 
 const IDENTIFIER_PATTERN = /^[a-f0-9]{16}$/u;
 const MAX_TEXT_LENGTH = 4096;
@@ -23,7 +23,7 @@ function timestamp(value: unknown, fallback: number) {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : fallback;
 }
 
-export function sanitizeLessonProgress(value: unknown, fallbackUpdatedAt = Date.now()): ILessonProgress | null {
+export function sanitizeTrackProgress(value: unknown, fallbackUpdatedAt = Date.now()): ITrackProgress | null {
   if (!isPlainRecord(value)) {
     return null;
   }
@@ -53,13 +53,13 @@ export function sanitizeProgress(value: unknown): Record<string, TFolderProgress
       continue;
     }
     const folderProgress = Object.create(null) as TFolderProgress;
-    for (const [lessonId, lessonValue] of Object.entries(folderValue)) {
-      if (!isStoredIdentifier(lessonId)) {
+    for (const [trackId, trackValue] of Object.entries(folderValue)) {
+      if (!isStoredIdentifier(trackId)) {
         continue;
       }
-      const sanitizedLesson = sanitizeLessonProgress(lessonValue);
-      if (sanitizedLesson) {
-        folderProgress[lessonId] = sanitizedLesson;
+      const sanitizedTrack = sanitizeTrackProgress(trackValue);
+      if (sanitizedTrack) {
+        folderProgress[trackId] = sanitizedTrack;
       }
     }
     if (Object.keys(folderProgress).length > 0) {

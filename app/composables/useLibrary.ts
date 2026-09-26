@@ -1,16 +1,16 @@
-import type {IFolder, ILessonProgress, IMediaLesson, IRecentFolder, TFolderProgress} from '../../shared/types';
+import type {IFolder, ITrackProgress, IMediaTrack, IRecentFolder, TFolderProgress} from '../../shared/types';
 import {useI18n} from 'vue-i18n';
 import {messages} from '../../shared/i18n';
 import {getPlayerApi} from '../utils/playerApi';
 
 interface IProgressMutation {
   revision: number;
-  progress: ILessonProgress | null;
+  progress: ITrackProgress | null;
 }
 
 interface IProgressMutationState {
   folderClearRevision: number;
-  lessons: Map<string, IProgressMutation>;
+  tracks: Map<string, IProgressMutation>;
   pendingRevisions: Set<number>;
 }
 
@@ -19,15 +19,15 @@ interface IProgressReadSnapshot {
   pendingRevisions: Set<number>;
 }
 
-type TProgressWriteKind = 'save' | 'clear-lesson' | 'clear-folder';
+type TProgressWriteKind = 'save' | 'clear-track' | 'clear-folder';
 
 interface IProgressWrite {
   folderId: string;
   kind: TProgressWriteKind;
-  lessonId?: string;
+  trackId?: string;
   previousFolderProgress?: TFolderProgress;
-  previousProgress?: ILessonProgress;
-  progress?: ILessonProgress;
+  previousProgress?: ITrackProgress;
+  progress?: ITrackProgress;
   revision: number;
   status: 'failed' | 'queued';
 }
@@ -39,7 +39,7 @@ export function useLibrary() {
   const activeTab = useState<string>('evb-player-active-tab', () => 'library');
   const playbackFolderId = useState<string | null>('evb-player-playback-folder', () => null);
   const progressByFolder = useState<Record<string, TFolderProgress>>('evb-player-progress', () => ({}));
-  const selectedLessonByFolder = useState<Record<string, string>>('evb-player-selected-lesson', () => ({}));
+  const selectedTrackByFolder = useState<Record<string, string>>('evb-player-selected-track', () => ({}));
   const loading = useState<boolean>('evb-player-loading', () => false);
   const loadingMessage = useState<string>('evb-player-loading-message', () => t('library.scanningFolder'));
   const error = useState<string>('evb-player-error', () => '');
@@ -52,15 +52,15 @@ export function useLibrary() {
 
   const currentFolder = computed(() => openFolders.value.find((folder) => folder.id === activeTab.value) ?? null);
   const playbackFolder = computed(() => openFolders.value.find((folder) => folder.id === playbackFolderId.value) ?? null);
-  const currentLesson = computed(() => selectedLesson(currentFolder.value));
-  const playbackLesson = computed(() => selectedLesson(playbackFolder.value));
+  const currentTrack = computed(() => selectedTrack(currentFolder.value));
+  const playbackTrack = computed(() => selectedTrack(playbackFolder.value));
 
-  function selectedLesson(folder: IFolder | null) {
+  function selectedTrack(folder: IFolder | null) {
     if (!folder) {
       return null;
     }
-    const selectedLessonId = selectedLessonByFolder.value[folder.id];
-    return folder.lessons.find((lesson) => lesson.id === selectedLessonId) ?? folder.lessons[0] ?? null;
+    const selectedTrackId = selectedTrackByFolder.value[folder.id];
+    return folder.tracks.find((track) => track.id === selectedTrackId) ?? folder.tracks[0] ?? null;
   }
 
   function getApi() {
@@ -111,15 +111,15 @@ export function useLibrary() {
     return progressByFolder.value[folderId] ?? {};
   }
 
-  function findResumeLesson(folder: IFolder) {
+  function findResumeTrack(folder: IFolder) {
     const progress = progressFor(folder.id);
-    const inProgressLessons = folder.lessons
-      .filter((lesson) => {
-        const lessonState = progress[lesson.id];
-        return Boolean(lessonState && !lessonState.completed && lessonState.position > 1);
+    const inProgressTracks = folder.tracks
+      .filter((track) => {
+        const trackState = progress[track.id];
+        return Boolean(trackState && !trackState.completed && trackState.position > 1);
       })
       .sort((left, right) => (progress[right.id]?.updatedAt ?? 0) - (progress[left.id]?.updatedAt ?? 0));
-    return inProgressLessons[0] ?? folder.lessons.find((lesson) => !progress[lesson.id]?.completed) ?? folder.lessons[0] ?? null;
+    return inProgressTracks[0] ?? folder.tracks.find((track) => !progress[track.id]?.completed) ?? folder.tracks[0] ?? null;
   }
 
   function mutationStateFor(folderId: string) {
@@ -129,7 +129,7 @@ export function useLibrary() {
     }
     const state: IProgressMutationState = {
       folderClearRevision: 0,
-      lessons: new Map(),
+      tracks: new Map(),
       pendingRevisions: new Set(),
     };
     progressMutationsByFolder.set(folderId, state);
@@ -143,9 +143,9 @@ export function useLibrary() {
     return revision;
   }
 
-  function recordLessonMutation(folderId: string, lessonId: string, progress: ILessonProgress | null) {
+  function recordTrackMutation(folderId: string, trackId: string, progress: ITrackProgress | null) {
     const revision = nextProgressRevision(folderId);
-    mutationStateFor(folderId).lessons.set(lessonId, {revision, progress});
+    mutationStateFor(folderId).tracks.set(trackId, {revision, progress});
     return revision;
   }
 
@@ -172,12 +172,12 @@ export function useLibrary() {
     const mergedProgress = {...loadedProgress};
     const folderWasLocallyCleared = state.folderClearRevision > 0;
     if (folderWasLocallyCleared) {
-      for (const lessonId of Object.keys(mergedProgress)) {
-        delete mergedProgress[lessonId];
+      for (const trackId of Object.keys(mergedProgress)) {
+        delete mergedProgress[trackId];
       }
     }
 
-    for (const [lessonId, mutation] of state.lessons) {
+    for (const [trackId, mutation] of state.tracks) {
       if (folderWasLocallyCleared && mutation.revision <= state.folderClearRevision) {
         continue;
       }
@@ -188,16 +188,16 @@ export function useLibrary() {
         continue;
       }
       if (mutation.progress) {
-        mergedProgress[lessonId] = mutation.progress;
+        mergedProgress[trackId] = mutation.progress;
       } else {
-        delete mergedProgress[lessonId];
+        delete mergedProgress[trackId];
       }
     }
     return mergedProgress;
   }
 
   function progressWriteKey(write: IProgressWrite) {
-    return `${write.folderId}:${write.revision}:${write.kind}:${write.lessonId ?? ''}`;
+    return `${write.folderId}:${write.revision}:${write.kind}:${write.trackId ?? ''}`;
   }
 
   function markProgressPersisted(write: IProgressWrite) {
@@ -216,7 +216,7 @@ export function useLibrary() {
       return (state.folderClearRevision === write.revision || rolledBackFailedClear)
         && (progressRevisionByFolder.get(write.folderId) ?? 0) === write.revision;
     }
-    return state.lessons.get(write.lessonId ?? '')?.revision === write.revision
+    return state.tracks.get(write.trackId ?? '')?.revision === write.revision
       && state.folderClearRevision <= write.revision;
   }
 
@@ -235,9 +235,9 @@ export function useLibrary() {
     } else {
       const folderProgress = {...(nextProgress[write.folderId] ?? {})};
       if (write.previousProgress) {
-        folderProgress[write.lessonId ?? ''] = write.previousProgress;
+        folderProgress[write.trackId ?? ''] = write.previousProgress;
       } else {
-        delete folderProgress[write.lessonId ?? ''];
+        delete folderProgress[write.trackId ?? ''];
       }
       if (Object.keys(folderProgress).length > 0) {
         nextProgress[write.folderId] = folderProgress;
@@ -263,9 +263,9 @@ export function useLibrary() {
     try {
       await enqueueProgressWrite(async () => {
         if (write.kind === 'save' && write.progress) {
-          await api.saveLessonProgress({folderId: write.folderId, lessonId: write.lessonId ?? '', progress: write.progress});
-        } else if (write.kind === 'clear-lesson') {
-          await api.clearLessonProgress(write.folderId, write.lessonId ?? '');
+          await api.saveTrackProgress({folderId: write.folderId, trackId: write.trackId ?? '', progress: write.progress});
+        } else if (write.kind === 'clear-track') {
+          await api.clearTrackProgress(write.folderId, write.trackId ?? '');
         } else {
           await api.clearFolderProgress(write.folderId);
         }
@@ -319,11 +319,11 @@ export function useLibrary() {
       ? openFolders.value.map((tab) => tab.id === folder.id ? folder : tab)
       : [...openFolders.value, folder];
 
-    const selectedLessonId = selectedLessonByFolder.value[folder.id];
-    if (!folder.lessons.some((lesson) => lesson.id === selectedLessonId)) {
-      selectedLessonByFolder.value = {
-        ...selectedLessonByFolder.value,
-        [folder.id]: findResumeLesson(folder)?.id ?? '',
+    const selectedTrackId = selectedTrackByFolder.value[folder.id];
+    if (!folder.tracks.some((track) => track.id === selectedTrackId)) {
+      selectedTrackByFolder.value = {
+        ...selectedTrackByFolder.value,
+        [folder.id]: findResumeTrack(folder)?.id ?? '',
       };
     }
     activeTab.value = folder.id;
@@ -451,15 +451,15 @@ export function useLibrary() {
     }
   }
 
-  function selectLesson(lesson: IMediaLesson) {
+  function selectTrack(track: IMediaTrack) {
     const folder = playbackFolder.value;
-    if (!folder || !folder.lessons.some((candidate) => candidate.id === lesson.id)) {
+    if (!folder || !folder.tracks.some((candidate) => candidate.id === track.id)) {
       return;
     }
     invalidatePendingOperations();
-    selectedLessonByFolder.value = {
-      ...selectedLessonByFolder.value,
-      [folder.id]: lesson.id,
+    selectedTrackByFolder.value = {
+      ...selectedTrackByFolder.value,
+      [folder.id]: track.id,
     };
   }
 
@@ -502,17 +502,17 @@ export function useLibrary() {
     }
   }
 
-  function lessonProgress(folderId: string, lessonId: string): ILessonProgress | null {
-    return progressByFolder.value[folderId]?.[lessonId] ?? null;
+  function trackProgress(folderId: string, trackId: string): ITrackProgress | null {
+    return progressByFolder.value[folderId]?.[trackId] ?? null;
   }
 
-  async function saveProgress(folderId: string, lessonId: string, progress: ILessonProgress) {
-    const revision = recordLessonMutation(folderId, lessonId, progress);
+  async function saveProgress(folderId: string, trackId: string, progress: ITrackProgress) {
+    const revision = recordTrackMutation(folderId, trackId, progress);
     progressByFolder.value = {
       ...progressByFolder.value,
       [folderId]: {
         ...(progressByFolder.value[folderId] ?? {}),
-        [lessonId]: progress,
+        [trackId]: progress,
       },
     };
     const api = await getApi();
@@ -520,16 +520,16 @@ export function useLibrary() {
       mutationStateFor(folderId).pendingRevisions.delete(revision);
       return;
     }
-    const write: IProgressWrite = {folderId, kind: 'save', lessonId, progress, revision, status: 'queued'};
+    const write: IProgressWrite = {folderId, kind: 'save', trackId, progress, revision, status: 'queued'};
     progressWrites.set(progressWriteKey(write), write);
     await persistProgressWrite(write, t('library.progressWriteFailed'));
   }
 
-  async function clearLessonProgress(folderId: string, lessonId: string) {
-    const previousProgress = progressByFolder.value[folderId]?.[lessonId];
-    const revision = recordLessonMutation(folderId, lessonId, null);
+  async function clearTrackProgress(folderId: string, trackId: string) {
+    const previousProgress = progressByFolder.value[folderId]?.[trackId];
+    const revision = recordTrackMutation(folderId, trackId, null);
     const folderProgress = {...(progressByFolder.value[folderId] ?? {})};
-    delete folderProgress[lessonId];
+    delete folderProgress[trackId];
     const nextProgress = {...progressByFolder.value};
     if (Object.keys(folderProgress).length === 0) {
       delete nextProgress[folderId];
@@ -544,8 +544,8 @@ export function useLibrary() {
     }
     const write: IProgressWrite = {
       folderId,
-      kind: 'clear-lesson',
-      lessonId,
+      kind: 'clear-track',
+      trackId,
       previousProgress: previousProgress ? {...previousProgress} : undefined,
       revision,
       status: 'queued',
@@ -591,10 +591,10 @@ export function useLibrary() {
       }
       discardProgressWrite(failedWrite);
       try {
-        if (failedWrite.kind === 'save' && failedWrite.lessonId && failedWrite.progress) {
-          await saveProgress(failedWrite.folderId, failedWrite.lessonId, failedWrite.progress);
-        } else if (failedWrite.kind === 'clear-lesson' && failedWrite.lessonId) {
-          await clearLessonProgress(failedWrite.folderId, failedWrite.lessonId);
+        if (failedWrite.kind === 'save' && failedWrite.trackId && failedWrite.progress) {
+          await saveProgress(failedWrite.folderId, failedWrite.trackId, failedWrite.progress);
+        } else if (failedWrite.kind === 'clear-track' && failedWrite.trackId) {
+          await clearTrackProgress(failedWrite.folderId, failedWrite.trackId);
         } else if (failedWrite.kind === 'clear-folder') {
           await clearFolderProgress(failedWrite.folderId);
         }
@@ -609,16 +609,16 @@ export function useLibrary() {
     return allSucceeded;
   }
 
-  async function toggleComplete(lesson: IMediaLesson) {
+  async function toggleComplete(track: IMediaTrack) {
     const folder = playbackFolder.value;
-    if (!folder || !folder.lessons.some((candidate) => candidate.id === lesson.id)) {
+    if (!folder || !folder.tracks.some((candidate) => candidate.id === track.id)) {
       return;
     }
-    const previous = lessonProgress(folder.id, lesson.id);
+    const previous = trackProgress(folder.id, track.id);
     try {
-      await saveProgress(folder.id, lesson.id, {
+      await saveProgress(folder.id, track.id, {
         position: previous?.position ?? 0,
-        duration: previous?.duration || lesson.duration || 0,
+        duration: previous?.duration || track.duration || 0,
         completed: !previous?.completed,
         updatedAt: Date.now(),
       });
@@ -632,11 +632,11 @@ export function useLibrary() {
   }
 
   function progressPercent(folder: IFolder) {
-    if (folder.lessons.length === 0) {
+    if (folder.tracks.length === 0) {
       return 0;
     }
     const progress = progressFor(folder.id);
-    return Math.round((folder.lessons.filter((lesson) => progress[lesson.id]?.completed).length / folder.lessons.length) * 100);
+    return Math.round((folder.tracks.filter((track) => progress[track.id]?.completed).length / folder.tracks.length) * 100);
   }
 
   return {
@@ -644,9 +644,9 @@ export function useLibrary() {
     openFolders,
     activeTab,
     currentFolder,
-    currentLesson,
+    currentTrack,
     playbackFolder,
-    playbackLesson,
+    playbackTrack,
     loading,
     loadingMessage,
     error,
@@ -655,14 +655,14 @@ export function useLibrary() {
     openFolder,
     openRecentFolder,
     removeRecentFolder,
-    selectLesson,
+    selectTrack,
     closeFolder,
     setActiveTab,
-    findResumeLesson,
+    findResumeTrack,
     progressFor,
-    lessonProgress,
+    trackProgress,
     saveProgress,
-    clearLessonProgress,
+    clearTrackProgress,
     clearFolderProgress,
     retryProgressWrites,
     toggleComplete,

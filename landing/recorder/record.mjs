@@ -47,7 +47,7 @@ if (themeFilter && !themes.includes(themeFilter)) {
 const folders = realpathSync(path.join(FILMS, 'folders'));
 const hash = (text) => createHash('sha256').update(text).digest('hex').slice(0, 16);
 const folderId = (name) => hash(path.join(folders, name));
-const lessonId = (name, relativePath) => hash(`${folderId(name)}:${relativePath}`);
+const trackId = (name, relativePath) => hash(`${folderId(name)}:${relativePath}`);
 const variants = (localeFilter ? [localeFilter] : locales).flatMap((locale) =>
     (themeFilter ? [themeFilter] : themes).map((theme) => ({ locale, theme })),
 );
@@ -73,7 +73,7 @@ try {
         rmSync(profile, { recursive: true, force: true });
         mkdirSync(profile, { recursive: true });
         if (seed) {
-            writeFileSync(path.join(profile, 'evb-player-state.json'), JSON.stringify(seed({ folders, folderId, lessonId }), null, 2));
+            writeFileSync(path.join(profile, 'evb-player-state.json'), JSON.stringify(seed({ folders, folderId, trackId }), null, 2));
         }
         writeFileSync(path.join(profile, 'evb-player-settings.json'), JSON.stringify({ theme, locale }, null, 2));
 

@@ -21,7 +21,7 @@ export interface IUpdateStatus {
 
 export type TMenuAction = 'add-folder' | 'keyboard-shortcuts' | 'check-for-updates';
 
-export interface IMediaLesson {
+export interface IMediaTrack {
   id: string;
   sequence: number;
   title: string;
@@ -38,7 +38,7 @@ export interface IFolder {
   id: string;
   name: string;
   rootPath: string;
-  lessons: IMediaLesson[];
+  tracks: IMediaTrack[];
   videoCount: number;
   audioCount: number;
   totalBytes: number;
@@ -54,19 +54,19 @@ export interface IRecentFolder {
   lastOpenedAt: number;
 }
 
-export interface ILessonProgress {
+export interface ITrackProgress {
   position: number;
   duration: number;
   completed: boolean;
   updatedAt: number;
 }
 
-export type TFolderProgress = Record<string, ILessonProgress>;
+export type TFolderProgress = Record<string, ITrackProgress>;
 
-export interface ISaveLessonProgressPayload {
+export interface ISaveTrackProgressPayload {
   folderId: string;
-  lessonId: string;
-  progress: ILessonProgress;
+  trackId: string;
+  progress: ITrackProgress;
 }
 
 export interface IPlayerCapabilities {
@@ -88,8 +88,8 @@ export interface IPlayerApi {
   closeFolder(folderId: string): Promise<void>;
   revealFolder(rootPath: string): Promise<void>;
   getFolderProgress(folderId: string): Promise<TFolderProgress>;
-  saveLessonProgress(payload: ISaveLessonProgressPayload): Promise<void>;
-  clearLessonProgress(folderId: string, lessonId: string): Promise<void>;
+  saveTrackProgress(payload: ISaveTrackProgressPayload): Promise<void>;
+  clearTrackProgress(folderId: string, trackId: string): Promise<void>;
   clearFolderProgress(folderId: string): Promise<void>;
   openMediaExternally(mediaUrl: string): Promise<void>;
   setWindowFullscreen(fullscreen: boolean): Promise<boolean>;

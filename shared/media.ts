@@ -1,4 +1,4 @@
-import type {IMediaLesson, TMediaKind} from './types';
+import type {IMediaTrack, TMediaKind} from './types';
 
 export const MEDIA_TYPES: Record<string, TMediaKind> = {
   '.aac': 'audio',
@@ -61,6 +61,6 @@ export function sectionForRelativePath(folderName: string, relativePath: string)
   return separatorIndex === -1 ? folderName : relativePath.slice(0, separatorIndex);
 }
 
-export function compareMediaLessons(left: Pick<IMediaLesson, 'sequence' | 'title'>, right: Pick<IMediaLesson, 'sequence' | 'title'>) {
+export function compareMediaTracks(left: Pick<IMediaTrack, 'sequence' | 'title'>, right: Pick<IMediaTrack, 'sequence' | 'title'>) {
   return left.sequence - right.sequence || left.title.localeCompare(right.title, undefined, {numeric: true});
 }

@@ -1,7 +1,7 @@
 // Generates the demo folders the landing films are recorded with:
 // node landing/recorder/demo-media.mjs [out-dir]   (default .devkit/films)
-// Video lessons are rendered slides encoded as still-image videos of realistic length, so the
-// playlist shows real durations while each file stays small. Audio lessons are quiet tones.
+// Video tracks are rendered slides encoded as still-image videos of realistic length, so the
+// playlist shows real durations while each file stays small. Audio tracks are quiet tones.
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -14,7 +14,7 @@ const SLIDES = path.join(ROOT, 'slides');
 const typescript = {
     name: 'TypeScript Fundamentals',
     accent: '#f0784e',
-    lessons: [
+    tracks: [
         ['01 Getting started', '01. Welcome', 134, 'const plan = {\n  title: "TypeScript Fundamentals",\n  parts: 12,\n  level: "beginner",\n};'],
         ['01 Getting started', '02. Setting up your editor', 408, '// tsconfig.json\n{\n  "compilerOptions": {\n    "strict": true,\n    "target": "ES2022"\n  }\n}'],
         ['01 Getting started', '03. Your first type', 485, 'let title: string = "Hello";\nlet count: number = 3;\nlet done: boolean = false;'],
@@ -33,7 +33,7 @@ const typescript = {
 const sql = {
     name: 'Practical SQL',
     accent: '#91c5b1',
-    lessons: [
+    tracks: [
         ['', '01. Why SQL still matters', 245, 'SELECT title, minutes\nFROM tracks\nORDER BY minutes DESC;'],
         ['', '02. Filtering rows', 512, 'SELECT *\nFROM tracks\nWHERE minutes > 10\n  AND done = false;'],
         ['', '03. Joining tables', 734, 'SELECT p.name, t.title\nFROM playlists p\nJOIN tracks t ON t.playlist_id = p.id;'],
@@ -45,7 +45,7 @@ const sql = {
 
 const spanish = {
     name: 'Spanish Listening Practice',
-    lessons: [
+    tracks: [
         ['01. En el mercado', 402],
         ['02. Una llamada', 365],
         ['03. El tiempo', 318],
@@ -110,7 +110,7 @@ const browser = await chromium.launch({ headless: true, channel: 'chrome' });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const frames = {};
 for (const folder of [typescript, sql]) {
-    for (const [section, title, seconds, code] of folder.lessons) {
+    for (const [section, title, seconds, code] of folder.tracks) {
         const dir = path.join(FOLDERS, folder.name, section);
         mkdirSync(dir, { recursive: true });
         if (!code) {
@@ -128,7 +128,7 @@ for (const folder of [typescript, sql]) {
     }
 }
 await browser.close();
-for (const [title, seconds] of spanish.lessons) {
+for (const [title, seconds] of spanish.tracks) {
     const dir = path.join(FOLDERS, spanish.name);
     mkdirSync(dir, { recursive: true });
     encodeAudio(seconds, path.join(dir, `${title}.mp3`), 180 + (seconds % 60));
