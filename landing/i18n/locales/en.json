@@ -27,7 +27,7 @@
     "releases": "Releases",
     "version": "Version {version}",
     "installed": "Installed apps update themselves",
-    "allReleases": "All releases",
+    "allReleases": "All releases", "web": "Or open EVB Player in your browser, with nothing to install",
     "platforms": {
       "mac": "macOS",
       "win": "Windows",

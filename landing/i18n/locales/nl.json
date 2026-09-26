@@ -15,7 +15,7 @@
   },
   "downloads": {
     "operatingSystem": "Besturingssysteem", "download": "Downloaden", "releases": "Versies",
-    "version": "Versie {version}", "installed": "Geïnstalleerde apps werken zichzelf bij", "allReleases": "Alle versies",
+    "version": "Versie {version}", "installed": "Geïnstalleerde apps werken zichzelf bij", "allReleases": "Alle versies", "web": "Of open EVB Player in je browser, zonder iets te installeren",
     "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
     "options": {
       "mac": { "title": "Apple Silicon", "detail": "Voor Macs met M-seriechips", "format": "DMG-installatieprogramma", "note": "Ondertekend en door Apple notarieel bekrachtigd. Open de DMG en sleep EVB Player naar Programma's." },

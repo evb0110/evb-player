@@ -94,6 +94,9 @@
           <template v-if="release">{{ t('downloads.version', { version: release.version }) }} · </template>{{ t('downloads.installed') }} ·
           <a :href="release?.pageUrl ?? RELEASES_URL">{{ t('downloads.allReleases') }}</a>
         </p>
+        <p class="release-line">
+          <a href="https://evb-player-web.vercel.app">{{ t('downloads.web') }}</a>
+        </p>
       </section>
 
       <section class="demo">

@@ -15,7 +15,7 @@
   },
   "downloads": {
     "operatingSystem": "Sistema operativo", "download": "Descargar", "releases": "Versiones",
-    "version": "Versión {version}", "installed": "Las aplicaciones instaladas se actualizan automáticamente", "allReleases": "Todas las versiones",
+    "version": "Versión {version}", "installed": "Las aplicaciones instaladas se actualizan automáticamente", "allReleases": "Todas las versiones", "web": "O abre EVB Player en tu navegador, sin instalar nada",
     "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
     "options": {
       "mac": { "title": "Apple Silicon", "detail": "Para Mac con chips de la serie M", "format": "Instalador DMG", "note": "Firmado y notarizado por Apple. Abre el DMG y arrastra EVB Player a Aplicaciones." },
