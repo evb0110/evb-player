@@ -19,7 +19,7 @@ Downloads for macOS (Apple Silicon), Windows 10 and 11 (x64), and Ubuntu (x64 `.
 ### Keyboard shortcuts
 
 - `Space` or `K`: play/pause; `J`/`L`: seek 10 seconds; `←`/`→`: seek 5 seconds.
-- `↑`/`↓`: volume; `M`: mute; `F`: fullscreen; `T`: theater mode; `W`: full window (`Esc` also exits).
+- `↑`/`↓`: volume; `M`: mute; `F`: fullscreen; `T`: theater mode, or the playlist beside the video in full window and fullscreen; `W`: full window (`Esc` also exits).
 - `0`–`9`, `Home`, `End`: seek; `Shift+N`/`Shift+P`: next/previous lesson.
 - `<`/`>`: playback speed; `,`/`.`: frame step while paused.
 
@@ -31,7 +31,7 @@ Progress and the folder list are stored in `evb-player-state.json` in the app's 
 - Windows: `%APPDATA%\EVB Player\`
 - Linux: `~/.config/EVB Player/`
 
-Media files are never modified.
+Media files are never modified. If the progress file can't be read, for example after an older version wrote it in another format, it is kept as `evb-player-state.json.unreadable-<time>` before a new one replaces it.
 
 ## Development
 

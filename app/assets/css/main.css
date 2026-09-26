@@ -22,6 +22,7 @@
   --shell-accent-soft: rgb(240 120 78 / 14%);
   --shell-green: #79c5a2;
   --shell-font: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --immersive-playlist-width: 320px;
 }
 
 html,
@@ -537,6 +538,10 @@ button:disabled {
   border-radius: 0;
 }
 
+.player-stage-window-fullscreen.player-stage-with-playlist {
+  right: var(--immersive-playlist-width);
+}
+
 .media-element {
   display: block;
   width: 100%;
@@ -990,6 +995,26 @@ button:disabled {
   scrollbar-color: var(--shell-surface-soft) transparent;
 }
 
+/* Docked beside the video in full window and fullscreen; wins over the narrow-window rules. */
+.folder-layout .playlist-panel.playlist-panel-immersive {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--immersive-playlist-width);
+  min-height: 0;
+  max-height: none;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  background: var(--shell-surface);
+}
+
+.playlist-panel-immersive .playlist-scroll {
+  flex: 1;
+  max-height: none;
+}
+
 .section-heading {
   padding: 12px 9px 6px;
   color: var(--shell-text-subtle);
@@ -1137,6 +1162,11 @@ button:disabled {
   display: block;
   height: 100%;
   background: var(--shell-accent);
+}
+
+/* Kept in the layout so rows keep their height when progress appears or is cleared. */
+.lesson-row-progress-empty {
+  visibility: hidden;
 }
 
 .lesson-row-playing {

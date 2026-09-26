@@ -157,7 +157,8 @@
                 ref="playerStageRef"
                 class="player-stage"
                 :class="{
-                  'player-stage-window-fullscreen': isFullscreen || isFullWindow,
+                  'player-stage-window-fullscreen': isImmersive,
+                  'player-stage-with-playlist': isImmersive && isImmersivePlaylistOpen,
                   'player-stage-controls-hidden': !areControlsVisible,
                 }"
                 tabindex="0"
@@ -227,7 +228,7 @@
 
                 <div class="player-topline">
                   <div class="player-view-controls">
-                    <button class="player-icon-button" type="button" :aria-pressed="isTheaterMode" :aria-label="isTheaterMode ? 'Exit theater mode' : 'Theater mode'" :title="isTheaterMode ? 'Exit theater mode (T)' : 'Theater mode (T)'" @click="toggleTheaterMode"><UIcon name="i-lucide-panel-top" /></button>
+                    <button class="player-icon-button" type="button" :aria-expanded="isSidePlaylistVisible" :aria-label="playlistToggleLabel" :title="`${playlistToggleLabel} (T)`" @click="togglePlaylistPanel"><UIcon :name="isSidePlaylistVisible ? 'i-lucide-panel-right-close' : 'i-lucide-panel-right-open'" /></button>
                     <button v-if="!isFullscreen" class="player-icon-button" type="button" :aria-pressed="isFullWindow" :aria-label="isFullWindow ? 'Exit full window' : 'Full window'" :title="isFullWindow ? 'Exit full window (W)' : 'Full window (W)'" @click="toggleFullWindow">
                       <UIcon :name="isFullWindow ? 'i-lucide-shrink' : 'i-lucide-expand'" />
                     </button>
@@ -322,7 +323,7 @@
               </div>
             </div>
 
-            <aside class="playlist-panel">
+            <aside class="playlist-panel" :class="{ 'playlist-panel-immersive': isImmersive && isImmersivePlaylistOpen }">
               <div class="playlist-header">
                 <div class="folder-progress" :title="`${watchedCount} of ${currentFolder.lessons.length} lessons watched`">
                   <span class="folder-progress-bar"><span :style="{width: `${folderProgress}%`}" /></span>
@@ -361,7 +362,7 @@
                       <span class="lesson-row-copy">
                         <strong>{{ lesson.title }}</strong>
                         <small>{{ lesson.kind === 'audio' ? 'Audio · ' : '' }}{{ formatDuration(library.lessonProgress(currentFolder.id, lesson.id)?.duration || lesson.duration) }}</small>
-                        <span v-if="progressForLesson(lesson)" class="lesson-row-progress"><span :style="{width: `${progressForLesson(lesson)}%`}" /></span>
+                        <span class="lesson-row-progress" :class="{ 'lesson-row-progress-empty': !progressForLesson(lesson) }"><span :style="{width: `${progressForLesson(lesson)}%`}" /></span>
                       </span>
                       <template v-if="currentLesson?.id === lesson.id">
                         <template v-if="isPlaying">
@@ -401,7 +402,7 @@
           <div><dt>Back / forward 10 seconds</dt><dd>J / L</dd></div>
           <div><dt>Back / forward 5 seconds</dt><dd>← / →</dd></div>
           <div><dt>Volume / mute</dt><dd>↑ / ↓ · M</dd></div>
-          <div><dt>Fullscreen / theater</dt><dd>F / T</dd></div>
+          <div><dt>Fullscreen / theater, or the playlist in full window</dt><dd>F / T</dd></div>
           <div><dt>Full window</dt><dd>W</dd></div>
           <div><dt>Previous / next lesson</dt><dd>Shift + P / N</dd></div>
           <div><dt>Seek to 0–90%</dt><dd>0–9</dd></div>
@@ -460,6 +461,16 @@ const isShortcutsOpen = ref(false);
 const isFullscreen = ref(false);
 const isTheaterMode = ref(false);
 const isFullWindow = ref(false);
+// Full window and fullscreen hide the playlist; the playlist button can show it beside the video.
+const isImmersive = computed(() => isFullscreen.value || isFullWindow.value);
+const isImmersivePlaylistOpen = ref(false);
+const isSidePlaylistVisible = computed(() => isImmersive.value ? isImmersivePlaylistOpen.value : !isTheaterMode.value);
+const playlistToggleLabel = computed(() => {
+  if (isImmersive.value) {
+    return isImmersivePlaylistOpen.value ? 'Hide playlist' : 'Show playlist';
+  }
+  return isTheaterMode.value ? 'Exit theater mode' : 'Theater mode';
+});
 const areControlsVisible = ref(true);
 const isPlayerFocused = ref(false);
 const autoplayLessonId = ref<string | null>(null);
@@ -979,6 +990,15 @@ function toggleTheaterMode() {
   showPlayerControls();
 }
 
+function togglePlaylistPanel() {
+  if (!isImmersive.value) {
+    toggleTheaterMode();
+    return;
+  }
+  isImmersivePlaylistOpen.value = !isImmersivePlaylistOpen.value;
+  showPlayerControls();
+}
+
 function toggleFullWindow() {
   if (isLibraryActive.value && !isFullWindow.value) return;
   isFullWindow.value = !isFullWindow.value;
@@ -1200,7 +1220,7 @@ function handleKeyboard(event: KeyboardEvent) {
   } else if (isKey('p') && event.shiftKey) {
     navigateLesson(-1);
   } else if (isKey('t')) {
-    toggleTheaterMode();
+    togglePlaylistPanel();
   } else if (isKey('w')) {
     toggleFullWindow();
   } else if (isGreaterThan) {
@@ -1353,6 +1373,8 @@ async function retryProgressWrites() {
 
 watch(() => currentFolder.value?.id, () => {search.value = '';});
 watch(isLibraryActive, (libraryActive) => {if (libraryActive) isFullWindow.value = false;});
+// Each full window or fullscreen session starts with only the video.
+watch(isImmersive, (immersive) => {if (!immersive) isImmersivePlaylistOpen.value = false;});
 watch(search, async () => {if (!search.value) {await nextTick(); revealCurrentLesson();}});
 
 watch(() => isFullscreen.value || isFullWindow.value, syncFullscreenDocumentClass);

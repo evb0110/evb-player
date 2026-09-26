@@ -157,12 +157,30 @@ function errorCode(error: unknown) {
   return typeof code === 'string' ? code : undefined;
 }
 
+// A file that exists but can't be read, such as one from a build with another format, is
+// copied aside before the next save replaces it, so a mismatch never destroys saved progress.
+async function preserveUnreadableStateFile(filePath: string) {
+  try {
+    await copyFile(filePath, `${filePath}.unreadable-${Date.now()}`);
+  } catch {
+    // Loading continues with the next candidate either way.
+  }
+}
+
 async function readStoredStateFile(filePath: string) {
   try {
     const rawState = await readFile(filePath, 'utf8');
-    return sanitizeStoredState(JSON.parse(rawState) as unknown);
+    const state = sanitizeStoredState(JSON.parse(rawState) as unknown);
+    if (!state) {
+      await preserveUnreadableStateFile(filePath);
+    }
+    return state;
   } catch (error) {
-    if (error instanceof SyntaxError || errorCode(error) === 'ENOENT') {
+    if (errorCode(error) === 'ENOENT') {
+      return null;
+    }
+    if (error instanceof SyntaxError) {
+      await preserveUnreadableStateFile(filePath);
       return null;
     }
     throw error;
