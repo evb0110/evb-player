@@ -25,6 +25,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
+      meta: [{ name: 'google-site-verification', content: 'LdJJ6Aaigt-nZkC3EYwsgfDKpk0j6mvID-kskvtqBaA' }],
       link: [
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
