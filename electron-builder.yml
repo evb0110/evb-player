@@ -54,6 +54,8 @@ linux:
   description: EVB Player plays video and audio courses stored in local folders, with a playlist, saved progress, and tabs for several courses.
   desktop:
     entry:
+      # Electron sets WM_CLASS from the package name, not productName, so the default "EVB Player" never matched.
+      StartupWMClass: evb-player
       Keywords: video;audio;course;player;lessons;
 dmg:
   # Keep the Finder layout stable across machines. The background dimensions are
