@@ -13,12 +13,12 @@
 
     <main>
       <section class="hero">
-        <p class="kicker">Offline course player</p>
-        <h1>Play course folders like a course</h1>
+        <p class="kicker">Offline media player</p>
+        <h1>Play your media folders in order</h1>
         <p class="lede">
-          EVB Player turns a folder of numbered videos or audio files into a course: a playlist with sections and durations,
-          progress that is saved as you watch, and tabs for several courses at once. It runs offline on macOS, Windows, and
-          Linux, and it is free and MIT licensed.
+          EVB Player turns a folder of numbered videos or audio files into a playlist with sections and durations, saves your
+          place in every file as you watch or listen, and keeps several folders open in tabs. It runs offline on macOS, Windows,
+          and Linux, and it is free and MIT licensed.
         </p>
 
         <div class="downloads">
@@ -62,11 +62,11 @@
         <FilmPlayer
           id="player"
           title="EVB Player"
-          label="EVB Player opening a TypeScript course from the Library, playing a lesson, marking another lesson complete, switching lessons, filling the window with the video, and returning to the Library while the lesson keeps playing."
+          label="EVB Player opening a folder from the Library, playing a video, marking another video as watched, switching videos, filling the window with the video, and returning to the Library while it keeps playing."
           :width="1280"
           :height="800"
         />
-        <p class="demo-caption">Recorded from the real app with a generated demo course.</p>
+        <p class="demo-caption">Recorded from the real app with generated demo videos.</p>
       </section>
 
       <section class="features" aria-labelledby="features-title">
@@ -141,32 +141,32 @@ const platforms: IPlatformOption[] = [
 const features = [
   {
     icon: 'i-lucide-folder-tree',
-    title: 'Folders become courses',
+    title: 'Folders become playlists',
     text: 'Files are sorted by their numbers and subfolders become sections. Nothing is copied, converted or uploaded.',
   },
   {
     icon: 'i-lucide-timer',
     title: 'Durations up front',
-    text: 'Lesson and course lengths are read from the files when a folder opens, before you play anything.',
+    text: 'The length of every file and of the whole folder is read when it opens, before you play anything.',
   },
   {
     icon: 'i-lucide-history',
     title: 'Resume where you stopped',
-    text: 'Your position in every lesson is saved as you watch. Finished lessons are ticked off and the next one starts.',
+    text: 'Your position in every file is saved as you watch or listen. Finished files are ticked off and the next one starts.',
   },
   {
     icon: 'i-lucide-circle-check',
     title: 'Skip what you know',
-    text: 'Mark any lesson complete without watching it, or reset one lesson or a whole course.',
+    text: 'Mark any file as done without playing it, or reset one file or a whole folder.',
   },
   {
     icon: 'i-lucide-panels-top-left',
-    title: 'Several courses in tabs',
-    text: 'Keep a few courses open at once. The Library keeps the current lesson playing in a compact player.',
+    title: 'Several folders in tabs',
+    text: 'Keep a few folders open at once. The Library keeps the current file playing in a compact player.',
   },
   {
     icon: 'i-lucide-expand',
-    title: 'Room for the lesson',
+    title: 'Room to watch',
     text: 'Theater mode, full window and fullscreen, speed control, and keyboard shortcuts for everything.',
   },
 ];
@@ -194,10 +194,10 @@ onMounted(() => {
 
 const siteUrl = useRuntimeConfig().public.siteUrl;
 useSeoMeta({
-  title: 'EVB Player · Offline course player for macOS, Windows, and Linux',
-  description: 'EVB Player turns folders of numbered videos or audio files into courses with a playlist, durations, saved progress and tabs. Free, offline and MIT licensed.',
+  title: 'EVB Player · Offline media player for macOS, Windows, and Linux',
+  description: 'EVB Player turns folders of numbered videos or audio files into playlists with durations, saved progress and tabs. Free, offline and MIT licensed.',
   ogTitle: 'EVB Player',
-  ogDescription: 'Play course folders like a course. Offline, on macOS, Windows, and Linux.',
+  ogDescription: 'Play your media folders in order. Offline, on macOS, Windows, and Linux.',
   ogImage: `${siteUrl}/films/player/poster.jpg`,
   ogUrl: siteUrl,
   twitterCard: 'summary_large_image',

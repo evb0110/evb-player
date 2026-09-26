@@ -1,5 +1,5 @@
-// Generates the demo courses the landing films are recorded with:
-// node landing/recorder/demo-courses.mjs [out-dir]   (default .devkit/films)
+// Generates the demo folders the landing films are recorded with:
+// node landing/recorder/demo-media.mjs [out-dir]   (default .devkit/films)
 // Video lessons are rendered slides encoded as still-image videos of realistic length, so the
 // playlist shows real durations while each file stays small. Audio lessons are quiet tones.
 import { execFileSync } from 'node:child_process';
@@ -8,14 +8,14 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const ROOT = path.resolve(process.argv[2] ?? '.devkit/films');
-const COURSES = path.join(ROOT, 'courses');
+const COURSES = path.join(ROOT, 'folders');
 const SLIDES = path.join(ROOT, 'slides');
 
 const typescript = {
     name: 'TypeScript Fundamentals',
     accent: '#f0784e',
     lessons: [
-        ['01 Getting started', '01. Welcome to the course', 134, 'const course = {\n  title: "TypeScript Fundamentals",\n  lessons: 12,\n  level: "beginner",\n};'],
+        ['01 Getting started', '01. Welcome', 134, 'const plan = {\n  title: "TypeScript Fundamentals",\n  parts: 12,\n  level: "beginner",\n};'],
         ['01 Getting started', '02. Setting up your editor', 408, '// tsconfig.json\n{\n  "compilerOptions": {\n    "strict": true,\n    "target": "ES2022"\n  }\n}'],
         ['01 Getting started', '03. Your first type', 485, 'let title: string = "Hello";\nlet count: number = 3;\nlet done: boolean = false;'],
         ['02 Core types', '04. Primitives and literals', 572, 'type Direction = "up" | "down";\n\nconst move = (to: Direction) =>\n  console.log(`Moving ${to}`);'],
@@ -23,7 +23,7 @@ const typescript = {
         ['02 Core types', '06. Objects and interfaces', 680, 'interface Lesson {\n  title: string;\n  minutes: number;\n  done?: boolean;\n}'],
         ['02 Core types', '07. Unions and narrowing', 777, 'function label(id: string | number) {\n  if (typeof id === "number") {\n    return `#${id.toFixed(0)}`;\n  }\n  return id.toUpperCase();\n}'],
         ['02 Core types', '08. Q&A - common questions', 843, null],
-        ['03 Going further', '09. Generics', 816, 'function first<T>(items: T[]): T | undefined {\n  return items[0];\n}\n\nconst lesson = first(course.lessons);'],
+        ['03 Going further', '09. Generics', 816, 'function first<T>(items: T[]): T | undefined {\n  return items[0];\n}\n\nconst part = first(plan.parts);'],
         ['03 Going further', '10. Utility types', 612, 'type Draft = Partial<Lesson>;\ntype Summary = Pick<Lesson, "title">;\ntype Locked = Readonly<Lesson>;'],
         ['03 Going further', '11. Modules and packages', 524, 'export function formatMinutes(m: number) {\n  return `${Math.floor(m / 60)}h ${m % 60}m`;\n}'],
         ['03 Going further', '12. Wrapping up', 185, 'const next = [\n  "Build a small project",\n  "Read the handbook",\n  "Try strict mode everywhere",\n];'],
@@ -34,12 +34,12 @@ const sql = {
     name: 'Practical SQL',
     accent: '#91c5b1',
     lessons: [
-        ['', '01. Why SQL still matters', 245, 'SELECT title, minutes\nFROM lessons\nORDER BY minutes DESC;'],
-        ['', '02. Filtering rows', 512, 'SELECT *\nFROM lessons\nWHERE minutes > 10\n  AND done = false;'],
-        ['', '03. Joining tables', 734, 'SELECT c.name, l.title\nFROM courses c\nJOIN lessons l ON l.course_id = c.id;'],
-        ['', '04. Grouping and aggregates', 618, 'SELECT course_id, COUNT(*)\nFROM lessons\nGROUP BY course_id;'],
-        ['', '05. Indexes', 689, 'CREATE INDEX lessons_course_idx\n  ON lessons (course_id);'],
-        ['', '06. Transactions', 571, 'BEGIN;\nUPDATE lessons SET done = true WHERE id = 7;\nCOMMIT;'],
+        ['', '01. Why SQL still matters', 245, 'SELECT title, minutes\nFROM tracks\nORDER BY minutes DESC;'],
+        ['', '02. Filtering rows', 512, 'SELECT *\nFROM tracks\nWHERE minutes > 10\n  AND done = false;'],
+        ['', '03. Joining tables', 734, 'SELECT p.name, t.title\nFROM playlists p\nJOIN tracks t ON t.playlist_id = p.id;'],
+        ['', '04. Grouping and aggregates', 618, 'SELECT playlist_id, COUNT(*)\nFROM tracks\nGROUP BY playlist_id;'],
+        ['', '05. Indexes', 689, 'CREATE INDEX tracks_playlist_idx\n  ON tracks (playlist_id);'],
+        ['', '06. Transactions', 571, 'BEGIN;\nUPDATE tracks SET done = true WHERE id = 7;\nCOMMIT;'],
     ],
 };
 
@@ -135,4 +135,4 @@ for (const [title, seconds] of spanish.lessons) {
 }
 // The recorder draws these slides in place of the <video> element, keyed by file name.
 writeFileSync(path.join(ROOT, 'video-frames.json'), JSON.stringify(frames, null, 2));
-console.log(`Demo courses in ${COURSES}`);
+console.log(`Demo folders in ${COURSES}`);

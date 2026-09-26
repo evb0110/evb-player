@@ -1,20 +1,20 @@
 # EVB Player
 
-EVB Player plays video and audio courses stored in local folders. Point it at a folder and it builds a playlist from the numbered files inside, remembers where you stopped in every lesson, and keeps several courses open in tabs. Nothing is uploaded; the app works offline.
+EVB Player plays folders of video and audio files stored on your computer. Point it at a folder and it builds a playlist from the numbered files inside, remembers where you stopped in every file, and keeps several folders open in tabs. Nothing is uploaded; the app works offline.
 
 Downloads for macOS (Apple Silicon), Windows 10 and 11 (x64), and Ubuntu (x64 `.deb`) are on [evb-player.vercel.app](https://evb-player.vercel.app) and on the [releases page](https://github.com/evb0110/evb-player/releases/latest). Installed apps update themselves from new releases.
 
 ## Features
 
 - Folders are scanned recursively. Lessons are sorted by numeric filename prefixes such as `0001.` or `12 -`, and subfolders become playlist sections.
-- Durations are read from the files' own headers when a folder is opened, so course totals are known before anything is played.
+- Durations are read from the files' own headers when a folder is opened, so a folder's total length is known before anything is played.
 - Video and audio play in the app: MP4, M4V, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg and Opus. Files the built-in player can't decode, such as AVI or WMV, open in the system's default media app.
 - The player has play/pause, ten-second skip, seeking, volume, playback speed, theater mode, full window and fullscreen. Volume and speed are remembered.
 - Playback position is saved as you watch. Ended lessons are marked complete and the next one starts.
-- Mark any lesson complete without watching it by clicking its number in the playlist; click the check again to undo. Lessons with saved progress show a reset button, and a course menu resets the whole course.
-- Several courses can be open in tabs. Recent folders and the last opened course are restored on launch. The Library tab lists your courses; Add course opens another folder.
+- Mark any lesson complete without watching it by clicking its number in the playlist; click the check again to undo. Lessons with saved progress show a reset button, and the folder menu resets the whole folder.
+- Several folders can be open in tabs. Recent folders and the last opened folder are restored on launch. The Library tab lists your folders; Add folder opens another one.
 - Switching to the Library keeps the current lesson playing, with a compact player to pause or return.
-- Show in folder reveals a course in Finder, Explorer or the Linux file manager.
+- Show in folder reveals a folder in Finder, Explorer or the Linux file manager.
 
 ### Keyboard shortcuts
 
@@ -25,7 +25,7 @@ Downloads for macOS (Apple Silicon), Windows 10 and 11 (x64), and Ubuntu (x64 `.
 
 ## Where data is kept
 
-Progress and the course list are stored in `evb-player-state.json` in the app's data folder:
+Progress and the folder list are stored in `evb-player-state.json` in the app's data folder:
 
 - macOS: `~/Library/Application Support/EVB Player/`
 - Windows: `%APPDATA%\EVB Player\`
@@ -40,7 +40,7 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` and `pnpm start` run as "EVB Player Dev" with their own data folder, so they run alongside the installed app without sharing its progress. `fixtures/sample-course` is a small generated course with one file per supported format.
+`pnpm dev` and `pnpm start` run as "EVB Player Dev" with their own data folder, so they run alongside the installed app without sharing its progress. `fixtures/sample-media` is a small generated folder with one file per supported format.
 
 `pnpm package:mac`, `pnpm package:win` and `pnpm package:linux` build installers into `release/`. The macOS build signs with a Developer ID identity from the keychain when one is available and notarizes when `APPLE_API_KEY`, `APPLE_API_KEY_ID` and `APPLE_API_ISSUER` are set.
 

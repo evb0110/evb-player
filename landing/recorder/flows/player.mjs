@@ -1,4 +1,4 @@
-// Main landing film: open a course from the Library, play, mark an unwatched lesson complete,
+// Main landing film: open a folder from the Library, play, mark an unwatched video as done,
 // switch lessons, go full window, and return to the Library while the lesson keeps playing.
 export const title = 'EVB Player';
 export const size = { width: 1280, height: 800 };
@@ -7,12 +7,12 @@ const TS = 'TypeScript Fundamentals';
 const SQL = 'Practical SQL';
 const SPANISH = 'Spanish Listening Practice';
 const TS_LESSONS = [
-    '01 Getting started/01. Welcome to the course.mp4',
+    '01 Getting started/01. Welcome.mp4',
     '01 Getting started/02. Setting up your editor.mp4',
     '01 Getting started/03. Your first type.mp4',
 ];
 
-/** Three courses in the Library, each with some progress; the TypeScript course resumes lesson 3. */
+/** Three folders in the Library, each with some progress; the TypeScript folder resumes video 3. */
 export function seed({ courses, courseId, lessonId }) {
     const done = (updatedAt, duration) => ({ position: duration, duration, completed: true, updatedAt });
     return {
@@ -41,7 +41,7 @@ export default async function flow(win, rec, { courses }) {
     const tidy = () => win.evaluate((root) => {
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-            if (node.nodeValue.includes(root)) node.nodeValue = node.nodeValue.replaceAll(root, '~/Courses');
+            if (node.nodeValue.includes(root)) node.nodeValue = node.nodeValue.replaceAll(root, '~/Media');
         }
     }, courses);
     const snap = async (options) => {
@@ -56,7 +56,7 @@ export default async function flow(win, rec, { courses }) {
     await snap({ dur: 22, cursor: await rec.center(card), click: true });
     await card.click();
 
-    // The course resumes lesson 3 at 3:10.
+    // The folder resumes video 3 at 3:10.
     const stage = win.locator('.player-stage');
     await stage.waitFor();
     await win.waitForFunction(() => {

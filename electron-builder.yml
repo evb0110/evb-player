@@ -50,13 +50,13 @@ linux:
   category: AudioVideo
   maintainer: Eugene Barsky <34789976+evb0110@users.noreply.github.com>
   vendor: Eugene Barsky
-  synopsis: Local course and media player
-  description: EVB Player plays video and audio courses stored in local folders, with a playlist, saved progress, and tabs for several courses.
+  synopsis: Offline player for folders of video and audio
+  description: EVB Player plays folders of video and audio files in order, with a playlist, saved progress, and tabs for several folders.
   desktop:
     entry:
       # Electron sets WM_CLASS from the package name, not productName, so the default "EVB Player" never matched.
       StartupWMClass: evb-player
-      Keywords: video;audio;course;player;lessons;
+      Keywords: video;audio;player;playlist;media;
 dmg:
   # Keep the Finder layout stable across machines. The background dimensions are
   # 600x450, so the coordinates below are in the same logical coordinate space.

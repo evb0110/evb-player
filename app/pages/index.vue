@@ -1,6 +1,6 @@
 <template>
   <div class="course-shell">
-    <nav class="tab-strip" aria-label="Open courses">
+    <nav class="tab-strip" aria-label="Open folders">
       <button
         class="app-tab"
         :class="{ 'app-tab-active': activeTab === 'library' }"
@@ -99,13 +99,13 @@
             <strong>{{ currentLesson.title }}</strong>
             <small>{{ formatDuration(currentTime) }} / {{ formatDuration(mediaDuration) }}</small>
           </div>
-          <UButton color="neutral" icon="i-lucide-arrow-up-right" label="Back to course" variant="soft" @click="library.setActiveTab(currentCourse.id)" />
+          <UButton color="neutral" icon="i-lucide-arrow-up-right" label="Back to player" variant="soft" @click="library.setActiveTab(currentCourse.id)" />
         </section>
 
         <section v-if="isLibraryActive && !loading && recentCourses.length" class="library-view">
           <div class="library-heading">
-            <h1>Your courses</h1>
-            <UButton color="primary" icon="i-lucide-folder-plus" label="Add course" @click="library.openFolder" />
+            <h1>Your folders</h1>
+            <UButton color="primary" icon="i-lucide-folder-plus" label="Add folder" @click="library.openFolder" />
           </div>
           <div class="course-grid">
             <article v-for="course in recentCourses" :key="course.id" class="course-card">
@@ -127,7 +127,7 @@
             <div class="welcome-art-ring welcome-art-ring-inner" />
             <UIcon name="i-lucide-play" />
           </div>
-          <h1>Your course library</h1>
+          <h1>Your library</h1>
           <p class="welcome-copy">
             Choose a folder of videos or audio files.
           </p>
@@ -150,7 +150,7 @@
               <div class="course-title-row">
                 <h1 :title="currentCourse.rootPath">{{ currentCourse.name }}</h1>
                 <UDropdownMenu :items="courseMenuItems" :content="{align: 'end'}">
-                  <UButton color="neutral" icon="i-lucide-ellipsis" variant="ghost" size="sm" aria-label="Course actions" title="Course actions" />
+                  <UButton color="neutral" icon="i-lucide-ellipsis" variant="ghost" size="sm" aria-label="Folder actions" title="Folder actions" />
                 </UDropdownMenu>
               </div>
               <div
@@ -541,7 +541,7 @@ const hasNextLesson = computed(() => {
 });
 const previousLesson = computed(() => currentCourse.value?.lessons[currentLessonIndex.value - 1]);
 const nextLesson = computed(() => currentCourse.value?.lessons[currentLessonIndex.value + 1]);
-const continueLabel = computed(() => courseProgress.value === 100 ? 'Watch again' : watchedCount.value || currentProgress.value?.position ? 'Continue' : 'Start course');
+const continueLabel = computed(() => courseProgress.value === 100 ? 'Watch again' : watchedCount.value || currentProgress.value?.position ? 'Continue' : 'Start');
 const courseMeta = computed(() => {
   const course = currentCourse.value;
   if (!course) {
@@ -569,18 +569,18 @@ const courseMenuItems = computed(() => {
       {label: 'Show in folder', icon: 'i-lucide-folder-search', onSelect: () => revealCourse(course.rootPath)},
     ],
     [
-      {label: 'Reset course progress', icon: 'i-lucide-rotate-ccw', color: 'error' as const, onSelect: requestCourseProgressReset},
+      {label: 'Reset folder progress', icon: 'i-lucide-rotate-ccw', color: 'error' as const, onSelect: requestCourseProgressReset},
     ],
   ];
 });
-const progressResetTitle = computed(() => progressResetRequest.value?.scope === 'course' ? 'Reset course progress?' : 'Reset track progress?');
+const progressResetTitle = computed(() => progressResetRequest.value?.scope === 'course' ? 'Reset folder progress?' : 'Reset track progress?');
 const progressResetDescription = computed(() => {
   const request = progressResetRequest.value;
   if (!request) {
     return '';
   }
   if (request.scope === 'course') {
-    return 'This clears saved positions and completion state for every track in this course.';
+    return 'This clears saved positions and completion state for every track in this folder.';
   }
   return `This clears the saved position and completion state for “${request.lessonTitle}”.`;
 });
@@ -710,7 +710,7 @@ async function confirmProgressReset() {
       }
       await library.clearCourseProgress(request.courseId);
       toast.add({
-        title: 'Course progress reset',
+        title: 'Folder progress reset',
         description: 'All saved positions and completion states were cleared.',
         color: 'success',
         icon: 'i-lucide-rotate-ccw',
@@ -1303,7 +1303,7 @@ async function openMediaExternally() {
   try {
     await window.evbPlayer.openMediaExternally(currentLesson.value.mediaUrl);
   } catch {
-    toast.add({title: 'Could not open this file', description: 'Check that the course folder is still available.', color: 'error'});
+    toast.add({title: 'Could not open this file', description: 'Check that the folder is still available.', color: 'error'});
   }
 }
 
@@ -1312,14 +1312,14 @@ async function revealCourse(rootPath: string) {
     if (!window.evbPlayer) throw new Error('Showing folders is available in the desktop app.');
     await window.evbPlayer.revealCourse(rootPath);
   } catch (cause) {
-    toast.add({title: 'Could not reveal the course', description: cause instanceof Error ? cause.message : 'Check that the course folder is still available.', color: 'error'});
+    toast.add({title: 'Could not show the folder', description: cause instanceof Error ? cause.message : 'Check that the folder is still available.', color: 'error'});
   }
 }
 
 async function removeCourse(course: IRecentCourse) {
   await library.removeRecentCourse(course);
   if (!recentCourses.value.some((candidate) => candidate.id === course.id)) {
-    toast.add({title: 'Course removed', description: 'Its files and saved progress are kept.', actions: [{label: 'Undo', onClick: () => library.openRecentCourse(course)}]});
+    toast.add({title: 'Folder removed', description: 'Its files and saved progress are kept.', actions: [{label: 'Undo', onClick: () => library.openRecentCourse(course)}]});
   }
 }
 

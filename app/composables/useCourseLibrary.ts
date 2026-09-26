@@ -331,7 +331,7 @@ export function useCourseLibrary() {
     if (!api) {
       return;
     }
-    const generation = beginOperation('Loading your course library…');
+    const generation = beginOperation('Loading your library…');
     try {
       const loadedRecentCourses = await api.getRecentCourses();
       if (!isCurrentOperation(generation)) {
@@ -351,7 +351,7 @@ export function useCourseLibrary() {
       }
     } catch (cause) {
       if (isCurrentOperation(generation)) {
-        error.value = messageFor(cause, 'The course library could not be loaded.');
+        error.value = messageFor(cause, 'The library could not be loaded.');
       }
     } finally {
       endOperation(generation);
@@ -391,7 +391,7 @@ export function useCourseLibrary() {
     if (!api) {
       return;
     }
-    const generation = beginOperation('Opening your course…');
+    const generation = beginOperation('Opening the folder…');
     try {
       const course = await api.openRecentCourse(recentCourse.rootPath);
       if (!course || !isCurrentOperation(generation)) {
@@ -419,7 +419,7 @@ export function useCourseLibrary() {
     if (!api) {
       return;
     }
-    const generation = beginOperation('Removing the course…');
+    const generation = beginOperation('Removing the folder…');
     try {
       await api.removeRecentCourse(recentCourse.rootPath);
       if (!isCurrentOperation(generation)) {
@@ -434,12 +434,12 @@ export function useCourseLibrary() {
         }
       } catch (cause) {
         if (isCurrentOperation(generation)) {
-          error.value = messageFor(cause, 'The course was removed, but the collection could not be refreshed.');
+          error.value = messageFor(cause, 'The folder was removed, but the collection could not be refreshed.');
         }
       }
     } catch (cause) {
       if (isCurrentOperation(generation)) {
-        error.value = messageFor(cause, 'The course could not be removed from the collection.');
+        error.value = messageFor(cause, 'The folder could not be removed from the collection.');
       }
     } finally {
       endOperation(generation);
@@ -566,7 +566,7 @@ export function useCourseLibrary() {
       status: 'queued',
     };
     progressWrites.set(progressWriteKey(write), write);
-    await persistProgressWrite(write, 'The saved course progress could not be cleared.');
+    await persistProgressWrite(write, 'The saved progress could not be cleared.');
   }
 
   async function retryProgressWrites() {

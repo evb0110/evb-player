@@ -1,5 +1,5 @@
 // Records a landing film from the real app: node recorder/record.mjs [flow]
-// Needs the app built at the repository root (pnpm build) and the demo courses (pnpm films:courses).
+// Needs the app built at the repository root (pnpm build) and the demo folders (pnpm films:demo).
 // The app runs from source with its window hidden and an isolated profile. On macOS, point
 // FILM_ELECTRON at an Electron copy whose Info.plist sets LSUIElement so no Dock icon appears.
 import { execFileSync } from 'node:child_process';
@@ -15,7 +15,7 @@ const FILMS = path.join(REPO, '.devkit/films');
 const flowName = process.argv[2] ?? 'player';
 const { default: flow, title, seed, size = { width: 1280, height: 800 } } = await import(`./flows/${flowName}.mjs`);
 
-const courses = realpathSync(path.join(FILMS, 'courses'));
+const courses = realpathSync(path.join(FILMS, 'folders'));
 const hash = (text) => createHash('sha256').update(text).digest('hex').slice(0, 16);
 const courseId = (name) => hash(path.join(courses, name));
 const lessonId = (name, relativePath) => hash(`${courseId(name)}:${relativePath}`);

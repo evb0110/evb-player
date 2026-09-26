@@ -368,7 +368,8 @@ async function scanCourse(folderPath: string): Promise<ICourse> {
       title: title || fileName,
       fileName,
       relativePath,
-      section: parentPath === '.' ? 'Course' : parentPath,
+      // Files at the top of the folder are grouped under the folder's own name.
+      section: parentPath === '.' ? basename(rootPath) : parentPath,
       kind: MEDIA_TYPES[extname(fileName).toLowerCase()],
       mediaUrl: mediaUrlForPath(filePath),
       bytes: currentFileStats.size,
@@ -708,7 +709,7 @@ function registerIpcHandlers() {
       return null;
     }
     const result = await dialog.showOpenDialog({
-      title: 'Choose a course or media folder',
+      title: 'Choose a folder of videos or audio',
       properties: ['openDirectory'],
     });
     if (result.canceled || !result.filePaths[0]) {
@@ -740,15 +741,15 @@ function registerIpcHandlers() {
 
   ipcMain.handle('course:reveal', async (event, rootPath: unknown) => {
     if (!isTrustedRenderer(event.sender) || !isNonEmptyText(rootPath)) {
-      throw new Error('The course folder is not authorized.');
+      throw new Error('The folder is not authorized.');
     }
     const state = await ensureState();
     if (!state.recentCourses.some((course) => course.rootPath === rootPath) && !mediaRoots.has(rootPath)) {
-      throw new Error('The course folder is not in your library.');
+      throw new Error('The folder is not in your library.');
     }
     try {
       if (await realpath(rootPath) !== rootPath || !(await stat(rootPath)).isDirectory()) {
-        throw new Error('Invalid course folder');
+        throw new Error('Invalid folder');
       }
     } catch {
       throw new Error('Folder unavailable. It may have been moved or disconnected.');

@@ -1,8 +1,8 @@
 {
   "name": "evb-player",
   "productName": "EVB Player",
-  "version": "0.2.1",
-  "description": "A local course and media player for macOS, Windows, and Linux.",
+  "version": "0.2.2",
+  "description": "An offline player for folders of video and audio files, for macOS, Windows, and Linux.",
   "author": {
     "name": "Eugene Barsky",
     "email": "34789976+evb0110@users.noreply.github.com"

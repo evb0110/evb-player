@@ -17,8 +17,8 @@ To record again after the app's interface changes:
 
 ```bash
 pnpm --dir .. build            # the app's renderer and main process
-pnpm films:courses             # generated demo courses in ../.devkit/films
+pnpm films:demo                # generated demo folders in ../.devkit/films
 pnpm films:record player       # records flows/player.mjs
 ```
 
-The demo courses are generated slides and tones, so no real course content is ever recorded. The app runs from source with a hidden window and its own profile. On macOS, set `FILM_ELECTRON` to an Electron binary whose app bundle sets `LSUIElement`, so no Dock icon appears while recording.
+The demo folders are generated slides and tones, so no real media is ever recorded. The app runs from source with a hidden window and its own profile. On macOS, set `FILM_ELECTRON` to an Electron binary whose app bundle sets `LSUIElement`, so no Dock icon appears while recording.
