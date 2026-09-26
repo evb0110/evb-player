@@ -1,7 +1,7 @@
 {
   "name": "evb-player",
   "productName": "EVB Player",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "An offline player for folders of video and audio files, for macOS, Windows, and Linux.",
   "author": {
     "name": "Eugene Barsky",
