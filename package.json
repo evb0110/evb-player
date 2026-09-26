@@ -1,7 +1,7 @@
 {
   "name": "evb-player",
   "productName": "EVB Player",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A local course and media player for macOS, Windows, and Linux.",
   "author": {
     "name": "Eugene Barsky",
