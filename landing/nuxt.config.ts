@@ -33,7 +33,6 @@ export default defineNuxtConfig({
     '/': { isr: 600 },
     ...Object.fromEntries(LOCALE_OPTIONS.flatMap(({ code }) => code === 'en' ? [] : [
       [`/${code}`, { isr: 600 }],
-      [`/${code}/`, { isr: 600 }],
       [`/${code}/**`, { isr: 600 }],
     ])),
     '/films/**': { headers: { 'cache-control': 'public, max-age=86400' } },
