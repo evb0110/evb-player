@@ -30,3 +30,23 @@ jobs:
       - run: pnpm typecheck
       # Builds the renderer and main process; the icon check runs as part of build:web.
       - run: pnpm build
+
+  landing:
+    name: Landing typecheck and build
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: landing
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        with:
+          package_json_file: landing/package.json
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: landing/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm build

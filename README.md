@@ -48,6 +48,10 @@ Icons are bundled into the app, so the interface is complete offline. `pnpm buil
 
 The main process owns the local media protocol and the progress file. The renderer never receives Node.js access or arbitrary filesystem APIs.
 
+## Landing page
+
+`landing/` is the site at [evb-player.vercel.app](https://evb-player.vercel.app), a separate Nuxt app with a film recorded from the real app. See [landing/README.md](landing/README.md).
+
 ## Releases
 
 Bump `version` in `package.json`, commit, then push a matching tag:
