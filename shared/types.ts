@@ -13,7 +13,7 @@ export interface IMediaLesson {
   duration: number | null;
 }
 
-export interface ICourse {
+export interface IFolder {
   id: string;
   name: string;
   rootPath: string;
@@ -25,7 +25,7 @@ export interface ICourse {
   scannedAt: number;
 }
 
-export interface IRecentCourse {
+export interface IRecentFolder {
   id: string;
   name: string;
   rootPath: string;
@@ -40,25 +40,25 @@ export interface ILessonProgress {
   updatedAt: number;
 }
 
-export type TCourseProgress = Record<string, ILessonProgress>;
+export type TFolderProgress = Record<string, ILessonProgress>;
 
 export interface ISaveLessonProgressPayload {
-  courseId: string;
+  folderId: string;
   lessonId: string;
   progress: ILessonProgress;
 }
 
 export interface IPlayerApi {
-  chooseFolder(): Promise<ICourse | null>;
-  openRecentCourse(rootPath: string): Promise<ICourse | null>;
-  restoreLastCourse(): Promise<ICourse | null>;
-  getRecentCourses(): Promise<IRecentCourse[]>;
-  removeRecentCourse(rootPath: string): Promise<void>;
-  revealCourse(rootPath: string): Promise<void>;
-  getCourseProgress(courseId: string): Promise<TCourseProgress>;
+  chooseFolder(): Promise<IFolder | null>;
+  openRecentFolder(rootPath: string): Promise<IFolder | null>;
+  restoreLastFolder(): Promise<IFolder | null>;
+  getRecentFolders(): Promise<IRecentFolder[]>;
+  removeRecentFolder(rootPath: string): Promise<void>;
+  revealFolder(rootPath: string): Promise<void>;
+  getFolderProgress(folderId: string): Promise<TFolderProgress>;
   saveLessonProgress(payload: ISaveLessonProgressPayload): Promise<void>;
-  clearLessonProgress(courseId: string, lessonId: string): Promise<void>;
-  clearCourseProgress(courseId: string): Promise<void>;
+  clearLessonProgress(folderId: string, lessonId: string): Promise<void>;
+  clearFolderProgress(folderId: string): Promise<void>;
   openMediaExternally(mediaUrl: string): Promise<void>;
   setWindowFullscreen(fullscreen: boolean): Promise<boolean>;
   onWindowFullscreenChanged(listener: (fullscreen: boolean) => void): () => void;

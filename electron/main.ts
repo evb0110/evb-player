@@ -6,11 +6,11 @@ import {basename, dirname, extname, join, relative, resolve, sep} from 'node:pat
 import {Readable} from 'node:stream';
 import {pathToFileURL} from 'node:url';
 import type {
-  ICourse,
+  IFolder,
   IMediaLesson,
-  IRecentCourse,
+  IRecentFolder,
   TMediaKind,
-  TCourseProgress,
+  TFolderProgress,
 } from '../shared/types';
 import {
   createDefaultState,
@@ -28,13 +28,10 @@ const RENDERER_SCHEME = 'evb-player';
 const DEV_SERVER_URL = process.env.EVB_PLAYER_DEV_SERVER_URL?.trim();
 const appIconPath = join(app.getAppPath(), 'resources', 'icon.png');
 const mediaRoots = new Set<string>();
-const authorizedCourseRoots = new Set<string>();
+const authorizedFolderRoots = new Set<string>();
 // Automation runs keep the window off screen so they never take focus from the desktop.
 const HIDE_WINDOW = process.env.EVB_PLAYER_HIDE_WINDOW === '1';
 const stateFilePath = () => join(app.getPath('userData'), 'evb-player-state.json');
-// The app was called Course Shelf before 0.2.0; its progress file, in a sibling profile folder,
-// is read once when EVB Player has none.
-const legacyStateFilePath = () => join(dirname(app.getPath('userData')), app.isPackaged ? 'Course Shelf' : 'Course Shelf Dev', 'course-shelf-state.json');
 
 // Source runs get their own name and profile so they never share progress,
 // storage, or the single-instance lock with the installed app. An explicit
@@ -127,12 +124,12 @@ protocol.registerSchemesAsPrivileged([{
   },
 }]);
 
-function courseIdForPath(rootPath: string) {
+function folderIdForPath(rootPath: string) {
   return createHash('sha256').update(rootPath).digest('hex').slice(0, 16);
 }
 
-function lessonIdForPath(courseId: string, relativePath: string) {
-  return createHash('sha256').update(`${courseId}:${relativePath}`).digest('hex').slice(0, 16);
+function lessonIdForPath(folderId: string, relativePath: string) {
+  return createHash('sha256').update(`${folderId}:${relativePath}`).digest('hex').slice(0, 16);
 }
 
 function mediaUrlForPath(filePath: string) {
@@ -181,7 +178,7 @@ function ensureState() {
   }
 
   stateLoadPromise = (async () => {
-    for (const filePath of [stateFilePath(), `${stateFilePath()}.bak`, legacyStateFilePath(), `${legacyStateFilePath()}.bak`]) {
+    for (const filePath of [stateFilePath(), `${stateFilePath()}.bak`]) {
       const state = await readStoredStateFile(filePath);
       if (state) {
         storedState = state;
@@ -198,18 +195,18 @@ function ensureState() {
 }
 
 function cloneStoredState(state: IStoredState): IStoredState {
-  const progress = Object.create(null) as Record<string, TCourseProgress>;
-  for (const [courseId, courseProgress] of Object.entries(state.progress)) {
-    const clonedCourseProgress = Object.create(null) as TCourseProgress;
-    for (const [lessonId, lessonProgress] of Object.entries(courseProgress)) {
-      clonedCourseProgress[lessonId] = {...lessonProgress};
+  const progress = Object.create(null) as Record<string, TFolderProgress>;
+  for (const [folderId, folderProgress] of Object.entries(state.progress)) {
+    const clonedFolderProgress = Object.create(null) as TFolderProgress;
+    for (const [lessonId, lessonProgress] of Object.entries(folderProgress)) {
+      clonedFolderProgress[lessonId] = {...lessonProgress};
     }
-    progress[courseId] = clonedCourseProgress;
+    progress[folderId] = clonedFolderProgress;
   }
   return {
-    recentCourses: state.recentCourses.map((course) => ({...course})),
+    recentFolders: state.recentFolders.map((folder) => ({...folder})),
     progress,
-    lastCoursePath: state.lastCoursePath,
+    lastFolderPath: state.lastFolderPath,
   };
 }
 
@@ -339,7 +336,7 @@ async function collectFileStats(filePaths: string[]) {
   return fileStats;
 }
 
-async function scanCourse(folderPath: string): Promise<ICourse> {
+async function scanFolder(folderPath: string): Promise<IFolder> {
   const rootPath = await realpath(folderPath);
   const rootStats = await stat(rootPath);
   if (!rootStats.isDirectory()) {
@@ -347,8 +344,8 @@ async function scanCourse(folderPath: string): Promise<ICourse> {
   }
 
   mediaRoots.add(rootPath);
-  authorizedCourseRoots.add(rootPath);
-  const courseId = courseIdForPath(rootPath);
+  authorizedFolderRoots.add(rootPath);
+  const folderId = folderIdForPath(rootPath);
   const filePaths = (await collectMediaFiles(rootPath, true)).sort((left, right) => left.localeCompare(right, undefined, {numeric: true}));
   const fileStats = await collectFileStats(filePaths);
   const scannableFilePaths = filePaths.filter((filePath) => fileStats.has(filePath));
@@ -363,7 +360,7 @@ async function scanCourse(folderPath: string): Promise<ICourse> {
       return null;
     }
     return {
-      id: lessonIdForPath(courseId, relativePath),
+      id: lessonIdForPath(folderId, relativePath),
       sequence: sequence || index + 1,
       title: title || fileName,
       fileName,
@@ -381,8 +378,8 @@ async function scanCourse(folderPath: string): Promise<ICourse> {
   const totalDuration = lessons.reduce((total, lesson) => total + (lesson.duration ?? 0), 0);
   const videoCount = lessons.filter((lesson) => lesson.kind === 'video').length;
   const audioCount = lessons.length - videoCount;
-  const course: ICourse = {
-    id: courseId,
+  const folder: IFolder = {
+    id: folderId,
     name: basename(rootPath),
     rootPath,
     lessons,
@@ -394,20 +391,20 @@ async function scanCourse(folderPath: string): Promise<ICourse> {
   };
 
   await updateState((state) => {
-    state.lastCoursePath = rootPath;
-    state.recentCourses = [
+    state.lastFolderPath = rootPath;
+    state.recentFolders = [
       {
-        id: course.id,
-        name: course.name,
-        rootPath: course.rootPath,
-        mediaCount: course.lessons.length,
+        id: folder.id,
+        name: folder.name,
+        rootPath: folder.rootPath,
+        mediaCount: folder.lessons.length,
         lastOpenedAt: Date.now(),
       },
-      ...state.recentCourses.filter((recentCourse) => recentCourse.id !== course.id),
+      ...state.recentFolders.filter((recentFolder) => recentFolder.id !== folder.id),
     ].slice(0, 12);
   });
 
-  return course;
+  return folder;
 }
 
 async function isAllowedMediaPath(filePath: string) {
@@ -704,7 +701,7 @@ function createWindow() {
 }
 
 function registerIpcHandlers() {
-  ipcMain.handle('course:choose-folder', async (event) => {
+  ipcMain.handle('folder:choose', async (event) => {
     if (!isTrustedRenderer(event.sender)) {
       return null;
     }
@@ -715,16 +712,16 @@ function registerIpcHandlers() {
     if (result.canceled || !result.filePaths[0]) {
       return null;
     }
-    return scanCourse(result.filePaths[0]);
+    return scanFolder(result.filePaths[0]);
   });
 
-  ipcMain.handle('course:open-recent', async (event, rootPath: unknown) => {
+  ipcMain.handle('folder:open-recent', async (event, rootPath: unknown) => {
     if (!isTrustedRenderer(event.sender) || !isNonEmptyText(rootPath)) {
       return null;
     }
     const state = await ensureState();
-    const recentCourse = state.recentCourses.find((candidate) => candidate.rootPath === rootPath);
-    if (!recentCourse && !authorizedCourseRoots.has(rootPath)) {
+    const recentFolder = state.recentFolders.find((candidate) => candidate.rootPath === rootPath);
+    if (!recentFolder && !authorizedFolderRoots.has(rootPath)) {
       return null;
     }
     let canonicalPath: string;
@@ -736,15 +733,15 @@ function registerIpcHandlers() {
     if (canonicalPath !== rootPath) {
       return null;
     }
-    return scanCourse(canonicalPath);
+    return scanFolder(canonicalPath);
   });
 
-  ipcMain.handle('course:reveal', async (event, rootPath: unknown) => {
+  ipcMain.handle('folder:reveal', async (event, rootPath: unknown) => {
     if (!isTrustedRenderer(event.sender) || !isNonEmptyText(rootPath)) {
       throw new Error('The folder is not authorized.');
     }
     const state = await ensureState();
-    if (!state.recentCourses.some((course) => course.rootPath === rootPath) && !mediaRoots.has(rootPath)) {
+    if (!state.recentFolders.some((folder) => folder.rootPath === rootPath) && !mediaRoots.has(rootPath)) {
       throw new Error('The folder is not in your library.');
     }
     try {
@@ -757,62 +754,62 @@ function registerIpcHandlers() {
     shell.showItemInFolder(rootPath);
   });
 
-  ipcMain.handle('course:restore-last', async (event) => {
+  ipcMain.handle('folder:restore-last', async (event) => {
     if (!isTrustedRenderer(event.sender)) {
       return null;
     }
     const state = await ensureState();
-    if (!state.lastCoursePath) {
+    if (!state.lastFolderPath) {
       return null;
     }
     try {
-      await access(state.lastCoursePath);
-      return await scanCourse(state.lastCoursePath);
+      await access(state.lastFolderPath);
+      return await scanFolder(state.lastFolderPath);
     } catch {
       return null;
     }
   });
 
-  ipcMain.handle('course:get-recent', async (event) => {
+  ipcMain.handle('folder:get-recent', async (event) => {
     if (!isTrustedRenderer(event.sender)) {
       return [];
     }
-    return (await ensureState()).recentCourses;
+    return (await ensureState()).recentFolders;
   });
 
-  ipcMain.handle('course:remove-recent', async (event, rootPath: unknown) => {
+  ipcMain.handle('folder:remove-recent', async (event, rootPath: unknown) => {
     if (!isTrustedRenderer(event.sender) || !isNonEmptyText(rootPath)) {
       return;
     }
     const state = await ensureState();
-    const removedCourse = state.recentCourses.find((recentCourse) => recentCourse.rootPath === rootPath);
-    if (!removedCourse) {
+    const removedFolder = state.recentFolders.find((recentFolder) => recentFolder.rootPath === rootPath);
+    if (!removedFolder) {
       return;
     }
     await updateState((nextState) => {
-      nextState.recentCourses = nextState.recentCourses.filter((recentCourse) => recentCourse.rootPath !== rootPath);
-      if (nextState.lastCoursePath === rootPath) {
-        nextState.lastCoursePath = null;
+      nextState.recentFolders = nextState.recentFolders.filter((recentFolder) => recentFolder.rootPath !== rootPath);
+      if (nextState.lastFolderPath === rootPath) {
+        nextState.lastFolderPath = null;
       }
     });
-    mediaRoots.delete(removedCourse.rootPath);
+    mediaRoots.delete(removedFolder.rootPath);
   });
 
-  ipcMain.handle('progress:get', async (event, courseId: unknown) => {
-    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(courseId)) {
+  ipcMain.handle('progress:get', async (event, folderId: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(folderId)) {
       return {};
     }
-    const courseProgress = (await ensureState()).progress[courseId];
-    return courseProgress ? {...courseProgress} : {};
+    const folderProgress = (await ensureState()).progress[folderId];
+    return folderProgress ? {...folderProgress} : {};
   });
 
   ipcMain.handle('progress:save', async (event, payload: unknown) => {
     if (!isTrustedRenderer(event.sender) || !isPlainRecord(payload)) {
       return;
     }
-    const courseId = payload.courseId;
+    const folderId = payload.folderId;
     const lessonId = payload.lessonId;
-    if (!isStoredIdentifier(courseId) || !isStoredIdentifier(lessonId)) {
+    if (!isStoredIdentifier(folderId) || !isStoredIdentifier(lessonId)) {
       return;
     }
     const progress = sanitizeLessonProgress(payload.progress);
@@ -820,39 +817,39 @@ function registerIpcHandlers() {
       return;
     }
     await updateState((state) => {
-      const courseProgress = state.progress[courseId] ?? Object.create(null);
-      state.progress[courseId] = {
-        ...courseProgress,
+      const folderProgress = state.progress[folderId] ?? Object.create(null);
+      state.progress[folderId] = {
+        ...folderProgress,
         [lessonId]: progress,
       };
     });
   });
 
-  ipcMain.handle('progress:clear-lesson', async (event, courseId: unknown, lessonId: unknown) => {
-    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(courseId) || !isStoredIdentifier(lessonId)) {
+  ipcMain.handle('progress:clear-lesson', async (event, folderId: unknown, lessonId: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(folderId) || !isStoredIdentifier(lessonId)) {
       return;
     }
     await updateState((state) => {
-      const courseProgress = state.progress[courseId];
-      if (!courseProgress || !(lessonId in courseProgress)) {
+      const folderProgress = state.progress[folderId];
+      if (!folderProgress || !(lessonId in folderProgress)) {
         return false;
       }
-      delete courseProgress[lessonId];
-      if (Object.keys(courseProgress).length === 0) {
-        delete state.progress[courseId];
+      delete folderProgress[lessonId];
+      if (Object.keys(folderProgress).length === 0) {
+        delete state.progress[folderId];
       }
     });
   });
 
-  ipcMain.handle('progress:clear', async (event, courseId: unknown) => {
-    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(courseId)) {
+  ipcMain.handle('progress:clear', async (event, folderId: unknown) => {
+    if (!isTrustedRenderer(event.sender) || !isStoredIdentifier(folderId)) {
       return;
     }
     await updateState((state) => {
-      if (!(courseId in state.progress)) {
+      if (!(folderId in state.progress)) {
         return false;
       }
-      delete state.progress[courseId];
+      delete state.progress[folderId];
     });
   });
 

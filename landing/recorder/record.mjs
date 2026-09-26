@@ -15,16 +15,16 @@ const FILMS = path.join(REPO, '.devkit/films');
 const flowName = process.argv[2] ?? 'player';
 const { default: flow, title, seed, size = { width: 1280, height: 800 } } = await import(`./flows/${flowName}.mjs`);
 
-const courses = realpathSync(path.join(FILMS, 'folders'));
+const folders = realpathSync(path.join(FILMS, 'folders'));
 const hash = (text) => createHash('sha256').update(text).digest('hex').slice(0, 16);
-const courseId = (name) => hash(path.join(courses, name));
-const lessonId = (name, relativePath) => hash(`${courseId(name)}:${relativePath}`);
+const folderId = (name) => hash(path.join(folders, name));
+const lessonId = (name, relativePath) => hash(`${folderId(name)}:${relativePath}`);
 
 const profile = path.join(FILMS, 'profile', flowName);
 rmSync(profile, { recursive: true, force: true });
 mkdirSync(profile, { recursive: true });
 if (seed) {
-    writeFileSync(path.join(profile, 'evb-player-state.json'), JSON.stringify(seed({ courses, courseId, lessonId }), null, 2));
+    writeFileSync(path.join(profile, 'evb-player-state.json'), JSON.stringify(seed({ folders, folderId, lessonId }), null, 2));
 }
 
 const frames = Object.fromEntries(
@@ -38,7 +38,8 @@ const executablePath = process.env.FILM_ELECTRON ?? createRequire(path.join(REPO
 const app = await electron.launch({
     executablePath,
     args: [REPO, `--user-data-dir=${profile}`],
-    env: { ...process.env, EVB_PLAYER_HIDE_WINDOW: '1', EVB_PLAYER_DISABLE_UPDATES: '1' },
+    // A hidden Wayland window gets no frames, so Linux recordings show it inside a nested compositor.
+    env: { ...process.env, EVB_PLAYER_HIDE_WINDOW: process.env.FILM_SHOW_WINDOW === '1' ? '0' : '1', EVB_PLAYER_DISABLE_UPDATES: '1' },
     timeout: 60_000,
 });
 try {
@@ -52,7 +53,7 @@ try {
         window.__filmVideoFrames = map;
     }, frames);
     const rec = new FilmRecorder(win, flowName, { ...size, qaDir: path.join(FILMS, 'qa') });
-    await flow(win, rec, { app, courses });
+    await flow(win, rec, { app, folders });
     await rec.save({ title });
     // The first state as a still: shown until the player has loaded, and to visitors who prefer reduced motion.
     execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', path.join(rec.qaDir, '00.png'),

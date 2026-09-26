@@ -1,23 +1,23 @@
 import {contextBridge, ipcRenderer} from 'electron';
 import type {
-  ICourse,
+  IFolder,
   IPlayerApi,
-  IRecentCourse,
+  IRecentFolder,
   ISaveLessonProgressPayload,
-  TCourseProgress,
+  TFolderProgress,
 } from '../shared/types';
 
 const api: IPlayerApi = {
-  chooseFolder: () => ipcRenderer.invoke('course:choose-folder') as Promise<ICourse | null>,
-  openRecentCourse: (rootPath: string) => ipcRenderer.invoke('course:open-recent', rootPath) as Promise<ICourse | null>,
-  restoreLastCourse: () => ipcRenderer.invoke('course:restore-last') as Promise<ICourse | null>,
-  getRecentCourses: () => ipcRenderer.invoke('course:get-recent') as Promise<IRecentCourse[]>,
-  removeRecentCourse: (rootPath: string) => ipcRenderer.invoke('course:remove-recent', rootPath) as Promise<void>,
-  revealCourse: (rootPath: string) => ipcRenderer.invoke('course:reveal', rootPath) as Promise<void>,
-  getCourseProgress: (courseId: string) => ipcRenderer.invoke('progress:get', courseId) as Promise<TCourseProgress>,
+  chooseFolder: () => ipcRenderer.invoke('folder:choose') as Promise<IFolder | null>,
+  openRecentFolder: (rootPath: string) => ipcRenderer.invoke('folder:open-recent', rootPath) as Promise<IFolder | null>,
+  restoreLastFolder: () => ipcRenderer.invoke('folder:restore-last') as Promise<IFolder | null>,
+  getRecentFolders: () => ipcRenderer.invoke('folder:get-recent') as Promise<IRecentFolder[]>,
+  removeRecentFolder: (rootPath: string) => ipcRenderer.invoke('folder:remove-recent', rootPath) as Promise<void>,
+  revealFolder: (rootPath: string) => ipcRenderer.invoke('folder:reveal', rootPath) as Promise<void>,
+  getFolderProgress: (folderId: string) => ipcRenderer.invoke('progress:get', folderId) as Promise<TFolderProgress>,
   saveLessonProgress: (payload: ISaveLessonProgressPayload) => ipcRenderer.invoke('progress:save', payload) as Promise<void>,
-  clearLessonProgress: (courseId: string, lessonId: string) => ipcRenderer.invoke('progress:clear-lesson', courseId, lessonId) as Promise<void>,
-  clearCourseProgress: (courseId: string) => ipcRenderer.invoke('progress:clear', courseId) as Promise<void>,
+  clearLessonProgress: (folderId: string, lessonId: string) => ipcRenderer.invoke('progress:clear-lesson', folderId, lessonId) as Promise<void>,
+  clearFolderProgress: (folderId: string) => ipcRenderer.invoke('progress:clear', folderId) as Promise<void>,
   openMediaExternally: (mediaUrl: string) => ipcRenderer.invoke('media:open-external', mediaUrl) as Promise<void>,
   setWindowFullscreen: (fullscreen: boolean) => ipcRenderer.invoke('window:set-fullscreen', fullscreen) as Promise<boolean>,
   onWindowFullscreenChanged: (listener: (fullscreen: boolean) => void) => {

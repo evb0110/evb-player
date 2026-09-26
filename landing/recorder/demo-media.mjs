@@ -8,7 +8,7 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const ROOT = path.resolve(process.argv[2] ?? '.devkit/films');
-const COURSES = path.join(ROOT, 'folders');
+const FOLDERS = path.join(ROOT, 'folders');
 const SLIDES = path.join(ROOT, 'slides');
 
 const typescript = {
@@ -68,22 +68,22 @@ function highlight(code) {
         .replace(/\b(\d+)\b/g, '<i class="n">$1</i>');
 }
 
-function slide(course, title, code) {
+function slide(folder, title, code) {
     const [number, ...words] = title.split('. ');
     return `<!doctype html><html><head><style>
         * { margin: 0; box-sizing: border-box; }
         body { width: 1280px; height: 720px; display: grid; grid-template-columns: 1fr 1.25fr; gap: 56px; align-items: center;
             padding: 72px 80px; font-family: -apple-system, "Segoe UI", Inter, sans-serif; color: #f3efe7;
             background: radial-gradient(circle at 18% 20%, #2c3439 0%, #171c1f 58%, #111416 100%); }
-        .kicker { font: 600 15px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .18em; color: ${course.accent}; }
+        .kicker { font: 600 15px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .18em; color: ${folder.accent}; }
         h1 { margin-top: 22px; font-size: 50px; line-height: 1.08; font-weight: 700; letter-spacing: -.02em; }
-        .course { margin-top: 26px; font-size: 18px; color: #9aa3a8; }
-        .bar { margin-top: 34px; width: 72px; height: 5px; border-radius: 3px; background: ${course.accent}; }
+        .folder { margin-top: 26px; font-size: 18px; color: #9aa3a8; }
+        .bar { margin-top: 34px; width: 72px; height: 5px; border-radius: 3px; background: ${folder.accent}; }
         pre { padding: 34px 36px; border-radius: 18px; background: #0d1012; border: 1px solid #2a3135;
             font: 22px/1.55 ui-monospace, "SF Mono", Menlo, monospace; color: #e8e4da; white-space: pre; box-shadow: 0 30px 60px rgb(0 0 0 / 35%); }
         i { font-style: normal; } .k { color: #f0784e; } .s { color: #91c5b1; } .n { color: #e6c07b; } .c { color: #6b757a; }
     </style></head><body>
-        <div><div class="kicker">LESSON ${number}</div><h1>${escape(words.join('. '))}</h1><div class="course">${escape(course.name)}</div><div class="bar"></div></div>
+        <div><div class="kicker">LESSON ${number}</div><h1>${escape(words.join('. '))}</h1><div class="folder">${escape(folder.name)}</div><div class="bar"></div></div>
         <pre>${highlight(code)}</pre>
     </body></html>`;
 }
@@ -102,23 +102,23 @@ function encodeAudio(seconds, file, frequency) {
         '-ac', '1', '-c:a', 'libmp3lame', '-b:a', '8k', file]);
 }
 
-rmSync(COURSES, { recursive: true, force: true });
+rmSync(FOLDERS, { recursive: true, force: true });
 rmSync(SLIDES, { recursive: true, force: true });
 mkdirSync(SLIDES, { recursive: true });
 // Installed Chrome, so no Playwright browser download is needed.
 const browser = await chromium.launch({ headless: true, channel: 'chrome' });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const frames = {};
-for (const course of [typescript, sql]) {
-    for (const [section, title, seconds, code] of course.lessons) {
-        const dir = path.join(COURSES, course.name, section);
+for (const folder of [typescript, sql]) {
+    for (const [section, title, seconds, code] of folder.lessons) {
+        const dir = path.join(FOLDERS, folder.name, section);
         mkdirSync(dir, { recursive: true });
         if (!code) {
             encodeAudio(seconds, path.join(dir, `${title}.mp3`), 220);
             continue;
         }
-        const png = path.join(SLIDES, `${course.name} - ${title}.png`);
-        await page.setContent(slide(course, title, code));
+        const png = path.join(SLIDES, `${folder.name} - ${title}.png`);
+        await page.setContent(slide(folder, title, code));
         await page.screenshot({ path: png });
         encodeStill(png, seconds, path.join(dir, `${title}.mp4`));
         // The films show a JPEG of the slide, which is a fraction of the PNG's size.
@@ -129,10 +129,10 @@ for (const course of [typescript, sql]) {
 }
 await browser.close();
 for (const [title, seconds] of spanish.lessons) {
-    const dir = path.join(COURSES, spanish.name);
+    const dir = path.join(FOLDERS, spanish.name);
     mkdirSync(dir, { recursive: true });
     encodeAudio(seconds, path.join(dir, `${title}.mp3`), 180 + (seconds % 60));
 }
 // The recorder draws these slides in place of the <video> element, keyed by file name.
 writeFileSync(path.join(ROOT, 'video-frames.json'), JSON.stringify(frames, null, 2));
-console.log(`Demo folders in ${COURSES}`);
+console.log(`Demo folders in ${FOLDERS}`);

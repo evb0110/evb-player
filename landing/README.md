@@ -21,4 +21,4 @@ pnpm films:demo                # generated demo folders in ../.devkit/films
 pnpm films:record player       # records flows/player.mjs
 ```
 
-The demo folders are generated slides and tones, so no real media is ever recorded. The app runs from source with a hidden window and its own profile. On macOS, set `FILM_ELECTRON` to an Electron binary whose app bundle sets `LSUIElement`, so no Dock icon appears while recording.
+The demo folders are generated slides and tones, so no real media is ever recorded. The app runs from source with a hidden window and its own profile. On macOS, set `FILM_ELECTRON` to an Electron binary whose app bundle sets `LSUIElement`, so no Dock icon appears while recording. On Linux a hidden Wayland window gets no frames, so record inside a nested compositor such as `kwin_wayland --virtual` with `FILM_SHOW_WINDOW=1`, which keeps the window off your desktop.

@@ -31,7 +31,7 @@ Progress and the folder list are stored in `evb-player-state.json` in the app's 
 - Windows: `%APPDATA%\EVB Player\`
 - Linux: `~/.config/EVB Player/`
 
-Media files are never modified. Version 0.2.0 renamed the app from Course Shelf; on first launch it picks up Course Shelf's saved progress.
+Media files are never modified.
 
 ## Development
 

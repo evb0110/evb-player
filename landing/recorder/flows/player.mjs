@@ -13,43 +13,47 @@ const TS_LESSONS = [
 ];
 
 /** Three folders in the Library, each with some progress; the TypeScript folder resumes video 3. */
-export function seed({ courses, courseId, lessonId }) {
+export function seed({ folders, folderId, lessonId }) {
     const done = (updatedAt, duration) => ({ position: duration, duration, completed: true, updatedAt });
     return {
-        recentCourses: [
-            { id: courseId(TS), name: TS, rootPath: `${courses}/${TS}`, mediaCount: 12, lastOpenedAt: 3 },
-            { id: courseId(SQL), name: SQL, rootPath: `${courses}/${SQL}`, mediaCount: 6, lastOpenedAt: 2 },
-            { id: courseId(SPANISH), name: SPANISH, rootPath: `${courses}/${SPANISH}`, mediaCount: 8, lastOpenedAt: 1 },
+        recentFolders: [
+            { id: folderId(TS), name: TS, rootPath: `${folders}/${TS}`, mediaCount: 12, lastOpenedAt: 3 },
+            { id: folderId(SQL), name: SQL, rootPath: `${folders}/${SQL}`, mediaCount: 6, lastOpenedAt: 2 },
+            { id: folderId(SPANISH), name: SPANISH, rootPath: `${folders}/${SPANISH}`, mediaCount: 8, lastOpenedAt: 1 },
         ],
         progress: {
-            [courseId(TS)]: {
+            [folderId(TS)]: {
                 [lessonId(TS, TS_LESSONS[0])]: done(1, 134),
                 [lessonId(TS, TS_LESSONS[1])]: done(2, 408),
                 [lessonId(TS, TS_LESSONS[2])]: { position: 190, duration: 485, completed: false, updatedAt: 3 },
             },
-            [courseId(SQL)]: {
+            [folderId(SQL)]: {
                 [lessonId(SQL, '01. Why SQL still matters.mp4')]: done(1, 245),
                 [lessonId(SQL, '02. Filtering rows.mp4')]: done(2, 512),
             },
         },
-        lastCoursePath: null,
+        lastFolderPath: null,
     };
 }
 
-export default async function flow(win, rec, { courses }) {
-    // Show home-relative folder paths instead of this machine's scratch folder.
+export default async function flow(win, rec, { folders }) {
+    // Show home-relative folder paths instead of this machine's scratch folder, including in
+    // title attributes, which the SVG capture keeps as tooltips.
     const tidy = () => win.evaluate((root) => {
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
             if (node.nodeValue.includes(root)) node.nodeValue = node.nodeValue.replaceAll(root, '~/Media');
         }
-    }, courses);
+        for (const element of document.querySelectorAll('[title]')) {
+            if (element.title.includes(root)) element.title = element.title.replaceAll(root, '~/Media');
+        }
+    }, folders);
     const snap = async (options) => {
         await tidy();
         await rec.snap(options);
     };
 
-    const card = win.locator('.course-card-open', { hasText: TS });
+    const card = win.locator('.folder-card-open', { hasText: TS });
     await card.waitFor();
     await win.mouse.move(640, 620);
     await snap({ dur: 40, cursor: [640, 620] });

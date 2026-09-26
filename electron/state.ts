@@ -1,10 +1,10 @@
 import {isAbsolute} from 'node:path';
-import type {ILessonProgress, IRecentCourse, TCourseProgress} from '../shared/types';
+import type {ILessonProgress, IRecentFolder, TFolderProgress} from '../shared/types';
 
 export interface IStoredState {
-  recentCourses: IRecentCourse[];
-  progress: Record<string, TCourseProgress>;
-  lastCoursePath: string | null;
+  recentFolders: IRecentFolder[];
+  progress: Record<string, TFolderProgress>;
+  lastFolderPath: string | null;
 }
 
 const IDENTIFIER_PATTERN = /^[a-f0-9]{16}$/u;
@@ -12,9 +12,9 @@ const MAX_TEXT_LENGTH = 4096;
 
 export function createDefaultState(): IStoredState {
   return {
-    recentCourses: [],
-    progress: Object.create(null) as Record<string, TCourseProgress>,
-    lastCoursePath: null,
+    recentFolders: [],
+    progress: Object.create(null) as Record<string, TFolderProgress>,
+    lastFolderPath: null,
   };
 }
 
@@ -57,39 +57,39 @@ export function sanitizeLessonProgress(value: unknown, fallbackUpdatedAt = Date.
   };
 }
 
-function sanitizeProgress(value: unknown): Record<string, TCourseProgress> {
-  const progress = Object.create(null) as Record<string, TCourseProgress>;
+function sanitizeProgress(value: unknown): Record<string, TFolderProgress> {
+  const progress = Object.create(null) as Record<string, TFolderProgress>;
   if (!isPlainRecord(value)) {
     return progress;
   }
 
-  for (const [courseId, courseValue] of Object.entries(value)) {
-    if (!isStoredIdentifier(courseId) || !isPlainRecord(courseValue)) {
+  for (const [folderId, folderValue] of Object.entries(value)) {
+    if (!isStoredIdentifier(folderId) || !isPlainRecord(folderValue)) {
       continue;
     }
-    const courseProgress = Object.create(null) as TCourseProgress;
-    for (const [lessonId, lessonValue] of Object.entries(courseValue)) {
+    const folderProgress = Object.create(null) as TFolderProgress;
+    for (const [lessonId, lessonValue] of Object.entries(folderValue)) {
       if (!isStoredIdentifier(lessonId)) {
         continue;
       }
       const sanitizedLesson = sanitizeLessonProgress(lessonValue);
       if (sanitizedLesson) {
-        courseProgress[lessonId] = sanitizedLesson;
+        folderProgress[lessonId] = sanitizedLesson;
       }
     }
-    if (Object.keys(courseProgress).length > 0) {
-      progress[courseId] = courseProgress;
+    if (Object.keys(folderProgress).length > 0) {
+      progress[folderId] = folderProgress;
     }
   }
   return progress;
 }
 
-function sanitizeRecentCourses(value: unknown): IRecentCourse[] {
+function sanitizeRecentFolders(value: unknown): IRecentFolder[] {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  const recentCourses: IRecentCourse[] = [];
+  const recentFolders: IRecentFolder[] = [];
   const seenIds = new Set<string>();
   for (const candidate of value) {
     if (!isPlainRecord(candidate)) {
@@ -108,7 +108,7 @@ function sanitizeRecentCourses(value: unknown): IRecentCourse[] {
     if (typeof mediaCount !== 'number' || !Number.isSafeInteger(mediaCount) || mediaCount < 0) {
       continue;
     }
-    recentCourses.push({
+    recentFolders.push({
       id,
       name,
       rootPath,
@@ -116,26 +116,26 @@ function sanitizeRecentCourses(value: unknown): IRecentCourse[] {
       lastOpenedAt: timestamp(candidate.lastOpenedAt, 0),
     });
     seenIds.add(id);
-    if (recentCourses.length === 12) {
+    if (recentFolders.length === 12) {
       break;
     }
   }
-  return recentCourses;
+  return recentFolders;
 }
 
 export function sanitizeStoredState(value: unknown): IStoredState | null {
-  if (!isPlainRecord(value) || !Array.isArray(value.recentCourses) || !isPlainRecord(value.progress)) {
+  if (!isPlainRecord(value) || !Array.isArray(value.recentFolders) || !isPlainRecord(value.progress)) {
     return null;
   }
 
-  const lastCoursePath = value.lastCoursePath;
-  if (lastCoursePath !== null && (typeof lastCoursePath !== 'string' || !isAbsolute(lastCoursePath) || lastCoursePath.length > MAX_TEXT_LENGTH)) {
+  const lastFolderPath = value.lastFolderPath;
+  if (lastFolderPath !== null && (typeof lastFolderPath !== 'string' || !isAbsolute(lastFolderPath) || lastFolderPath.length > MAX_TEXT_LENGTH)) {
     return null;
   }
 
   return {
-    recentCourses: sanitizeRecentCourses(value.recentCourses),
+    recentFolders: sanitizeRecentFolders(value.recentFolders),
     progress: sanitizeProgress(value.progress),
-    lastCoursePath,
+    lastFolderPath,
   };
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="course-shell">
+  <div class="folder-shell">
     <nav class="tab-strip" aria-label="Open folders">
       <button
         class="app-tab"
@@ -12,17 +12,17 @@
         <span>Library</span>
       </button>
       <div
-        v-for="courseTab in visibleCourseTabs"
-        :key="courseTab.id"
+        v-for="folderTab in visibleFolderTabs"
+        :key="folderTab.id"
         class="app-tab"
-        :class="{ 'app-tab-active': activeTab === courseTab.id }"
+        :class="{ 'app-tab-active': activeTab === folderTab.id }"
       >
-        <button class="tab-select" type="button" :title="courseTab.name" :aria-current="activeTab === courseTab.id ? 'page' : undefined" @click="library.setActiveTab(courseTab.id)">
-          <UIcon v-if="currentCourse?.id === courseTab.id && isPlaying" name="i-lucide-volume-2" aria-label="Playing" />
-          <span v-else class="tab-course-dot" />
-          <span class="tab-label">{{ courseTab.name }}</span>
+        <button class="tab-select" type="button" :title="folderTab.name" :aria-current="activeTab === folderTab.id ? 'page' : undefined" @click="library.setActiveTab(folderTab.id)">
+          <UIcon v-if="currentFolder?.id === folderTab.id && isPlaying" name="i-lucide-volume-2" aria-label="Playing" />
+          <span v-else class="tab-folder-dot" />
+          <span class="tab-label">{{ folderTab.name }}</span>
         </button>
-        <button class="tab-close" type="button" :aria-label="`Close ${courseTab.name} tab`" title="Close tab" @click="closeCourse(courseTab.id)">
+        <button class="tab-close" type="button" :aria-label="`Close ${folderTab.name} tab`" title="Close tab" @click="closeFolder(folderTab.id)">
           <UIcon name="i-lucide-x" />
         </button>
       </div>
@@ -31,35 +31,35 @@
       </div>
     </nav>
 
-    <div class="workspace" :class="{ 'workspace-course': !isLibraryActive }">
+    <div class="workspace" :class="{ 'workspace-folder': !isLibraryActive }">
       <aside v-if="isLibraryActive" class="library-sidebar">
         <div class="sidebar-title-row">
           <span>Folders</span>
-          <span class="sidebar-count">{{ recentCourses.length }}</span>
+          <span class="sidebar-count">{{ recentFolders.length }}</span>
         </div>
 
-        <div v-if="recentCourses.length" class="recent-course-list">
+        <div v-if="recentFolders.length" class="recent-folder-list">
           <div
-            v-for="recentCourse in recentCourses"
-            :key="recentCourse.id"
-            class="recent-course"
-            :class="{ 'recent-course-active': activeTab === recentCourse.id }"
+            v-for="recentFolder in recentFolders"
+            :key="recentFolder.id"
+            class="recent-folder"
+            :class="{ 'recent-folder-active': activeTab === recentFolder.id }"
           >
-            <button class="recent-course-open" type="button" :title="recentCourse.rootPath" :disabled="loading" @click="library.openRecentCourse(recentCourse)">
-              <span class="recent-course-icon"><UIcon name="i-lucide-folder" /></span>
-              <span class="recent-course-copy">
-                <strong>{{ recentCourse.name }}</strong>
-                <small>{{ recentCourse.mediaCount }} {{ recentCourse.mediaCount === 1 ? 'lesson' : 'lessons' }}</small>
+            <button class="recent-folder-open" type="button" :title="recentFolder.rootPath" :disabled="loading" @click="library.openRecentFolder(recentFolder)">
+              <span class="recent-folder-icon"><UIcon name="i-lucide-folder" /></span>
+              <span class="recent-folder-copy">
+                <strong>{{ recentFolder.name }}</strong>
+                <small>{{ recentFolder.mediaCount }} {{ recentFolder.mediaCount === 1 ? 'lesson' : 'lessons' }}</small>
               </span>
-              <UIcon class="recent-course-arrow" name="i-lucide-chevron-right" />
+              <UIcon class="recent-folder-arrow" name="i-lucide-chevron-right" />
             </button>
             <button
-              class="recent-course-remove"
+              class="recent-folder-remove"
               type="button"
-              :aria-label="`Remove ${recentCourse.name} from collection`"
+              :aria-label="`Remove ${recentFolder.name} from collection`"
               title="Remove from collection"
               :disabled="loading"
-              @click="removeCourse(recentCourse)"
+              @click="removeFolder(recentFolder)"
             >
               <UIcon name="i-lucide-x" />
             </button>
@@ -90,33 +90,33 @@
           <span>{{ library.loadingMessage.value }}</span>
         </div>
 
-        <section v-if="isLibraryActive && currentCourse && currentLesson" class="library-player" aria-label="Current playback">
+        <section v-if="isLibraryActive && currentFolder && currentLesson" class="library-player" aria-label="Current playback">
           <button class="play-button" type="button" :aria-label="isPlaying ? 'Pause' : 'Play'" @click="togglePlayback">
             <UIcon :name="isPlaying ? 'i-lucide-pause' : 'i-lucide-play'" />
           </button>
           <div class="library-player-copy">
-            <span>{{ playbackError ? 'Playback unavailable' : isPlaying ? 'Now playing' : 'Paused' }} · {{ currentCourse.name }}</span>
+            <span>{{ playbackError ? 'Playback unavailable' : isPlaying ? 'Now playing' : 'Paused' }} · {{ currentFolder.name }}</span>
             <strong>{{ currentLesson.title }}</strong>
             <small>{{ formatDuration(currentTime) }} / {{ formatDuration(mediaDuration) }}</small>
           </div>
-          <UButton color="neutral" icon="i-lucide-arrow-up-right" label="Back to player" variant="soft" @click="library.setActiveTab(currentCourse.id)" />
+          <UButton color="neutral" icon="i-lucide-arrow-up-right" label="Back to player" variant="soft" @click="library.setActiveTab(currentFolder.id)" />
         </section>
 
-        <section v-if="isLibraryActive && !loading && recentCourses.length" class="library-view">
+        <section v-if="isLibraryActive && !loading && recentFolders.length" class="library-view">
           <div class="library-heading">
             <h1>Your folders</h1>
             <UButton color="primary" icon="i-lucide-folder-plus" label="Add folder" @click="library.openFolder" />
           </div>
-          <div class="course-grid">
-            <article v-for="course in recentCourses" :key="course.id" class="course-card">
-              <button class="course-card-open" type="button" @click="library.openRecentCourse(course)">
+          <div class="folder-grid">
+            <article v-for="folder in recentFolders" :key="folder.id" class="folder-card">
+              <button class="folder-card-open" type="button" @click="library.openRecentFolder(folder)">
                 <UIcon name="i-lucide-folder" />
-                <strong>{{ course.name }}</strong>
-                <span :title="course.rootPath">{{ course.rootPath }}</span>
-                <small>{{ course.mediaCount }} {{ course.mediaCount === 1 ? 'lesson' : 'lessons' }}</small>
+                <strong>{{ folder.name }}</strong>
+                <span :title="folder.rootPath">{{ folder.rootPath }}</span>
+                <small>{{ folder.mediaCount }} {{ folder.mediaCount === 1 ? 'lesson' : 'lessons' }}</small>
               </button>
-              <UButton class="course-card-reveal" color="neutral" icon="i-lucide-folder-search" label="Show in folder" variant="ghost" @click="revealCourse(course.rootPath)" />
-              <button class="course-card-remove" type="button" :aria-label="`Remove ${course.name} from collection`" title="Remove from collection" @click="removeCourse(course)"><UIcon name="i-lucide-x" /></button>
+              <UButton class="folder-card-reveal" color="neutral" icon="i-lucide-folder-search" label="Show in folder" variant="ghost" @click="revealFolder(folder.rootPath)" />
+              <button class="folder-card-remove" type="button" :aria-label="`Remove ${folder.name} from collection`" title="Remove from collection" @click="removeFolder(folder)"><UIcon name="i-lucide-x" /></button>
             </article>
           </div>
         </section>
@@ -134,22 +134,22 @@
           <UButton color="primary" icon="i-lucide-folder-open" label="Choose a folder" size="lg" @click="library.openFolder" />
         </section>
 
-        <section v-if="currentCourse" v-show="!isLibraryActive" class="course-view">
-          <div v-if="!currentCourse.lessons.length" class="empty-course" role="status">
+        <section v-if="currentFolder" v-show="!isLibraryActive" class="folder-view">
+          <div v-if="!currentFolder.lessons.length" class="empty-folder" role="status">
             <UIcon name="i-lucide-folder-search" />
             <h2>No lessons found</h2>
             <p>Choose a folder containing video or audio files. Subfolders are included.</p>
-            <div class="empty-course-actions">
+            <div class="empty-folder-actions">
               <UButton color="primary" icon="i-lucide-folder-open" label="Choose another folder" @click="library.openFolder" />
-              <UButton color="neutral" icon="i-lucide-folder-search" label="Show in folder" variant="ghost" @click="revealCourse(currentCourse.rootPath)" />
+              <UButton color="neutral" icon="i-lucide-folder-search" label="Show in folder" variant="ghost" @click="revealFolder(currentFolder.rootPath)" />
             </div>
           </div>
 
-          <div v-if="currentCourse.lessons.length" class="course-layout" :class="{ 'course-layout-theater': isTheaterMode }">
+          <div v-if="currentFolder.lessons.length" class="folder-layout" :class="{ 'folder-layout-theater': isTheaterMode }">
             <div class="player-column">
-              <div class="course-title-row">
-                <h1 :title="currentCourse.rootPath">{{ currentCourse.name }}</h1>
-                <UDropdownMenu :items="courseMenuItems" :content="{align: 'end'}">
+              <div class="folder-title-row">
+                <h1 :title="currentFolder.rootPath">{{ currentFolder.name }}</h1>
+                <UDropdownMenu :items="folderMenuItems" :content="{align: 'end'}">
                   <UButton color="neutral" icon="i-lucide-ellipsis" variant="ghost" size="sm" aria-label="Folder actions" title="Folder actions" />
                 </UDropdownMenu>
               </div>
@@ -324,11 +324,11 @@
 
             <aside class="playlist-panel">
               <div class="playlist-header">
-                <div class="course-progress" :title="`${watchedCount} of ${currentCourse.lessons.length} lessons watched`">
-                  <span class="course-progress-bar"><span :style="{width: `${courseProgress}%`}" /></span>
-                  <span>{{ courseProgress }}% · {{ watchedCount }}/{{ currentCourse.lessons.length }}</span>
+                <div class="folder-progress" :title="`${watchedCount} of ${currentFolder.lessons.length} lessons watched`">
+                  <span class="folder-progress-bar"><span :style="{width: `${folderProgress}%`}" /></span>
+                  <span>{{ folderProgress }}% · {{ watchedCount }}/{{ currentFolder.lessons.length }}</span>
                 </div>
-                <p class="course-meta">{{ courseMeta }}</p>
+                <p class="folder-meta">{{ folderMeta }}</p>
               </div>
               <UInput v-model="search" class="playlist-search" icon="i-lucide-search" type="search" aria-label="Search lessons" placeholder="Search lessons" size="md" />
 
@@ -360,7 +360,7 @@
                     <button class="lesson-row-select" type="button" :aria-current="currentLesson?.id === lesson.id ? 'true' : undefined" :title="lesson.relativePath" @click="handleLessonRowClick(lesson)">
                       <span class="lesson-row-copy">
                         <strong>{{ lesson.title }}</strong>
-                        <small>{{ lesson.kind === 'audio' ? 'Audio · ' : '' }}{{ formatDuration(library.lessonProgress(currentCourse.id, lesson.id)?.duration || lesson.duration) }}</small>
+                        <small>{{ lesson.kind === 'audio' ? 'Audio · ' : '' }}{{ formatDuration(library.lessonProgress(currentFolder.id, lesson.id)?.duration || lesson.duration) }}</small>
                         <span v-if="progressForLesson(lesson)" class="lesson-row-progress"><span :style="{width: `${progressForLesson(lesson)}%`}" /></span>
                       </span>
                       <template v-if="currentLesson?.id === lesson.id">
@@ -416,28 +416,28 @@
 <script setup lang="ts">
 import {useDebounceFn, useResizeObserver, useStorage} from '@vueuse/core';
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
-import type {IMediaLesson, IRecentCourse} from '../../shared/types';
-import {useCourseLibrary} from '../composables/useCourseLibrary';
+import type {IMediaLesson, IRecentFolder} from '../../shared/types';
+import {useLibrary} from '../composables/useLibrary';
 
 type TProgressResetRequest = {
-  scope: 'lesson' | 'course';
-  courseId: string;
+  scope: 'lesson' | 'folder';
+  folderId: string;
   lessonId?: string;
   lessonTitle?: string;
 };
 
 interface IPlaybackSession {
-  courseId: string;
+  folderId: string;
   lessonId: string;
   media: HTMLMediaElement;
   ready: boolean;
 }
 
-const library = useCourseLibrary();
+const library = useLibrary();
 const toast = useToast();
 useColorMode().preference = 'dark';
-const recentCourses = library.recentCourses;
-const openCourses = library.openCourses;
+const recentFolders = library.recentFolders;
+const openFolders = library.openFolders;
 const activeTab = library.activeTab;
 const loading = library.loading;
 const error = library.error;
@@ -476,20 +476,20 @@ let progressPersistenceGeneration = 0;
 let isProgressPersistenceSuspended = false;
 let playbackSession: IPlaybackSession | null = null;
 
-const currentCourse = library.playbackCourse;
+const currentFolder = library.playbackFolder;
 const currentLesson = library.playbackLesson;
 const isLibraryActive = computed(() => activeTab.value === 'library');
 
 const filteredLessons = computed(() => {
-  const course = currentCourse.value;
+  const folder = currentFolder.value;
   const query = search.value.trim().toLocaleLowerCase();
-  if (!course) {
+  if (!folder) {
     return [];
   }
   if (!query) {
-    return course.lessons;
+    return folder.lessons;
   }
-  return course.lessons.filter((lesson) => `${lesson.title} ${lesson.fileName} ${lesson.relativePath}`.toLocaleLowerCase().includes(query));
+  return folder.lessons.filter((lesson) => `${lesson.title} ${lesson.fileName} ${lesson.relativePath}`.toLocaleLowerCase().includes(query));
 });
 
 const lessonGroups = computed(() => {
@@ -503,22 +503,22 @@ const lessonGroups = computed(() => {
 });
 
 const watchedCount = computed(() => {
-  const course = currentCourse.value;
-  if (!course) {
+  const folder = currentFolder.value;
+  if (!folder) {
     return 0;
   }
-  const progress = library.progressFor(course.id);
-  return course.lessons.filter((lesson) => progress[lesson.id]?.completed).length;
+  const progress = library.progressFor(folder.id);
+  return folder.lessons.filter((lesson) => progress[lesson.id]?.completed).length;
 });
 
-const courseProgress = computed(() => currentCourse.value ? library.progressPercent(currentCourse.value) : 0);
+const folderProgress = computed(() => currentFolder.value ? library.progressPercent(currentFolder.value) : 0);
 const mediaDuration = computed(() => loadedDuration.value || currentLesson.value?.duration || 0);
 const seekPercent = computed(() => mediaDuration.value ? Math.min(100, currentTime.value / mediaDuration.value * 100) : 0);
 const volumeIcon = computed(() => volume.value === 0 ? 'i-lucide-volume-x' : volume.value < 0.5 ? 'i-lucide-volume-1' : 'i-lucide-volume-2');
 const currentProgress = computed(() => {
-  const course = currentCourse.value;
+  const folder = currentFolder.value;
   const lesson = currentLesson.value;
-  return course && lesson ? library.lessonProgress(course.id, lesson.id) : null;
+  return folder && lesson ? library.lessonProgress(folder.id, lesson.id) : null;
 });
 
 const persistCurrentPosition = useDebounceFn((generation: number) => {
@@ -528,58 +528,58 @@ const persistCurrentPosition = useDebounceFn((generation: number) => {
   void saveCurrentProgress();
 }, 900, {maxWait: 1500});
 
-const visibleCourseTabs = computed(() => openCourses.value);
+const visibleFolderTabs = computed(() => openFolders.value);
 const currentLessonIndex = computed(() => {
-  const course = currentCourse.value;
+  const folder = currentFolder.value;
   const lesson = currentLesson.value;
-  return course && lesson ? course.lessons.findIndex((candidate) => candidate.id === lesson.id) : -1;
+  return folder && lesson ? folder.lessons.findIndex((candidate) => candidate.id === lesson.id) : -1;
 });
 const hasPreviousLesson = computed(() => currentLessonIndex.value > 0);
 const hasNextLesson = computed(() => {
-  const course = currentCourse.value;
-  return Boolean(course && currentLessonIndex.value >= 0 && currentLessonIndex.value < course.lessons.length - 1);
+  const folder = currentFolder.value;
+  return Boolean(folder && currentLessonIndex.value >= 0 && currentLessonIndex.value < folder.lessons.length - 1);
 });
-const previousLesson = computed(() => currentCourse.value?.lessons[currentLessonIndex.value - 1]);
-const nextLesson = computed(() => currentCourse.value?.lessons[currentLessonIndex.value + 1]);
-const continueLabel = computed(() => courseProgress.value === 100 ? 'Watch again' : watchedCount.value || currentProgress.value?.position ? 'Continue' : 'Start');
-const courseMeta = computed(() => {
-  const course = currentCourse.value;
-  if (!course) {
+const previousLesson = computed(() => currentFolder.value?.lessons[currentLessonIndex.value - 1]);
+const nextLesson = computed(() => currentFolder.value?.lessons[currentLessonIndex.value + 1]);
+const continueLabel = computed(() => folderProgress.value === 100 ? 'Watch again' : watchedCount.value || currentProgress.value?.position ? 'Continue' : 'Start');
+const folderMeta = computed(() => {
+  const folder = currentFolder.value;
+  if (!folder) {
     return '';
   }
-  const parts = [`Lesson ${currentLessonIndex.value + 1} of ${course.lessons.length}`];
-  if (course.audioCount && course.videoCount) {
-    parts.push(`${course.videoCount} video, ${course.audioCount} audio`);
+  const parts = [`Lesson ${currentLessonIndex.value + 1} of ${folder.lessons.length}`];
+  if (folder.audioCount && folder.videoCount) {
+    parts.push(`${folder.videoCount} video, ${folder.audioCount} audio`);
   }
-  if (course.totalDuration) {
-    parts.push(formatCourseDuration(course.totalDuration));
+  if (folder.totalDuration) {
+    parts.push(formatFolderDuration(folder.totalDuration));
   }
-  parts.push(formatBytes(course.totalBytes));
+  parts.push(formatBytes(folder.totalBytes));
   // Wrap only between parts, never inside "4 MB" or "Lesson 3 of 12".
   return parts.map((part) => part.replaceAll(' ', '\u00a0')).join(' · ');
 });
-const courseMenuItems = computed(() => {
-  const course = currentCourse.value;
-  if (!course) {
+const folderMenuItems = computed(() => {
+  const folder = currentFolder.value;
+  if (!folder) {
     return [];
   }
   return [
     [
-      {label: continueLabel.value, icon: 'i-lucide-play', disabled: !currentLesson.value, onSelect: resumeCurrentCourse},
-      {label: 'Show in folder', icon: 'i-lucide-folder-search', onSelect: () => revealCourse(course.rootPath)},
+      {label: continueLabel.value, icon: 'i-lucide-play', disabled: !currentLesson.value, onSelect: resumeCurrentFolder},
+      {label: 'Show in folder', icon: 'i-lucide-folder-search', onSelect: () => revealFolder(folder.rootPath)},
     ],
     [
-      {label: 'Reset folder progress', icon: 'i-lucide-rotate-ccw', color: 'error' as const, onSelect: requestCourseProgressReset},
+      {label: 'Reset folder progress', icon: 'i-lucide-rotate-ccw', color: 'error' as const, onSelect: requestFolderProgressReset},
     ],
   ];
 });
-const progressResetTitle = computed(() => progressResetRequest.value?.scope === 'course' ? 'Reset folder progress?' : 'Reset track progress?');
+const progressResetTitle = computed(() => progressResetRequest.value?.scope === 'folder' ? 'Reset folder progress?' : 'Reset track progress?');
 const progressResetDescription = computed(() => {
   const request = progressResetRequest.value;
   if (!request) {
     return '';
   }
-  if (request.scope === 'course') {
+  if (request.scope === 'folder') {
     return 'This clears saved positions and completion state for every track in this folder.';
   }
   return `This clears the saved position and completion state for “${request.lessonTitle}”.`;
@@ -599,7 +599,7 @@ function formatDuration(seconds: number | null | undefined) {
   return `${minutes}:${String(remainder).padStart(2, '0')}`;
 }
 
-function formatCourseDuration(seconds: number) {
+function formatFolderDuration(seconds: number) {
   if (!seconds) {
     return '—';
   }
@@ -617,11 +617,11 @@ function formatBytes(bytes: number) {
 }
 
 function progressForLesson(lesson: IMediaLesson) {
-  const course = currentCourse.value;
-  if (!course) {
+  const folder = currentFolder.value;
+  if (!folder) {
     return 0;
   }
-  const progress = library.lessonProgress(course.id, lesson.id);
+  const progress = library.lessonProgress(folder.id, lesson.id);
   const duration = progress?.duration || lesson.duration || 0;
   if (progress?.completed) {
     return 100;
@@ -630,24 +630,24 @@ function progressForLesson(lesson: IMediaLesson) {
 }
 
 function isLessonComplete(lesson: IMediaLesson) {
-  const course = currentCourse.value;
-  return Boolean(course && library.lessonProgress(course.id, lesson.id)?.completed);
+  const folder = currentFolder.value;
+  return Boolean(folder && library.lessonProgress(folder.id, lesson.id)?.completed);
 }
 
 function hasLessonProgress(lesson: IMediaLesson) {
-  const course = currentCourse.value;
-  const progress = course ? library.lessonProgress(course.id, lesson.id) : null;
+  const folder = currentFolder.value;
+  const progress = folder ? library.lessonProgress(folder.id, lesson.id) : null;
   return Boolean(progress && (progress.completed || progress.position > 0));
 }
 
 function requestLessonProgressReset(lesson: IMediaLesson) {
-  const course = currentCourse.value;
-  if (!course) {
+  const folder = currentFolder.value;
+  if (!folder) {
     return;
   }
   progressResetRequest.value = {
     scope: 'lesson',
-    courseId: course.id,
+    folderId: folder.id,
     lessonId: lesson.id,
     lessonTitle: lesson.title,
   };
@@ -657,14 +657,14 @@ function requestLessonProgressReset(lesson: IMediaLesson) {
   }
 }
 
-function requestCourseProgressReset() {
-  const course = currentCourse.value;
-  if (!course) {
+function requestFolderProgressReset() {
+  const folder = currentFolder.value;
+  if (!folder) {
     return;
   }
   progressResetRequest.value = {
-    scope: 'course',
-    courseId: course.id,
+    scope: 'folder',
+    folderId: folder.id,
   };
   isProgressResetDialogOpen.value = true;
   mediaRef.value?.pause();
@@ -695,20 +695,20 @@ async function confirmProgressReset() {
     return;
   }
   isResettingProgress.value = true;
-  const isCurrentCourse = currentCourse.value?.id === request.courseId;
-  const resetsCurrentLesson = request.scope === 'course' || request.lessonId === currentLesson.value?.id;
-  const resetMedia = resetsCurrentLesson && isCurrentCourse ? mediaRef.value : null;
+  const isCurrentFolder = currentFolder.value?.id === request.folderId;
+  const resetsCurrentLesson = request.scope === 'folder' || request.lessonId === currentLesson.value?.id;
+  const resetMedia = resetsCurrentLesson && isCurrentFolder ? mediaRef.value : null;
   const previousPosition = resetMedia?.currentTime ?? 0;
-  if (resetsCurrentLesson && isCurrentCourse) {
+  if (resetsCurrentLesson && isCurrentFolder) {
     progressPersistenceGeneration += 1;
     isProgressPersistenceSuspended = true;
   }
   try {
-    if (request.scope === 'course') {
-      if (isCurrentCourse) {
+    if (request.scope === 'folder') {
+      if (isCurrentFolder) {
         resetCurrentMedia();
       }
-      await library.clearCourseProgress(request.courseId);
+      await library.clearFolderProgress(request.folderId);
       toast.add({
         title: 'Folder progress reset',
         description: 'All saved positions and completion states were cleared.',
@@ -716,10 +716,10 @@ async function confirmProgressReset() {
         icon: 'i-lucide-rotate-ccw',
       });
     } else if (request.lessonId) {
-      if (isCurrentCourse && request.lessonId === currentLesson.value?.id) {
+      if (isCurrentFolder && request.lessonId === currentLesson.value?.id) {
         resetCurrentMedia();
       }
-      await library.clearLessonProgress(request.courseId, request.lessonId);
+      await library.clearLessonProgress(request.folderId, request.lessonId);
       toast.add({
         title: 'Track progress reset',
         description: `“${request.lessonTitle}” will start from the beginning next time.`,
@@ -785,25 +785,25 @@ function handleLessonRowClick(lesson: IMediaLesson) {
   }
 }
 
-function resumeCurrentCourse() {
-  const course = currentCourse.value;
-  if (!course) {
+function resumeCurrentFolder() {
+  const folder = currentFolder.value;
+  if (!folder) {
     return;
   }
-  const lesson = library.findResumeLesson(course);
+  const lesson = library.findResumeLesson(folder);
   if (lesson) {
     selectLesson(lesson);
   }
 }
 
 function navigateLesson(direction: 1 | -1) {
-  const course = currentCourse.value;
+  const folder = currentFolder.value;
   const lesson = currentLesson.value;
-  if (!course || !lesson) {
+  if (!folder || !lesson) {
     return;
   }
-  const index = course.lessons.findIndex((candidate) => candidate.id === lesson.id);
-  const nextLesson = course.lessons[index + direction];
+  const index = folder.lessons.findIndex((candidate) => candidate.id === lesson.id);
+  const nextLesson = folder.lessons[index + direction];
   if (nextLesson) {
     selectLesson(nextLesson);
   }
@@ -1018,8 +1018,8 @@ async function saveCurrentProgress(completed = false) {
   const media = session.media;
   const position = media.currentTime;
   const duration = Number.isFinite(media.duration) ? media.duration : 0;
-  const previous = library.lessonProgress(session.courseId, session.lessonId);
-  await library.saveProgress(session.courseId, session.lessonId, {
+  const previous = library.lessonProgress(session.folderId, session.lessonId);
+  await library.saveProgress(session.folderId, session.lessonId, {
     position: Number.isFinite(position) ? position : 0,
     duration,
     completed: completed || Boolean(previous?.completed),
@@ -1100,10 +1100,10 @@ async function handleEnded(event: Event) {
   if (!isCurrentMediaEvent(event)) {
     return;
   }
-  const course = currentCourse.value;
+  const folder = currentFolder.value;
   const lesson = currentLesson.value;
-  const lessonIndex = course && lesson ? course.lessons.findIndex((candidate) => candidate.id === lesson.id) : -1;
-  const nextLesson = course && lessonIndex >= 0 ? course.lessons[lessonIndex + 1] : null;
+  const lessonIndex = folder && lesson ? folder.lessons.findIndex((candidate) => candidate.id === lesson.id) : -1;
+  const nextLesson = folder && lessonIndex >= 0 ? folder.lessons[lessonIndex + 1] : null;
   isPlaying.value = false;
   showPlayerControls();
   await saveCurrentProgress(true);
@@ -1225,7 +1225,7 @@ function handleKeyboard(event: KeyboardEvent) {
   }
 }
 
-watch([() => currentCourse.value?.id, () => currentLesson.value?.id], async ([courseId, lessonId]) => {
+watch([() => currentFolder.value?.id, () => currentLesson.value?.id], async ([folderId, lessonId]) => {
   const requestId = ++lessonLoadRequest;
   void saveCurrentProgress();
   playbackSession?.media.pause();
@@ -1255,10 +1255,10 @@ watch([() => currentCourse.value?.id, () => currentLesson.value?.id], async ([co
     isFullWindow.value = false;
     return;
   }
-  if (!courseId || !lessonId) {
+  if (!folderId || !lessonId) {
     return;
   }
-  playbackSession = {courseId, lessonId, media, ready: false};
+  playbackSession = {folderId, lessonId, media, ready: false};
   const shouldAutoplay = autoplayLessonId.value === lessonId;
   autoplayLessonId.value = null;
   media.load();
@@ -1307,24 +1307,24 @@ async function openMediaExternally() {
   }
 }
 
-async function revealCourse(rootPath: string) {
+async function revealFolder(rootPath: string) {
   try {
     if (!window.evbPlayer) throw new Error('Showing folders is available in the desktop app.');
-    await window.evbPlayer.revealCourse(rootPath);
+    await window.evbPlayer.revealFolder(rootPath);
   } catch (cause) {
     toast.add({title: 'Could not show the folder', description: cause instanceof Error ? cause.message : 'Check that the folder is still available.', color: 'error'});
   }
 }
 
-async function removeCourse(course: IRecentCourse) {
-  await library.removeRecentCourse(course);
-  if (!recentCourses.value.some((candidate) => candidate.id === course.id)) {
-    toast.add({title: 'Folder removed', description: 'Its files and saved progress are kept.', actions: [{label: 'Undo', onClick: () => library.openRecentCourse(course)}]});
+async function removeFolder(folder: IRecentFolder) {
+  await library.removeRecentFolder(folder);
+  if (!recentFolders.value.some((candidate) => candidate.id === folder.id)) {
+    toast.add({title: 'Folder removed', description: 'Its files and saved progress are kept.', actions: [{label: 'Undo', onClick: () => library.openRecentFolder(folder)}]});
   }
 }
 
-async function closeCourse(courseId: string) {
-  library.closeCourse(courseId);
+async function closeFolder(folderId: string) {
+  library.closeFolder(folderId);
   await nextTick();
   document.querySelector<HTMLButtonElement>('.tab-strip [aria-current="page"]')?.focus();
 }
@@ -1336,10 +1336,10 @@ function saveBeforeLeaving() {
 async function retryProgressWrites() {
   isRetryingProgress.value = true;
   const session = playbackSession;
-  const previousProgress = session && library.lessonProgress(session.courseId, session.lessonId);
+  const previousProgress = session && library.lessonProgress(session.folderId, session.lessonId);
   try {
     await library.retryProgressWrites();
-    if (session && session === playbackSession && previousProgress && !library.lessonProgress(session.courseId, session.lessonId)) {
+    if (session && session === playbackSession && previousProgress && !library.lessonProgress(session.folderId, session.lessonId)) {
       progressPersistenceGeneration += 1;
       isProgressPersistenceSuspended = true;
       resetCurrentMedia();
@@ -1351,7 +1351,7 @@ async function retryProgressWrites() {
   }
 }
 
-watch(() => currentCourse.value?.id, () => {search.value = '';});
+watch(() => currentFolder.value?.id, () => {search.value = '';});
 watch(isLibraryActive, (libraryActive) => {if (libraryActive) isFullWindow.value = false;});
 watch(search, async () => {if (!search.value) {await nextTick(); revealCurrentLesson();}});
 
