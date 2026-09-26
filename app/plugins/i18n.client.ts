@@ -3,6 +3,7 @@ import {createI18n} from 'vue-i18n';
 import {messages, pluralRules, resolveSupportedLocale} from '../../shared/i18n';
 import {COLOR_SCHEME_HINT_COOKIE, writeBrowserCookie} from '../../shared/theme';
 import type {TTheme} from '../../shared/types';
+import {useActiveTheme} from '../composables/useActiveTheme';
 import {getPlayerApi} from '../utils/playerApi';
 
 export default defineNuxtPlugin(async (nuxtApp) => {
