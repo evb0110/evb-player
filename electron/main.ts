@@ -652,7 +652,7 @@ function createWindow() {
       backgroundThrottling: !HIDE_WINDOW,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
       preload: join(__dirname, 'preload.js'),
     },
   });

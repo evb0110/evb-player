@@ -137,7 +137,7 @@ jobs:
           assets="$(gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name')"
           echo "$assets"
           for expected in "EVB-Player-$version-arm64.dmg" "EVB-Player-$version-arm64.zip" latest-mac.yml \
-            "EVB-Player-$version-x64-setup.exe" latest.yml "EVB-Player-$version-x64.deb" latest-linux.yml; do
+            "EVB-Player-$version-x64-setup.exe" latest.yml "EVB-Player-$version-amd64.deb" latest-linux.yml; do
             if ! grep -qx "$expected" <<< "$assets"; then
               echo "::error::Missing release asset $expected"
               exit 1

@@ -11,7 +11,8 @@ interface IGithubRelease {
 const INSTALLERS: Record<TPlatform, RegExp> = {
   mac: /^EVB-Player-[\d.]+-arm64\.dmg$/,
   win: /^EVB-Player-[\d.]+-x64-setup\.exe$/,
-  linux: /^EVB-Player-[\d.]+-x64\.deb$/,
+  // electron-builder names the .deb with Debian's architecture, amd64.
+  linux: /^EVB-Player-[\d.]+-amd64\.deb$/,
 };
 
 /** The latest published release and its three installers, or null before the first release. */
