@@ -7,49 +7,13 @@
         <span v-if="release" class="brand-version">v{{ release.version }}</span>
       </NuxtLink>
       <div class="header-actions">
-        <UPopover v-model:open="languageMenuOpen" :content="{ align: 'end', sideOffset: 8 }">
-          <UButton
-            :label="activeLanguage.name"
-            :icon="activeLanguage.icon"
-            :aria-label="`${t('header.language')}: ${activeLanguage.name}`"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            class="header-control language-control"
-          />
-          <template #content>
-            <div class="language-menu">
-              <UButton
-                v-for="option in LOCALE_OPTIONS"
-                :key="option.code"
-                :label="option.name"
-                :icon="option.icon"
-                color="neutral"
-                :variant="option.code === locale ? 'soft' : 'ghost'"
-                size="sm"
-                class="language-option"
-                :aria-pressed="option.code === locale"
-                @click="selectLocale(option.code)"
-              />
-            </div>
-          </template>
-        </UPopover>
-
-        <UDropdownMenu :items="themeItems" :content="{ align: 'end', sideOffset: 8 }">
-          <UButton
-            :label="activeTheme.label"
-            :icon="activeTheme.icon"
-            :aria-label="`${t('header.theme')}: ${activeTheme.label}`"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            class="header-control theme-control"
-          />
+        <UDropdownMenu :items="themeItems" :content="{ align: 'end' }">
+          <UButton color="neutral" :icon="activeTheme.icon" variant="ghost" :aria-label="t('header.theme')" :title="t('header.theme')" class="theme-control" />
         </UDropdownMenu>
-
-        <a class="header-link" href="https://github.com/evb0110/evb-player" :aria-label="t('header.github')">
-          <UIcon name="i-simple-icons-github" />
-        </a>
+        <UDropdownMenu :items="languageItems" :content="{ align: 'end' }">
+          <UButton color="neutral" :icon="activeLanguage.icon" variant="ghost" :aria-label="t('header.language')" :title="t('header.language')" class="language-control" />
+        </UDropdownMenu>
+        <UButton color="neutral" icon="i-simple-icons-github" variant="ghost" to="https://github.com/evb0110/evb-player" :aria-label="t('header.github')" :title="t('header.github')" />
       </div>
     </header>
 
@@ -178,7 +142,6 @@ const localePath = useLocalePath();
 const { data: release } = await useFetch<ILatestRelease | null>('/api/release', { default: () => null });
 
 const platform = ref<TPlatform>('mac');
-const languageMenuOpen = ref(false);
 const selectedDetails = computed(() => ({
   title: t(`downloads.options.${platform.value}.title`),
   detail: t(`downloads.options.${platform.value}.detail`),
@@ -200,16 +163,20 @@ const themeOptions = computed<IThemeOption[]>(() => [
 const colorMode = useColorMode();
 const resolvedTheme = computed(() => colorMode.value === 'dark' ? 'dark' : 'light');
 const activeTheme = computed(() => themeOptions.value.find((option) => option.value === colorMode.preference) ?? themeOptions.value[0]!);
+// The same menus as the app's top row: an icon and label per item, with a check on the active one.
 const themeItems = computed(() => themeOptions.value.map((option) => ({
   label: option.label,
   icon: option.icon,
-  type: 'checkbox' as const,
-  checked: option.value === colorMode.preference,
-  onUpdateChecked: (checked: boolean) => {
-    if (checked) {
-      colorMode.preference = option.value;
-    }
+  onSelect: () => {
+    colorMode.preference = option.value;
   },
+  ...(option.value === colorMode.preference ? { trailingIcon: 'i-lucide-check' } : {}),
+})));
+const languageItems = computed(() => LOCALE_OPTIONS.map((option) => ({
+  label: option.name,
+  icon: option.icon,
+  onSelect: () => void selectLocale(option.code),
+  ...(option.code === locale.value ? { trailingIcon: 'i-lucide-check' } : {}),
 })));
 
 function formatSize(bytes: number) {
@@ -217,7 +184,6 @@ function formatSize(bytes: number) {
 }
 
 async function selectLocale(code: TLocale) {
-  languageMenuOpen.value = false;
   if (code !== locale.value) {
     await setLocale(code);
   }
@@ -269,25 +235,7 @@ useSeoMeta({
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.header-control {
-  height: 36px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--ink-muted);
-}
-
-.language-menu {
-  display: grid;
-  width: 220px;
   gap: 2px;
-  padding: 4px;
-}
-
-.language-option {
-  justify-content: flex-start;
 }
 
 .brand {
@@ -310,20 +258,6 @@ useSeoMeta({
   color: var(--ink-subtle);
   font-family: var(--mono);
   font-size: 13px;
-}
-
-.header-link {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  font-size: 18px;
-}
-
-.header-link:hover {
-  background: var(--paper-raised);
 }
 
 .hero {
