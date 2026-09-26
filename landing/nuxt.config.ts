@@ -1,4 +1,4 @@
-import { transformWithOxc } from 'vite';
+import { transform } from 'esbuild';
 
 const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://evb-player.vercel.app';
 
@@ -41,7 +41,16 @@ export default defineNuxtConfig({
           if (!/app\/films\/.*\.tsx$/.test(id)) {
             return null;
           }
-          return transformWithOxc(code, id, { lang: 'tsx', jsx: { runtime: 'automatic', importSource: 'react' } });
+          // An empty tsconfig: the nearest one on disk belongs to the Electron app and extends its .nuxt folder.
+          const result = await transform(code, {
+            loader: 'tsx',
+            jsx: 'automatic',
+            jsxImportSource: 'react',
+            sourcefile: id,
+            sourcemap: true,
+            tsconfigRaw: {},
+          });
+          return { code: result.code, map: result.map };
         },
       },
     ],
