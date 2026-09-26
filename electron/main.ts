@@ -9,7 +9,6 @@ import type {
   IFolder,
   IMediaTrack,
   IPlayerSettings,
-  IRecentFolder,
   TLocale,
   TMenuAction,
   TTheme,
@@ -21,8 +20,10 @@ import {
   createDefaultState,
   isPlainRecord,
   isStoredIdentifier,
+  MAX_LIBRARY_FOLDERS,
   sanitizeTrackProgress,
   sanitizeStoredState,
+  summarizeRecentFolders,
   type IStoredState,
 } from './state';
 import {readDurationMap} from './durations';
@@ -460,7 +461,7 @@ async function scanFolder(folderPath: string): Promise<IFolder> {
         lastOpenedAt: Date.now(),
       },
       ...state.recentFolders.filter((recentFolder) => recentFolder.id !== folder.id),
-    ].slice(0, 12);
+    ].slice(0, MAX_LIBRARY_FOLDERS);
   });
 
   return folder;
@@ -887,7 +888,8 @@ function registerIpcHandlers() {
     if (!isTrustedRenderer(event.sender)) {
       return [];
     }
-    return (await ensureState()).recentFolders;
+    const state = await ensureState();
+    return summarizeRecentFolders(state.recentFolders, state.progress);
   });
 
   ipcMain.handle('folder:remove-recent', async (event, rootPath: unknown) => {

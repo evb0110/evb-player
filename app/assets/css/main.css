@@ -14,7 +14,6 @@
   --shell-surface-raised: #1d2125;
   --shell-surface-soft: #20252a;
   --shell-tab-background: #131618;
-  --shell-sidebar-background: rgb(18 21 23 / 50%);
   --shell-border: rgb(255 255 255 / 8%);
   --shell-border-strong: rgb(255 255 255 / 14%);
   --shell-hover: rgb(255 255 255 / 4%);
@@ -57,7 +56,6 @@ html.light {
   --shell-surface-raised: #ffffff;
   --shell-surface-soft: #edf0f1;
   --shell-tab-background: #edf0f1;
-  --shell-sidebar-background: #eef1f2;
   --shell-border: rgb(25 37 43 / 12%);
   --shell-border-strong: rgb(25 37 43 / 18%);
   --shell-hover: rgb(25 37 43 / 5%);
@@ -254,155 +252,14 @@ button:disabled {
 }
 
 .workspace {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
   max-width: 1680px;
   min-height: calc(100vh - 44px);
   margin: 0 auto;
 }
 
-.workspace.workspace-folder {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 /* Leave exactly the playlist panel's bottom gap so a full panel never scrolls the page. */
 .workspace-folder .main-content {
   padding-bottom: 20px;
-}
-
-.library-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 26px 18px 22px;
-  border-right: 1px solid var(--shell-border);
-  background: var(--shell-sidebar-background);
-}
-
-.sidebar-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-  color: var(--shell-text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.sidebar-count {
-  color: var(--shell-text-subtle);
-  font-variant-numeric: tabular-nums;
-}
-
-.recent-folder-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.recent-folder {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  color: var(--shell-text-muted);
-  background: transparent;
-  text-align: left;
-  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
-}
-
-.recent-folder-open {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  flex: 1;
-  gap: 10px;
-  padding: 10px 4px 10px 8px;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  text-align: left;
-}
-
-.recent-folder:hover,
-.recent-folder-active {
-  border-color: var(--shell-border);
-  color: var(--shell-text);
-  background: var(--shell-hover);
-}
-
-.recent-folder-active {
-  border-color: var(--shell-accent-border);
-  background: var(--shell-accent-soft);
-}
-
-.recent-folder-icon {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  flex: none;
-  place-items: center;
-  border-radius: 7px;
-  color: var(--shell-accent);
-  background: var(--shell-accent-icon-background);
-}
-
-.recent-folder-icon .iconify {
-  width: 15px;
-  height: 15px;
-}
-
-.recent-folder-copy {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.recent-folder-copy strong {
-  overflow: hidden;
-  color: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.recent-folder-copy small {
-  color: var(--shell-text-subtle);
-  font-size: 10px;
-  white-space: nowrap;
-}
-
-.recent-folder-arrow {
-  display: none;
-}
-
-.recent-folder-remove {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  flex: none;
-  margin-right: 5px;
-  place-items: center;
-  border: 0;
-  border-radius: 6px;
-  color: var(--shell-text-subtle);
-  background: transparent;
-}
-
-.recent-folder-remove:hover {
-  color: var(--shell-text);
-  background: var(--shell-hover-strong);
-}
-
-.recent-folder-remove .iconify {
-  width: 13px;
-  height: 13px;
 }
 
 .main-content {
@@ -1258,30 +1115,13 @@ button:disabled {
 }
 
 @media (max-width: 1180px) {
-  .workspace {
-    grid-template-columns: 200px minmax(0, 1fr);
-  }
-
   .folder-layout {
     grid-template-columns: minmax(0, 1fr) 270px;
     gap: 16px;
   }
-
-  .library-sidebar {
-    padding-right: 12px;
-    padding-left: 12px;
-  }
 }
 
 @media (max-width: 900px) {
-  .workspace {
-    display: block;
-  }
-
-  .library-sidebar {
-    display: none;
-  }
-
   .folder-layout {
     grid-template-columns: 1fr;
   }
@@ -1299,6 +1139,22 @@ button:disabled {
 @media (max-width: 650px) {
   .main-content {
     padding: 25px 15px 44px;
+  }
+
+  .library-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .library-heading-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .library-search {
+    width: auto;
+    min-width: 0;
+    flex: 1;
   }
 
   .track-heading {
@@ -1350,10 +1206,70 @@ button:disabled {
   gap: 16px;
 }
 
+.library-heading-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
 .library-heading h1 {
   margin: 0;
   font-size: 28px;
   font-weight: 700;
+}
+
+.library-folder-count {
+  color: var(--shell-text-subtle);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.library-heading-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.library-search {
+  width: min(280px, 25vw);
+}
+
+.library-view-toggle {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--shell-border-strong);
+  border-radius: 8px;
+  background: var(--shell-surface);
+}
+
+.library-view-button {
+  display: grid;
+  width: 32px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  color: var(--shell-text-muted);
+  background: transparent;
+}
+
+.library-view-button[aria-pressed="true"] {
+  color: var(--shell-accent-foreground);
+  background: var(--shell-accent);
+}
+
+.library-view-button .iconify {
+  width: 16px;
+  height: 16px;
+}
+
+.library-empty-results {
+  margin: 24px 0 0;
+  padding: 28px 16px;
+  border: 1px dashed var(--shell-border-strong);
+  border-radius: 10px;
+  color: var(--shell-text-muted);
+  text-align: center;
 }
 
 .library-player {
@@ -1421,7 +1337,7 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
   gap: 16px;
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 .folder-card {
@@ -1458,7 +1374,7 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.folder-card-open span:not(.iconify),
+.folder-card-location,
 .folder-card-open small {
   max-width: 100%;
   overflow: hidden;
@@ -1466,6 +1382,228 @@ button:disabled {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
+}
+
+.folder-card-progress {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  color: var(--shell-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.folder-card-last-opened {
+  color: var(--shell-text-subtle);
+}
+
+.folder-table {
+  margin-top: 20px;
+  overflow: hidden;
+  border: 1px solid var(--shell-border-strong);
+  border-radius: 10px;
+  background: var(--shell-surface);
+}
+
+.folder-table [data-slot="base"] {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.folder-table [data-slot="th"],
+.folder-table [data-slot="td"] {
+  padding: 11px 12px;
+}
+
+.folder-table-name-column {
+  width: 22%;
+}
+
+.folder-table-location-column {
+  width: 25%;
+}
+
+.folder-table-tracks-column {
+  width: 10%;
+}
+
+.folder-table-progress-column {
+  width: 15%;
+}
+
+.folder-table-last-opened-column {
+  width: 16%;
+}
+
+/* Relative times read lowercase inside "Last opened …" on cards; the table cell stands alone. */
+.folder-table-last-opened-column::first-letter {
+  text-transform: uppercase;
+}
+
+.folder-table-actions-column {
+  width: 96px;
+}
+
+@media (max-width: 900px) {
+  .folder-table-location-column {
+    display: none !important;
+  }
+
+  .folder-table-name-column {
+    width: 32%;
+  }
+
+  .folder-table-tracks-column {
+    width: 14%;
+  }
+
+  .folder-table-progress-column {
+    width: 20%;
+  }
+
+  .folder-table-last-opened-column {
+    width: 22%;
+  }
+
+  .folder-table-actions-column {
+    width: 78px;
+  }
+}
+
+@media (max-width: 560px) {
+  .folder-table [data-slot="th"],
+  .folder-table [data-slot="td"] {
+    padding: 4px;
+  }
+
+  .folder-table-name-column {
+    width: 25%;
+  }
+
+  .folder-table-tracks-column {
+    width: 17%;
+  }
+
+  .folder-table-progress-column {
+    width: 20%;
+  }
+
+  .folder-table-last-opened-column {
+    width: 20%;
+  }
+
+  .folder-table-actions-column {
+    width: 18%;
+  }
+
+  .folder-table-actions {
+    gap: 2px;
+  }
+
+  .folder-table-action {
+    width: 24px;
+    height: 24px;
+  }
+
+  .folder-table-progress {
+    gap: 5px;
+  }
+}
+
+.folder-table [data-slot="th"] {
+  color: var(--shell-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.folder-table [data-slot="tr"][data-selectable="true"] {
+  cursor: pointer;
+}
+
+.folder-table tbody [data-slot="tr"]:hover {
+  background: var(--shell-hover);
+}
+
+.folder-table-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
+.folder-table-sort .iconify {
+  width: 13px;
+  height: 13px;
+}
+
+.folder-table-name {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.folder-table-name .iconify {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--shell-accent);
+}
+
+.folder-table-location {
+  display: block;
+  overflow: hidden;
+  color: var(--shell-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-table-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--shell-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.folder-table-progress .folder-progress-bar {
+  min-width: 24px;
+}
+
+.folder-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.folder-table-action {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  color: var(--shell-text-muted);
+  background: transparent;
+}
+
+.folder-table-action:hover {
+  color: var(--shell-text);
+  background: var(--shell-hover-strong);
+}
+
+.folder-table-action .iconify {
+  width: 15px;
+  height: 15px;
 }
 
 .folder-card-remove {

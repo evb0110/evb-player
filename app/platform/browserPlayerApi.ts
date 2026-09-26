@@ -17,8 +17,10 @@ import {isTheme, readCookieValue, THEME_COOKIE, writeBrowserCookie} from '../../
 import {
   isPlainRecord,
   isStoredIdentifier,
+  MAX_LIBRARY_FOLDERS,
   sanitizeProgress,
   sanitizeRecentFolders,
+  summarizeRecentFolders,
 } from '../../shared/state';
 import {
   compareMediaTracks,
@@ -264,7 +266,7 @@ async function finishFolderScan(
   state.recentFolders = [
     {id: folderId, name, rootPath: name, mediaCount: tracks.length, lastOpenedAt: Date.now()},
     ...state.recentFolders.filter((recentFolder) => recentFolder.id !== folderId),
-  ].slice(0, 12);
+  ].slice(0, MAX_LIBRARY_FOLDERS);
   writeStoredState();
   return folder;
 }
@@ -423,7 +425,8 @@ export const browserPlayerApi: IPlayerApi = {
     return scanDirectoryHandle(handle, folderId);
   },
   async getRecentFolders() {
-    return [...readStoredState().recentFolders];
+    const state = readStoredState();
+    return summarizeRecentFolders(state.recentFolders, state.progress);
   },
   async removeRecentFolder(rootPath: string, folderId?: string) {
     const state = readStoredState();

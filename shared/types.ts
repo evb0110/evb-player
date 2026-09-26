@@ -54,6 +54,10 @@ export interface IRecentFolder {
   lastOpenedAt: number;
 }
 
+export interface IRecentFolderSummary extends IRecentFolder {
+  completedCount: number;
+}
+
 export interface ITrackProgress {
   position: number;
   duration: number;
@@ -83,7 +87,7 @@ export interface IPlayerApi {
   chooseFolder(): Promise<IFolder | null>;
   openRecentFolder(rootPath: string, folderId?: string): Promise<IFolder | null>;
   restoreLastFolder(): Promise<IFolder | null>;
-  getRecentFolders(): Promise<IRecentFolder[]>;
+  getRecentFolders(): Promise<IRecentFolderSummary[]>;
   removeRecentFolder(rootPath: string, folderId?: string): Promise<void>;
   closeFolder(folderId: string): Promise<void>;
   revealFolder(rootPath: string): Promise<void>;

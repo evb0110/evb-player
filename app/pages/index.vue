@@ -39,41 +39,6 @@
     </nav>
 
     <div class="workspace" :class="{ 'workspace-folder': !isLibraryActive }">
-      <aside v-if="isLibraryActive" class="library-sidebar">
-        <div class="sidebar-title-row">
-          <span>{{ t('library.folders') }}</span>
-          <span class="sidebar-count">{{ recentFolders.length }}</span>
-        </div>
-
-        <div v-if="recentFolders.length" class="recent-folder-list">
-          <div
-            v-for="recentFolder in recentFolders"
-            :key="recentFolder.id"
-            class="recent-folder"
-            :class="{ 'recent-folder-active': activeTab === recentFolder.id }"
-          >
-            <button class="recent-folder-open" type="button" :title="recentFolder.rootPath" :disabled="loading" @click="library.openRecentFolder(recentFolder)">
-              <span class="recent-folder-icon"><UIcon name="i-lucide-folder" /></span>
-              <span class="recent-folder-copy">
-                <strong>{{ recentFolder.name }}</strong>
-                <small>{{ formatTrackCount(recentFolder.mediaCount) }}</small>
-              </span>
-              <UIcon class="recent-folder-arrow" name="i-lucide-chevron-right" />
-            </button>
-            <button
-              class="recent-folder-remove"
-              type="button"
-              :aria-label="t('library.removeFromCollection', {name: recentFolder.name})"
-              :title="t('library.removeFolder')"
-              :disabled="loading"
-              @click="removeFolder(recentFolder)"
-            >
-              <UIcon name="i-lucide-x" />
-            </button>
-          </div>
-        </div>
-      </aside>
-
       <main class="main-content">
         <div v-if="error" class="error-banner" role="alert">
           <UIcon name="i-lucide-circle-alert" />
@@ -111,21 +76,110 @@
 
         <section v-if="isLibraryActive && !loading && recentFolders.length" class="library-view">
           <div class="library-heading">
-            <h1>{{ t('library.yourFolders') }}</h1>
-            <UButton color="primary" icon="i-lucide-folder-plus" :label="t('library.addFolder')" @click="library.openFolder" />
+            <div class="library-heading-title">
+              <h1>{{ t('library.yourFolders') }}</h1>
+              <span class="library-folder-count">{{ formatFolderCount(recentFolders.length) }}</span>
+            </div>
+            <div class="library-heading-controls">
+              <UInput
+                v-model="librarySearch"
+                class="library-search"
+                icon="i-lucide-search"
+                :aria-label="t('library.searchFolders')"
+                :placeholder="t('library.searchFolders')"
+              />
+              <div class="library-view-toggle" role="group" :aria-label="t('library.viewOptions')">
+                <UTooltip :text="t('library.cardsView')">
+                  <button class="library-view-button" type="button" :aria-label="t('library.cardsView')" :aria-pressed="libraryView === 'cards'" @click="libraryView = 'cards'">
+                    <UIcon name="i-lucide-layout-grid" />
+                  </button>
+                </UTooltip>
+                <UTooltip :text="t('library.tableView')">
+                  <button class="library-view-button" type="button" :aria-label="t('library.tableView')" :aria-pressed="libraryView === 'table'" @click="libraryView = 'table'">
+                    <UIcon name="i-lucide-list" />
+                  </button>
+                </UTooltip>
+              </div>
+              <UButton color="primary" icon="i-lucide-folder-plus" :label="t('library.addFolder')" @click="library.openFolder" />
+            </div>
           </div>
-          <div class="folder-grid">
-            <article v-for="folder in recentFolders" :key="folder.id" class="folder-card">
+
+          <div v-if="filteredRecentFolders.length && libraryView === 'cards'" class="folder-grid">
+            <article v-for="folder in filteredRecentFolders" :key="folder.id" class="folder-card">
               <button class="folder-card-open" type="button" @click="library.openRecentFolder(folder)">
                 <UIcon name="i-lucide-folder" />
                 <strong>{{ folder.name }}</strong>
-                <span :title="folder.rootPath">{{ folder.rootPath }}</span>
+                <span class="folder-card-location" :title="folder.rootPath">{{ folder.rootPath }}</span>
                 <small>{{ formatTrackCount(folder.mediaCount) }}</small>
+                <span class="folder-card-progress">
+                  <span class="folder-progress-bar" role="progressbar" :aria-label="t('library.columnProgress')" :aria-valuenow="folderProgressPercent(folder)" aria-valuemin="0" aria-valuemax="100">
+                    <span :style="{width: `${folderProgressPercent(folder)}%`}" />
+                  </span>
+                  <span>{{ formatPercent(folderProgressPercent(folder)) }}</span>
+                </span>
+                <small class="folder-card-last-opened">{{ t('library.lastOpenedDate', {date: formatLastOpened(folder.lastOpenedAt)}) }}</small>
               </button>
               <UButton v-if="capabilities.revealFolder" class="folder-card-reveal" color="neutral" icon="i-lucide-folder-search" :label="t('library.showInFolder')" variant="ghost" @click="revealFolder(folder.rootPath)" />
-              <button class="folder-card-remove" type="button" :aria-label="t('library.removeFromCollection', {name: folder.name})" :title="t('library.removeFolder')" @click="removeFolder(folder)"><UIcon name="i-lucide-x" /></button>
+              <UTooltip :text="t('library.removeFolder')">
+                <button class="folder-card-remove" type="button" :aria-label="t('library.removeFromCollection', {name: folder.name})" @click="removeFolder(folder)"><UIcon name="i-lucide-x" /></button>
+              </UTooltip>
             </article>
           </div>
+
+          <UTable
+            v-else-if="filteredRecentFolders.length && libraryView === 'table'"
+            class="folder-table"
+            :data="folderTableRows"
+            :columns="folderTableColumns"
+            v-model:sorting="folderTableSorting"
+            :onSelect="openFolderTableRow"
+            @keydown.enter="handleFolderTableEnter"
+          >
+            <template v-for="sortable in sortableFolderColumns" #[`${sortable.id}-header`]="{column}">
+              <button class="folder-table-sort" type="button" :aria-label="sortLabel(sortable.label, column.getIsSorted())" @click="column.toggleSorting(column.getIsSorted() === 'asc')">
+                {{ sortable.label }}
+                <UIcon v-if="column.getIsSorted()" :name="column.getIsSorted() === 'asc' ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'" />
+              </button>
+            </template>
+            <template #rootPath-header>
+              {{ t('library.columnLocation') }}
+            </template>
+            <template #name-cell="{row}">
+              <span class="folder-table-name"><UIcon name="i-lucide-folder" />{{ row.original.name }}</span>
+            </template>
+            <template #rootPath-cell="{row}">
+              <UTooltip :text="row.original.rootPath">
+                <span class="folder-table-location" :title="row.original.rootPath">{{ row.original.rootPath }}</span>
+              </UTooltip>
+            </template>
+            <template #mediaCount-cell="{row}">
+              {{ formatTrackCount(row.original.mediaCount) }}
+            </template>
+            <template #completionPercent-cell="{row}">
+              <span class="folder-table-progress">
+                <span class="folder-progress-bar" role="progressbar" :aria-label="t('library.columnProgress')" :aria-valuenow="row.original.completionPercent" aria-valuemin="0" aria-valuemax="100"><span :style="{width: `${row.original.completionPercent}%`}" /></span>
+                <span>{{ formatPercent(row.original.completionPercent) }}</span>
+              </span>
+            </template>
+            <template #lastOpenedAt-cell="{row}">
+              {{ formatLastOpened(row.original.lastOpenedAt) }}
+            </template>
+            <template #actions-header>
+              {{ t('library.columnActions') }}
+            </template>
+            <template #actions-cell="{row}">
+              <span class="folder-table-actions">
+                <UTooltip v-if="capabilities.revealFolder" :text="t('library.showInFolder')">
+                  <button class="folder-table-action" type="button" :aria-label="t('library.showInFolder')" @click="revealFolder(row.original.rootPath)"><UIcon name="i-lucide-folder-search" /></button>
+                </UTooltip>
+                <UTooltip :text="t('library.removeFolder')">
+                  <button class="folder-table-action" type="button" :aria-label="t('library.removeFromCollection', {name: row.original.name})" @click="removeFolder(row.original)"><UIcon name="i-lucide-x" /></button>
+                </UTooltip>
+              </span>
+            </template>
+          </UTable>
+
+          <p v-if="!filteredRecentFolders.length" class="library-empty-results" role="status">{{ t('library.noFolderMatches', {query: librarySearch.trim()}) }}</p>
         </section>
 
         <section v-else-if="isLibraryActive && !loading" class="welcome-panel">
@@ -440,7 +494,8 @@
 import {useDebounceFn, useResizeObserver, useStorage} from '@vueuse/core';
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useI18n} from 'vue-i18n';
-import type {IMediaTrack, IPlayerApi, IPlayerCapabilities, IRecentFolder, IUpdateStatus, TLocale, TMenuAction, TTheme} from '../../shared/types';
+import type {TableColumn, TableRow} from '@nuxt/ui';
+import type {IMediaTrack, IPlayerApi, IPlayerCapabilities, IRecentFolder, IRecentFolderSummary, IUpdateStatus, TLocale, TMenuAction, TTheme} from '../../shared/types';
 import LanguageMenu from '../../shared/ui/LanguageMenu.vue';
 import ThemeToggle from '../../shared/ui/ThemeToggle.vue';
 import {useLibrary} from '../composables/useLibrary';
@@ -453,6 +508,12 @@ type TProgressResetRequest = {
   trackId?: string;
   trackTitle?: string;
 };
+
+type TLibraryView = 'cards' | 'table';
+
+interface IFolderLibraryTableRow extends IRecentFolderSummary {
+  completionPercent: number;
+}
 
 interface IPlaybackSession {
   folderId: string;
@@ -473,6 +534,11 @@ const activeTab = library.activeTab;
 const loading = library.loading;
 const error = library.error;
 const search = ref('');
+const librarySearch = ref('');
+const libraryView = useStorage<TLibraryView>('evb-player-library-view', 'cards');
+if (libraryView.value !== 'cards' && libraryView.value !== 'table') {
+  libraryView.value = 'cards';
+}
 const mediaRef = ref<HTMLVideoElement | HTMLAudioElement | null>(null);
 const playerStageRef = ref<HTMLElement | null>(null);
 const playlistRef = ref<HTMLElement | null>(null);
@@ -528,6 +594,63 @@ const currentFolder = library.playbackFolder;
 const currentTrack = library.playbackTrack;
 const isLibraryActive = computed(() => activeTab.value === 'library');
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value));
+
+const filteredRecentFolders = computed(() => {
+  const query = librarySearch.value.trim().toLocaleLowerCase(locale.value);
+  if (!query) {
+    return recentFolders.value;
+  }
+  return recentFolders.value.filter((folder) => `${folder.name} ${folder.rootPath}`.toLocaleLowerCase(locale.value).includes(query));
+});
+const folderTableRows = computed<IFolderLibraryTableRow[]>(() => filteredRecentFolders.value.map((folder) => ({
+  ...folder,
+  completionPercent: folderProgressPercent(folder),
+})));
+const folderTableSorting = ref([{id: 'lastOpenedAt', desc: true}]);
+const sortableFolderColumns = computed(() => [
+  {id: 'name', label: t('library.columnName')},
+  {id: 'mediaCount', label: t('library.columnTracks')},
+  {id: 'completionPercent', label: t('library.columnProgress')},
+  {id: 'lastOpenedAt', label: t('library.columnLastOpened')},
+]);
+const folderTableColumns = computed<TableColumn<IFolderLibraryTableRow>[]>(() => [
+  {
+    accessorKey: 'name',
+    header: t('library.columnName'),
+    meta: {class: {th: 'folder-table-name-column', td: 'folder-table-name-column'}},
+  },
+  {
+    accessorKey: 'rootPath',
+    header: t('library.columnLocation'),
+    enableSorting: false,
+    meta: {class: {th: 'folder-table-location-column', td: 'folder-table-location-column'}},
+  },
+  {
+    accessorKey: 'mediaCount',
+    header: t('library.columnTracks'),
+    size: 135,
+    meta: {class: {th: 'folder-table-tracks-column', td: 'folder-table-tracks-column'}},
+  },
+  {
+    accessorKey: 'completionPercent',
+    header: t('library.columnProgress'),
+    size: 140,
+    meta: {class: {th: 'folder-table-progress-column', td: 'folder-table-progress-column'}},
+  },
+  {
+    accessorKey: 'lastOpenedAt',
+    header: t('library.columnLastOpened'),
+    size: 175,
+    meta: {class: {th: 'folder-table-last-opened-column', td: 'folder-table-last-opened-column'}},
+  },
+  {
+    id: 'actions',
+    header: t('library.columnActions'),
+    enableSorting: false,
+    size: 96,
+    meta: {class: {th: 'folder-table-actions-column', td: 'folder-table-actions-column'}},
+  },
+]);
 
 const filteredTracks = computed(() => {
   const folder = currentFolder.value;
@@ -650,6 +773,60 @@ function formatNumber(value: number) {
 
 function formatTrackCount(count: number) {
   return t('counts.track', {count: formatNumber(count)}, count);
+}
+
+function formatFolderCount(count: number) {
+  return t('library.folderCount', {count: formatNumber(count)}, count);
+}
+
+function folderProgressPercent(folder: IRecentFolderSummary) {
+  const openFolder = openFolders.value.find((candidate) => candidate.id === folder.id);
+  if (openFolder) {
+    return library.progressPercent(openFolder);
+  }
+  return folder.mediaCount > 0 ? Math.round((folder.completedCount / folder.mediaCount) * 100) : 0;
+}
+
+function formatLastOpened(timestamp: number) {
+  if (!timestamp) {
+    return '—';
+  }
+  const elapsed = Math.max(0, Date.now() - timestamp);
+  if (elapsed < 60_000) {
+    return t('library.justNow');
+  }
+  const relativeTime = new Intl.RelativeTimeFormat(locale.value, {numeric: 'auto'});
+  if (elapsed < 60 * 60_000) {
+    return relativeTime.format(-Math.floor(elapsed / 60_000), 'minute');
+  }
+  if (elapsed < 24 * 60 * 60_000) {
+    return relativeTime.format(-Math.floor(elapsed / (60 * 60_000)), 'hour');
+  }
+  if (elapsed < 7 * 24 * 60 * 60_000) {
+    return relativeTime.format(-Math.floor(elapsed / (24 * 60 * 60_000)), 'day');
+  }
+  return new Intl.DateTimeFormat(locale.value, {dateStyle: 'medium'}).format(timestamp);
+}
+
+function sortLabel(name: string, sorted: false | 'asc' | 'desc') {
+  return sorted ? t('library.sortByDirection', {name, direction: t(sorted === 'asc' ? 'library.ascending' : 'library.descending')}) : t('library.sortBy', {name});
+}
+
+function openFolderTableRow(_event: Event, row: TableRow<IFolderLibraryTableRow>) {
+  void library.openRecentFolder(row.original);
+}
+
+function handleFolderTableEnter(event: KeyboardEvent) {
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || target.closest('button, a')) {
+    return;
+  }
+  const row = target.closest<HTMLTableRowElement>('tr[role="button"]');
+  if (!row) {
+    return;
+  }
+  event.preventDefault();
+  row.click();
 }
 
 function formatTrackNumber(value: number) {
@@ -1466,7 +1643,12 @@ watch(isPlaying, (playing) => {
   }
   deferredUpdateDialog = null;
 });
-watch(isLibraryActive, (libraryActive) => {if (libraryActive) isFullWindow.value = false;});
+watch(isLibraryActive, (libraryActive) => {
+  if (libraryActive) {
+    isFullWindow.value = false;
+    void library.refreshRecentFolders();
+  }
+});
 // Each full window or fullscreen session starts with only the video.
 watch(isImmersive, (immersive) => {if (!immersive) isImmersivePlaylistOpen.value = false;});
 watch(search, async () => {if (!search.value) {await nextTick(); revealCurrentTrack();}});

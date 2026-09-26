@@ -7,7 +7,7 @@ import {
   sanitizeRecentFolders,
 } from '../shared/state';
 
-export {isPlainRecord, isStoredIdentifier, sanitizeTrackProgress} from '../shared/state';
+export {isPlainRecord, isStoredIdentifier, MAX_LIBRARY_FOLDERS, sanitizeTrackProgress, summarizeRecentFolders} from '../shared/state';
 
 export interface IStoredState {
   recentFolders: IRecentFolder[];

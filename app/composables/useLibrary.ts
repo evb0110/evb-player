@@ -1,4 +1,4 @@
-import type {IFolder, ITrackProgress, IMediaTrack, IRecentFolder, TFolderProgress} from '../../shared/types';
+import type {IFolder, ITrackProgress, IMediaTrack, IRecentFolder, IRecentFolderSummary, TFolderProgress} from '../../shared/types';
 import {useI18n} from 'vue-i18n';
 import {messages} from '../../shared/i18n';
 import {getPlayerApi} from '../utils/playerApi';
@@ -34,7 +34,7 @@ interface IProgressWrite {
 
 export function useLibrary() {
   const {t, locale} = useI18n();
-  const recentFolders = useState<IRecentFolder[]>('evb-player-recent', () => []);
+  const recentFolders = useState<IRecentFolderSummary[]>('evb-player-recent', () => []);
   const openFolders = useState<IFolder[]>('evb-player-open', () => []);
   const activeTab = useState<string>('evb-player-active-tab', () => 'library');
   const playbackFolderId = useState<string | null>('evb-player-playback-folder', () => null);
@@ -451,6 +451,18 @@ export function useLibrary() {
     }
   }
 
+  async function refreshRecentFolders() {
+    const api = await getApi();
+    if (!api) {
+      return;
+    }
+    try {
+      recentFolders.value = await api.getRecentFolders();
+    } catch (cause) {
+      error.value = messageFor(cause, t('library.loadFailed'));
+    }
+  }
+
   function selectTrack(track: IMediaTrack) {
     const folder = playbackFolder.value;
     if (!folder || !folder.tracks.some((candidate) => candidate.id === track.id)) {
@@ -655,6 +667,7 @@ export function useLibrary() {
     openFolder,
     openRecentFolder,
     removeRecentFolder,
+    refreshRecentFolders,
     selectTrack,
     closeFolder,
     setActiveTab,

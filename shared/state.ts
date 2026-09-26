@@ -1,7 +1,9 @@
-import type {ITrackProgress, IRecentFolder, TFolderProgress} from './types';
+import type {ITrackProgress, IRecentFolder, IRecentFolderSummary, TFolderProgress} from './types';
 
 const IDENTIFIER_PATTERN = /^[a-f0-9]{16}$/u;
 const MAX_TEXT_LENGTH = 4096;
+// Versions before 0.2.6 keep only the first 12 folders when they read the file.
+export const MAX_LIBRARY_FOLDERS = 500;
 
 export function isPlainRecord(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== 'object') {
@@ -101,9 +103,17 @@ export function sanitizeRecentFolders(value: unknown, isValidRootPath: (rootPath
       lastOpenedAt: timestamp(candidate.lastOpenedAt, 0),
     });
     seenIds.add(id);
-    if (recentFolders.length === 12) {
+    if (recentFolders.length === MAX_LIBRARY_FOLDERS) {
       break;
     }
   }
   return recentFolders;
+}
+
+// The Library shows each folder's share of completed tracks; the count is computed on read and never stored.
+export function summarizeRecentFolders(recentFolders: IRecentFolder[], progress: Record<string, TFolderProgress>): IRecentFolderSummary[] {
+  return recentFolders.map((folder) => ({
+    ...folder,
+    completedCount: Math.min(folder.mediaCount, Object.values(progress[folder.id] ?? {}).filter((track) => track.completed).length),
+  }));
 }
