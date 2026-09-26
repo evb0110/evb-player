@@ -4,7 +4,8 @@
     "description": "Turn folders of numbered videos and audio files into playlists with durations, saved progress, and tabs. Free, offline, and MIT licensed.",
     "ogTitle": "EVB Player",
     "ogDescription": "Play your media folders in order. Offline on macOS, Windows, and Linux.",
-    "ogImageAlt": "EVB Player playing a video from a media folder"
+    "ogImageAlt": "EVB Player playing a video from a media folder",
+    "cardLabel": "Offline media player"
   },
   "header": {
     "github": "EVB Player on GitHub",
@@ -14,9 +15,8 @@
     "switchToDarkTheme": "Switch to dark theme"
   },
   "hero": {
-    "kicker": "Offline media player",
     "title": "Play your media folders in order",
-    "lede": "EVB Player turns a folder of numbered videos or audio files into a playlist with sections and durations, saves your place in every file as you watch or listen, and keeps several folders open in tabs. It runs offline on macOS, Windows, and Linux, and it is free and MIT licensed."
+    "lede": "Turn any folder of numbered videos or audio files into a playlist that remembers your place. Free and offline on macOS, Windows, and Linux."
   },
   "downloads": {
     "operatingSystem": "Operating system",

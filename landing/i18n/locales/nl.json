@@ -4,7 +4,8 @@
     "description": "Maak van mappen met genummerde video's en audiobestanden afspeellijsten met speelduur, opgeslagen voortgang en tabbladen. Gratis, offline en onder de MIT-licentie.",
     "ogTitle": "EVB Player",
     "ogDescription": "Speel mediabestanden uit je mappen op volgorde af. Offline op macOS, Windows en Linux.",
-    "ogImageAlt": "EVB Player speelt een video uit een mediamap af"
+    "ogImageAlt": "EVB Player speelt een video uit een mediamap af",
+    "cardLabel": "Offline mediaspeler"
   },
   "header": {
     "github": "EVB Player op GitHub",
@@ -14,9 +15,8 @@
     "switchToDarkTheme": "Overschakelen naar donker thema"
   },
   "hero": {
-    "kicker": "Offline mediaspeler",
     "title": "Speel mediabestanden uit je mappen op volgorde af",
-    "lede": "EVB Player maakt van een map met genummerde video's of audiobestanden een afspeellijst met secties en speelduur. De afspeelpositie wordt per bestand bewaard en je kunt meerdere mappen in tabbladen openhouden. De app werkt offline op macOS, Windows en Linux. Hij is gratis en valt onder de MIT-licentie."
+    "lede": "Maak van een map met genummerde video's of audiobestanden een afspeellijst die onthoudt waar je was gebleven. Gratis en offline op macOS, Windows en Linux."
   },
   "downloads": {
     "operatingSystem": "Besturingssysteem", "download": "Downloaden", "releases": "Versies",

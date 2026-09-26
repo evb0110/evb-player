@@ -4,7 +4,8 @@
     "description": "Convierte carpetas de vídeos y audios numerados en listas de reproducción con duraciones, progreso guardado y pestañas. Gratis, sin conexión y con licencia MIT.",
     "ogTitle": "EVB Player",
     "ogDescription": "Reproduce los archivos de tus carpetas en orden. Sin conexión en macOS, Windows y Linux.",
-    "ogImageAlt": "EVB Player reproduciendo un vídeo de una carpeta multimedia"
+    "ogImageAlt": "EVB Player reproduciendo un vídeo de una carpeta multimedia",
+    "cardLabel": "Reproductor multimedia sin conexión"
   },
   "header": {
     "github": "EVB Player en GitHub",
@@ -14,9 +15,8 @@
     "switchToDarkTheme": "Cambiar al tema oscuro"
   },
   "hero": {
-    "kicker": "Reproductor multimedia sin conexión",
     "title": "Reproduce los archivos de tus carpetas en orden",
-    "lede": "EVB Player convierte una carpeta de vídeos o archivos de audio numerados en una lista de reproducción con secciones y duraciones. Guarda tu posición en cada archivo y permite mantener varias carpetas abiertas en pestañas. Funciona sin conexión en macOS, Windows y Linux. Es gratis y tiene licencia MIT."
+    "lede": "Convierte una carpeta de vídeos o archivos de audio numerados en una lista de reproducción que recuerda dónde te quedaste. Gratis y sin conexión en macOS, Windows y Linux."
   },
   "downloads": {
     "operatingSystem": "Sistema operativo", "download": "Descargar", "releases": "Versiones",

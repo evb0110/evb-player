@@ -4,7 +4,8 @@
     "description": "Transforme pastas de vídeos e arquivos de áudio numerados em playlists com duração, progresso salvo e abas. Gratuito, offline e com licença MIT.",
     "ogTitle": "EVB Player",
     "ogDescription": "Reproduza os arquivos das suas pastas em ordem. Offline no macOS, Windows e Linux.",
-    "ogImageAlt": "EVB Player reproduzindo um vídeo de uma pasta de mídia"
+    "ogImageAlt": "EVB Player reproduzindo um vídeo de uma pasta de mídia",
+    "cardLabel": "Reprodutor de mídia offline"
   },
   "header": {
     "github": "EVB Player no GitHub",
@@ -14,9 +15,8 @@
     "switchToDarkTheme": "Mudar para o tema escuro"
   },
   "hero": {
-    "kicker": "Reprodutor de mídia offline",
     "title": "Reproduza os arquivos das suas pastas em ordem",
-    "lede": "O EVB Player transforma uma pasta de vídeos ou arquivos de áudio numerados em uma playlist com seções e durações. Salva o ponto em que você parou em cada arquivo e permite manter várias pastas abertas em abas. Funciona offline no macOS, Windows e Linux. É gratuito e tem licença MIT."
+    "lede": "Transforme uma pasta de vídeos ou arquivos de áudio numerados em uma playlist que lembra onde você parou. Grátis e offline no macOS, Windows e Linux."
   },
   "downloads": {
     "operatingSystem": "Sistema operacional", "download": "Baixar", "releases": "Versões",

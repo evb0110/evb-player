@@ -4,7 +4,8 @@
     "description": "Transformez des dossiers de vidéos et fichiers audio numérotés en listes de lecture avec durées, progression mémorisée et onglets. Gratuit, hors ligne et sous licence MIT.",
     "ogTitle": "EVB Player",
     "ogDescription": "Lisez les fichiers de vos dossiers dans l'ordre. Hors ligne sur macOS, Windows et Linux.",
-    "ogImageAlt": "EVB Player lisant une vidéo d'un dossier multimédia"
+    "ogImageAlt": "EVB Player lisant une vidéo d'un dossier multimédia",
+    "cardLabel": "Lecteur multimédia hors ligne"
   },
   "header": {
     "github": "EVB Player sur GitHub",
@@ -14,9 +15,8 @@
     "switchToDarkTheme": "Passer au thème sombre"
   },
   "hero": {
-    "kicker": "Lecteur multimédia hors ligne",
     "title": "Lisez les fichiers de vos dossiers dans l'ordre",
-    "lede": "EVB Player transforme un dossier de vidéos ou de fichiers audio numérotés en une liste de lecture avec sections et durées. Il mémorise votre position dans chaque fichier et permet de garder plusieurs dossiers ouverts dans des onglets. Il fonctionne hors ligne sur macOS, Windows et Linux. Il est gratuit et sous licence MIT."
+    "lede": "Transformez un dossier de vidéos ou de fichiers audio numérotés en une liste de lecture qui retient où vous en êtes. Gratuit et hors ligne sur macOS, Windows et Linux."
   },
   "downloads": {
     "operatingSystem": "Système d'exploitation", "download": "Télécharger", "releases": "Versions",

@@ -4,7 +4,8 @@
     "description": "Machen Sie aus Ordnern mit nummerierten Videos und Audiodateien Wiedergabelisten mit Laufzeiten, gespeichertem Fortschritt und Tabs. Kostenlos, offline und unter MIT-Lizenz.",
     "ogTitle": "EVB Player",
     "ogDescription": "Spielen Sie Medien aus Ihren Ordnern der Reihe nach ab. Offline auf macOS, Windows und Linux.",
-    "ogImageAlt": "EVB Player spielt ein Video aus einem Medienordner ab"
+    "ogImageAlt": "EVB Player spielt ein Video aus einem Medienordner ab",
+    "cardLabel": "Offline-Mediaplayer"
   },
   "header": {
     "github": "EVB Player auf GitHub",
@@ -14,9 +15,8 @@
     "switchToDarkTheme": "Zum dunklen Design wechseln"
   },
   "hero": {
-    "kicker": "Offline-Mediaplayer",
     "title": "Medienordner der Reihe nach abspielen",
-    "lede": "EVB Player macht aus einem Ordner mit nummerierten Videos oder Audiodateien eine Wiedergabeliste mit Abschnitten und Laufzeiten. Die aktuelle Position in jeder Datei wird gespeichert, und mehrere Ordner lassen sich in Tabs geöffnet halten. Die App läuft offline auf macOS, Windows und Linux. Sie ist kostenlos und steht unter der MIT-Lizenz."
+    "lede": "Machen Sie aus einem Ordner mit nummerierten Videos oder Audiodateien eine Wiedergabeliste, die sich merkt, wo Sie aufgehört haben. Kostenlos und offline für macOS, Windows und Linux."
   },
   "downloads": {
     "operatingSystem": "Betriebssystem", "download": "Herunterladen", "releases": "Versionen",

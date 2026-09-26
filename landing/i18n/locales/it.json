@@ -4,7 +4,8 @@
     "description": "Trasforma cartelle di video e file audio numerati in playlist con durate, progressi salvati e schede. Gratuito, offline e con licenza MIT.",
     "ogTitle": "EVB Player",
     "ogDescription": "Riproduci in ordine i file delle tue cartelle. Offline su macOS, Windows e Linux.",
-    "ogImageAlt": "EVB Player riproduce un video da una cartella multimediale"
+    "ogImageAlt": "EVB Player riproduce un video da una cartella multimediale",
+    "cardLabel": "Lettore multimediale offline"
   },
   "header": {
     "github": "EVB Player su GitHub",
@@ -14,9 +15,8 @@
     "switchToDarkTheme": "Passa al tema scuro"
   },
   "hero": {
-    "kicker": "Lettore multimediale offline",
     "title": "Riproduci in ordine i file delle tue cartelle",
-    "lede": "EVB Player trasforma una cartella di video o file audio numerati in una playlist con sezioni e durate. Salva il punto in cui ti fermi in ogni file e permette di tenere aperte più cartelle in schede. Funziona offline su macOS, Windows e Linux. È gratuito e distribuito con licenza MIT."
+    "lede": "Trasforma una cartella di video o file audio numerati in una playlist che ricorda dove eri rimasto. Gratuito e offline su macOS, Windows e Linux."
   },
   "downloads": {
     "operatingSystem": "Sistema operativo", "download": "Scarica", "releases": "Versioni",

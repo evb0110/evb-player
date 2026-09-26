@@ -21,64 +21,67 @@
 
     <main>
       <section class="hero">
-        <p class="kicker">{{ t('hero.kicker') }}</p>
-        <h1>{{ t('hero.title') }}</h1>
-        <p class="lede">{{ t('hero.lede') }}</p>
-
-        <div class="downloads">
-          <div class="platform-tabs" role="tablist" :aria-label="t('downloads.operatingSystem')">
-            <button
-              v-for="option in platforms"
-              :key="option.id"
-              class="platform-tab"
-              :class="{ 'platform-tab-active': platform === option.id }"
-              type="button"
-              role="tab"
-              :aria-selected="platform === option.id"
-              @click="platform = option.id"
-            >
-              <UIcon :name="option.icon" />
-              {{ t(`downloads.platforms.${option.id}`) }}
-            </button>
-          </div>
-
-          <a class="download-row" :href="selectedAsset?.url ?? RELEASES_URL" :target="selectedAsset ? undefined : '_blank'" rel="noreferrer" role="tabpanel">
-            <span class="download-copy">
-              <strong>{{ selectedDetails.title }}</strong>
-              <span>{{ selectedDetails.detail }}</span>
-              <small>{{ selectedDetails.format }}<template v-if="selectedAsset"> · {{ formatSize(selectedAsset.size) }}</template></small>
-            </span>
-            <span class="download-button">
-              <UIcon name="i-lucide-download" />
-              <span>{{ t(selectedAsset ? 'downloads.download' : 'downloads.releases') }}</span>
-            </span>
-          </a>
-          <p class="download-note">{{ selectedDetails.note }}</p>
+        <div class="hero-intro">
+          <h1>{{ t('hero.title') }}</h1>
+          <p class="lede">{{ t('hero.lede') }}</p>
         </div>
 
-        <p class="release-line">
-          <template v-if="release">{{ t('downloads.version', { version: release.version }) }} · </template>{{ t('downloads.installed') }} ·
-          <a :href="release?.pageUrl ?? RELEASES_URL" target="_blank" rel="noreferrer">{{ t('downloads.allReleases') }}</a>
-        </p>
-        <p class="release-line">
-          <a :href="WEB_APP_URL" target="_blank" rel="noreferrer">{{ t('downloads.web') }}</a>
-        </p>
-      </section>
+        <div class="hero-film">
+          <FilmPlayer
+            id="player"
+            :locale="locale"
+            :theme="resolvedTheme"
+            title="EVB Player"
+            :label="t('demo.ariaLabel')"
+            :play-label="t('demo.play')"
+            :pause-label="t('demo.pause')"
+            :position-label="t('demo.position')"
+            :width="1280"
+            :height="800"
+          />
+          <p class="demo-caption">{{ t('demo.caption') }}</p>
+        </div>
 
-      <section class="demo">
-        <FilmPlayer
-          id="player"
-          :locale="locale"
-          :theme="resolvedTheme"
-          title="EVB Player"
-          :label="t('demo.ariaLabel')"
-          :play-label="t('demo.play')"
-          :pause-label="t('demo.pause')"
-          :position-label="t('demo.position')"
-          :width="1280"
-          :height="800"
-        />
-        <p class="demo-caption">{{ t('demo.caption') }}</p>
+        <div class="hero-get">
+          <div class="downloads">
+            <div class="platform-tabs" role="tablist" :aria-label="t('downloads.operatingSystem')">
+              <button
+                v-for="option in platforms"
+                :key="option.id"
+                class="platform-tab"
+                :class="{ 'platform-tab-active': platform === option.id }"
+                type="button"
+                role="tab"
+                :aria-selected="platform === option.id"
+                @click="platform = option.id"
+              >
+                <UIcon :name="option.icon" />
+                {{ t(`downloads.platforms.${option.id}`) }}
+              </button>
+            </div>
+
+            <a class="download-row" :href="selectedAsset?.url ?? RELEASES_URL" :target="selectedAsset ? undefined : '_blank'" rel="noreferrer" role="tabpanel">
+              <span class="download-copy">
+                <strong>{{ selectedDetails.title }}</strong>
+                <span>{{ selectedDetails.detail }}</span>
+                <small>{{ selectedDetails.format }}<template v-if="selectedAsset"> · {{ formatSize(selectedAsset.size) }}</template></small>
+              </span>
+              <span class="download-button">
+                <UIcon name="i-lucide-download" />
+                <span>{{ t(selectedAsset ? 'downloads.download' : 'downloads.releases') }}</span>
+              </span>
+            </a>
+            <p class="download-note">{{ selectedDetails.note }}</p>
+          </div>
+
+          <p class="release-line">
+            <template v-if="release">{{ t('downloads.version', { version: release.version }) }} · </template>{{ t('downloads.installed') }} ·
+            <a class="release-all" :href="release?.pageUrl ?? RELEASES_URL" target="_blank" rel="noreferrer">{{ t('downloads.allReleases') }}</a>
+          </p>
+          <p class="release-line release-line-web">
+            <a :href="WEB_APP_URL" target="_blank" rel="noreferrer">{{ t('downloads.web') }}</a>
+          </p>
+        </div>
       </section>
 
       <section class="features" aria-labelledby="features-title">
@@ -118,6 +121,11 @@ import ThemeToggle from '../../../shared/ui/ThemeToggle.vue';
 import { useTheme } from '../composables/useTheme';
 
 const WEB_APP_URL = 'https://evb-player-web.vercel.app';
+// Bump after re-rendering social cards; Telegram and Facebook cache images by URL.
+const SOCIAL_CARD_VERSION = 1;
+const SOCIAL_CARD_SIZE = { width: 1200, height: 630, type: 'image/jpeg' } as const;
+const MIT_LICENSE_URL = 'https://opensource.org/license/mit/';
+const GITHUB_REPOSITORY_URL = 'https://github.com/evb0110/evb-player';
 
 interface IPlatformOption {
   id: TPlatform;
@@ -181,23 +189,86 @@ onMounted(() => {
 
 const siteUrl = useRuntimeConfig().public.siteUrl;
 const pageUrl = computed(() => new URL(localePath('/'), siteUrl).toString());
-const ogLocale = computed(() => LOCALE_OPTIONS.find((option) => option.code === locale.value)?.language.replace('-', '_') ?? 'en_US');
+const socialCardUrl = computed(() => new URL(`/social/${locale.value}.jpg?v=${SOCIAL_CARD_VERSION}`, siteUrl).toString());
+const schemaGraph = computed(() => {
+  const downloadUrls = Object.values(release.value?.assets ?? {}).flatMap((asset) => asset ? [asset.url] : []);
+  if (!downloadUrls.length && release.value?.pageUrl) {
+    downloadUrls.push(release.value.pageUrl);
+  }
+  const description = t('seo.description');
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': new URL('/#website', siteUrl).toString(),
+        url: siteUrl,
+        name: 'EVB Player',
+        description,
+        inLanguage: LOCALE_OPTIONS.find((option) => option.code === locale.value)?.language ?? locale.value,
+      },
+      {
+        '@type': 'SoftwareApplication',
+        '@id': new URL('/#software', siteUrl).toString(),
+        name: 'EVB Player',
+        description,
+        applicationCategory: 'MultimediaApplication',
+        operatingSystem: 'macOS, Windows, Linux',
+        softwareVersion: release.value?.version,
+        downloadUrl: downloadUrls,
+        offers: { '@type': 'Offer', price: 0, priceCurrency: 'USD' },
+        license: MIT_LICENSE_URL,
+        url: pageUrl.value,
+        image: socialCardUrl.value,
+        screenshot: socialCardUrl.value,
+        author: { '@id': new URL('/#person', siteUrl).toString() },
+        sameAs: [GITHUB_REPOSITORY_URL],
+      },
+      {
+        '@type': 'Person',
+        '@id': new URL('/#person', siteUrl).toString(),
+        name: 'Eugene Barsky',
+        url: 'https://evb-stack.com',
+        sameAs: ['https://github.com/evb0110'],
+      },
+    ],
+  };
+});
+
 useSeoMeta({
   title: () => t('seo.title'),
   description: () => t('seo.description'),
   ogTitle: () => t('seo.ogTitle'),
   ogDescription: () => t('seo.ogDescription'),
-  ogImage: `${siteUrl}/films/player/en-dark/poster.jpg`,
+  ogSiteName: 'EVB Player',
+  ogType: 'website',
+  ogImage: () => socialCardUrl.value,
+  ogImageSecureUrl: () => socialCardUrl.value,
+  ogImageWidth: SOCIAL_CARD_SIZE.width,
+  ogImageHeight: SOCIAL_CARD_SIZE.height,
+  ogImageType: SOCIAL_CARD_SIZE.type,
   ogImageAlt: () => t('seo.ogImageAlt'),
-  ogUrl: () => pageUrl.value,
-  ogLocale: () => ogLocale.value,
   twitterCard: 'summary_large_image',
+  twitterTitle: () => t('seo.ogTitle'),
+  twitterDescription: () => t('seo.ogDescription'),
+  twitterImage: () => socialCardUrl.value,
+  twitterImageAlt: () => t('seo.ogImageAlt'),
+  robots: 'index, follow',
 });
+
+useHead(() => ({
+  script: [{
+    id: 'structured-data',
+    type: 'application/ld+json',
+    innerHTML: JSON.stringify(schemaGraph.value).replace(/</gu, '\\u003c'),
+  }],
+}));
 </script>
 
 <style scoped>
 .page {
-  max-width: 1180px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 0 28px;
 }
@@ -239,12 +310,31 @@ useSeoMeta({
   font-size: 13px;
 }
 
+/* The film sits beside the copy on wide screens, so the whole recording is visible without scrolling. */
 .hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 88px 0 56px;
-  text-align: center;
+  display: grid;
+  /* The film's height is about 0.73 of its width; its column stops growing before it would pass the fold. */
+  grid-template-columns: minmax(300px, 400px) minmax(0, calc((100vh - 150px) * 1.37));
+  justify-content: center;
+  grid-template-areas:
+    "intro film"
+    "get film";
+  grid-template-rows: auto 1fr;
+  gap: 28px 56px;
+  padding: 44px 0 40px;
+}
+
+.hero-intro {
+  grid-area: intro;
+}
+
+.hero-film {
+  grid-area: film;
+  min-width: 0;
+}
+
+.hero-get {
+  grid-area: get;
 }
 
 .kicker {
@@ -258,9 +348,8 @@ useSeoMeta({
 }
 
 h1 {
-  max-width: 820px;
-  margin: 20px 0 0;
-  font-size: clamp(40px, 6.4vw, 70px);
+  margin: 0;
+  font-size: clamp(36px, 3.7vw, 50px);
   font-weight: 650;
   line-height: 1.04;
   letter-spacing: -0.035em;
@@ -268,16 +357,14 @@ h1 {
 }
 
 .lede {
-  max-width: 640px;
-  margin: 26px 0 0;
+  margin: 18px 0 0;
   color: var(--ink-muted);
-  font-size: 18px;
-  line-height: 1.6;
+  font-size: 17px;
+  line-height: 1.55;
 }
 
 .downloads {
-  width: min(100%, 460px);
-  margin-top: 40px;
+  width: 100%;
 }
 
 .platform-tabs {
@@ -377,15 +464,16 @@ h1 {
 }
 
 .download-note {
-  margin: 12px 4px 0;
+  margin: 10px 4px 0;
   color: var(--ink-subtle);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   text-align: left;
 }
 
 .release-line {
-  margin: 22px 0 0;
+  margin: 16px 4px 0;
+  line-height: 1.6;
   color: var(--ink-subtle);
   font-family: var(--mono);
   font-size: 12px;
@@ -395,10 +483,12 @@ h1 {
   color: var(--accent-ink);
 }
 
-.demo {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 16px 0 24px;
+.release-line-web {
+  margin-top: 6px;
+}
+
+.release-all {
+  white-space: nowrap;
 }
 
 .demo-caption {
@@ -409,7 +499,7 @@ h1 {
 }
 
 .features {
-  padding: 88px 0 72px;
+  padding: 64px 0 72px;
   text-align: center;
 }
 
@@ -469,6 +559,21 @@ h1 {
   font-size: 12px;
 }
 
+@media (max-width: 1023px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "intro"
+      "film"
+      "get";
+    grid-template-rows: none;
+  }
+
+  .hero-get {
+    width: min(100%, 460px);
+  }
+}
+
 @media (max-width: 860px) {
   .feature-grid {
     grid-template-columns: 1fr 1fr;
@@ -481,7 +586,7 @@ h1 {
   }
 
   .hero {
-    padding-top: 56px;
+    padding-top: 32px;
   }
 
   .site-header {
