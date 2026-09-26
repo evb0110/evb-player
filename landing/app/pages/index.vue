@@ -113,6 +113,7 @@
 </template>
 
 <script setup lang="ts">
+import { detectPlatform } from '#shared/platform';
 import { RELEASES_URL, type ILatestRelease, type TPlatform } from '#shared/release';
 import { LOCALE_OPTIONS } from '../../../shared/i18n/locales';
 import type { TLocale } from '../../../shared/types';
@@ -151,7 +152,12 @@ const { t, locale, setLocale } = useI18n();
 const localePath = useLocalePath();
 const { data: release } = await useFetch<ILatestRelease | null>('/api/release', { default: () => null });
 
-const platform = ref<TPlatform>('mac');
+// The server picks the visitor's platform, so the first render already shows the right download and
+// hydration keeps it. The browser only computes it itself when there was no server render.
+const requestHeaders = useRequestHeaders(['user-agent', 'sec-ch-ua-platform']);
+const platform = useState<TPlatform>('download-platform', () => import.meta.server
+  ? detectPlatform(requestHeaders['user-agent'], requestHeaders['sec-ch-ua-platform'])
+  : detectPlatform(navigator.userAgent, (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform));
 const selectedDetails = computed(() => ({
   title: t(`downloads.options.${platform.value}.title`),
   detail: t(`downloads.options.${platform.value}.detail`),
@@ -177,15 +183,6 @@ async function selectLocale(code: TLocale) {
   }
 }
 
-onMounted(() => {
-  const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
-  const system = `${nav.userAgentData?.platform ?? ''} ${navigator.platform} ${navigator.userAgent}`.toLowerCase();
-  if (system.includes('win')) {
-    platform.value = 'win';
-  } else if (system.includes('linux') && !system.includes('android')) {
-    platform.value = 'linux';
-  }
-});
 
 const siteUrl = useRuntimeConfig().public.siteUrl;
 const pageUrl = computed(() => new URL(localePath('/'), siteUrl).toString());
