@@ -1,28 +1,66 @@
 <template>
   <div class="page">
     <header class="site-header">
-      <a class="brand" href="/">
+      <NuxtLink class="brand" :to="localePath('/')">
         <img class="brand-icon" src="/icon.png" alt="" width="30" height="30">
         <span class="brand-name">EVB Player</span>
         <span v-if="release" class="brand-version">v{{ release.version }}</span>
-      </a>
-      <a class="header-link" href="https://github.com/evb0110/evb-player" aria-label="EVB Player on GitHub">
-        <UIcon name="i-simple-icons-github" />
-      </a>
+      </NuxtLink>
+      <div class="header-actions">
+        <UPopover v-model:open="languageMenuOpen" :content="{ align: 'end', sideOffset: 8 }">
+          <UButton
+            :label="activeLanguage.name"
+            :icon="activeLanguage.icon"
+            :aria-label="`${t('header.language')}: ${activeLanguage.name}`"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            class="header-control language-control"
+          />
+          <template #content>
+            <div class="language-menu">
+              <UButton
+                v-for="option in LOCALE_OPTIONS"
+                :key="option.code"
+                :label="option.name"
+                :icon="option.icon"
+                color="neutral"
+                :variant="option.code === locale ? 'soft' : 'ghost'"
+                size="sm"
+                class="language-option"
+                :aria-pressed="option.code === locale"
+                @click="selectLocale(option.code)"
+              />
+            </div>
+          </template>
+        </UPopover>
+
+        <UDropdownMenu :items="themeItems" :content="{ align: 'end', sideOffset: 8 }">
+          <UButton
+            :label="activeTheme.label"
+            :icon="activeTheme.icon"
+            :aria-label="`${t('header.theme')}: ${activeTheme.label}`"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            class="header-control theme-control"
+          />
+        </UDropdownMenu>
+
+        <a class="header-link" href="https://github.com/evb0110/evb-player" :aria-label="t('header.github')">
+          <UIcon name="i-simple-icons-github" />
+        </a>
+      </div>
     </header>
 
     <main>
       <section class="hero">
-        <p class="kicker">Offline media player</p>
-        <h1>Play your media folders in order</h1>
-        <p class="lede">
-          EVB Player turns a folder of numbered videos or audio files into a playlist with sections and durations, saves your
-          place in every file as you watch or listen, and keeps several folders open in tabs. It runs offline on macOS, Windows,
-          and Linux, and it is free and MIT licensed.
-        </p>
+        <p class="kicker">{{ t('hero.kicker') }}</p>
+        <h1>{{ t('hero.title') }}</h1>
+        <p class="lede">{{ t('hero.lede') }}</p>
 
         <div class="downloads">
-          <div class="platform-tabs" role="tablist" aria-label="Operating system">
+          <div class="platform-tabs" role="tablist" :aria-label="t('downloads.operatingSystem')">
             <button
               v-for="option in platforms"
               :key="option.id"
@@ -34,43 +72,48 @@
               @click="platform = option.id"
             >
               <UIcon :name="option.icon" />
-              {{ option.label }}
+              {{ t(`downloads.platforms.${option.id}`) }}
             </button>
           </div>
 
           <a class="download-row" :href="selectedAsset?.url ?? RELEASES_URL" role="tabpanel">
             <span class="download-copy">
-              <strong>{{ selected.title }}</strong>
-              <span>{{ selected.detail }}</span>
-              <small>{{ selected.format }}<template v-if="selectedAsset"> · {{ formatSize(selectedAsset.size) }}</template></small>
+              <strong>{{ selectedDetails.title }}</strong>
+              <span>{{ selectedDetails.detail }}</span>
+              <small>{{ selectedDetails.format }}<template v-if="selectedAsset"> · {{ formatSize(selectedAsset.size) }}</template></small>
             </span>
             <span class="download-button">
               <UIcon name="i-lucide-download" />
-              <span>{{ selectedAsset ? 'Download' : 'Releases' }}</span>
+              <span>{{ t(selectedAsset ? 'downloads.download' : 'downloads.releases') }}</span>
             </span>
           </a>
-          <p class="download-note">{{ selected.note }}</p>
+          <p class="download-note">{{ selectedDetails.note }}</p>
         </div>
 
         <p class="release-line">
-          <template v-if="release">Version {{ release.version }} · </template>Installed apps update themselves ·
-          <a :href="release?.pageUrl ?? RELEASES_URL">All releases</a>
+          <template v-if="release">{{ t('downloads.version', { version: release.version }) }} · </template>{{ t('downloads.installed') }} ·
+          <a :href="release?.pageUrl ?? RELEASES_URL">{{ t('downloads.allReleases') }}</a>
         </p>
       </section>
 
-      <section class="demo" aria-label="Demo">
+      <section class="demo">
         <FilmPlayer
           id="player"
+          :locale="locale"
+          :theme="resolvedTheme"
           title="EVB Player"
-          label="EVB Player opening a folder from the Library, playing a video, marking another video as watched, switching videos, filling the window with the video, and returning to the Library while it keeps playing."
+          :label="t('demo.ariaLabel')"
+          :play-label="t('demo.play')"
+          :pause-label="t('demo.pause')"
+          :position-label="t('demo.position')"
           :width="1280"
           :height="800"
         />
-        <p class="demo-caption">Recorded from the real app with generated demo videos.</p>
+        <p class="demo-caption">{{ t('demo.caption') }}</p>
       </section>
 
       <section class="features" aria-labelledby="features-title">
-        <h2 id="features-title" class="kicker">What it does</h2>
+        <h2 id="features-title" class="kicker">{{ t('features.title') }}</h2>
         <div class="feature-grid">
           <article v-for="feature in features" :key="feature.title" class="feature">
             <UIcon class="feature-icon" :name="feature.icon" />
@@ -78,18 +121,16 @@
             <p>{{ feature.text }}</p>
           </article>
         </div>
-        <p class="formats">
-          Plays MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg and Opus. Files the built-in player can't decode, such as AVI,
-          open in your usual media player.
-        </p>
+        <p class="formats">{{ t('features.formats') }}</p>
       </section>
     </main>
 
     <footer class="site-footer">
-      <span>© 2026 Eugene Barsky · MIT License</span>
+      <span>{{ t('footer.copyright') }} · {{ t('footer.license') }}</span>
       <span>
-        <a href="https://github.com/evb0110/evb-player">Source on GitHub</a> ·
-        <a href="https://evb-viewer.com">EVB Viewer</a>
+        <a href="https://github.com/evb0110/evb-player">{{ t('footer.source') }}</a> ·
+        <a href="https://evb-viewer.com">{{ t('footer.viewer') }}</a> ·
+        <a href="https://evb-stack.com">{{ t('footer.website') }}</a>
       </span>
     </footer>
   </div>
@@ -97,88 +138,82 @@
 
 <script setup lang="ts">
 import { RELEASES_URL, type ILatestRelease, type TPlatform } from '#shared/release';
+import { LOCALE_OPTIONS, type TLocale } from '~/i18n/languages';
 
 interface IPlatformOption {
   id: TPlatform;
-  label: string;
   icon: string;
-  title: string;
-  detail: string;
-  format: string;
-  note: string;
+}
+
+interface IThemeOption {
+  value: 'system' | 'light' | 'dark';
+  icon: string;
+  label: string;
 }
 
 const platforms: IPlatformOption[] = [
-  {
-    id: 'mac',
-    label: 'macOS',
-    icon: 'i-simple-icons-apple',
-    title: 'Apple Silicon',
-    detail: 'For Macs with M-series chips',
-    format: 'DMG installer',
-    note: 'Signed and notarized by Apple. Open the DMG and drag EVB Player to Applications.',
-  },
-  {
-    id: 'win',
-    label: 'Windows',
-    icon: 'i-lucide-monitor',
-    title: 'Windows 10 and 11',
-    detail: 'For 64-bit PCs (x64)',
-    format: 'Installer',
-    note: 'The installer is not code-signed yet, so Windows SmartScreen may ask you to confirm: choose More info, then Run anyway.',
-  },
-  {
-    id: 'linux',
-    label: 'Linux',
-    icon: 'i-simple-icons-linux',
-    title: 'Ubuntu and Debian',
-    detail: 'For 64-bit PCs (x64)',
-    format: '.deb package',
-    note: 'Install with sudo apt install ./ followed by the file name. Updates ask for your password before installing.',
-  },
+  { id: 'mac', icon: 'i-simple-icons-apple' },
+  { id: 'win', icon: 'i-lucide-monitor' },
+  { id: 'linux', icon: 'i-simple-icons-linux' },
 ];
 
-const features = [
-  {
-    icon: 'i-lucide-folder-tree',
-    title: 'Folders become playlists',
-    text: 'Files are sorted by their numbers and subfolders become sections. Nothing is copied, converted or uploaded.',
-  },
-  {
-    icon: 'i-lucide-timer',
-    title: 'Durations up front',
-    text: 'The length of every file and of the whole folder is read when it opens, before you play anything.',
-  },
-  {
-    icon: 'i-lucide-history',
-    title: 'Resume where you stopped',
-    text: 'Your position in every file is saved as you watch or listen. Finished files are ticked off and the next one starts.',
-  },
-  {
-    icon: 'i-lucide-circle-check',
-    title: 'Skip what you know',
-    text: 'Mark any file as done without playing it, or reset one file or a whole folder.',
-  },
-  {
-    icon: 'i-lucide-panels-top-left',
-    title: 'Several folders in tabs',
-    text: 'Keep a few folders open at once. The Library keeps the current file playing in a compact player.',
-  },
-  {
-    icon: 'i-lucide-expand',
-    title: 'Room to watch',
-    text: 'Theater mode, full window and fullscreen, speed control, and keyboard shortcuts for everything.',
-  },
+const featureIcons = [
+  { key: 'folders', icon: 'i-lucide-folder-tree' },
+  { key: 'durations', icon: 'i-lucide-timer' },
+  { key: 'resume', icon: 'i-lucide-history' },
+  { key: 'skip', icon: 'i-lucide-circle-check' },
+  { key: 'tabs', icon: 'i-lucide-panels-top-left' },
+  { key: 'room', icon: 'i-lucide-expand' },
 ];
 
+const { t, locale, setLocale } = useI18n();
+const localePath = useLocalePath();
 const { data: release } = await useFetch<ILatestRelease | null>('/api/release', { default: () => null });
 
 const platform = ref<TPlatform>('mac');
-const selected = computed(() => platforms.find((option) => option.id === platform.value) ?? platforms[0]!);
+const languageMenuOpen = ref(false);
+const selectedDetails = computed(() => ({
+  title: t(`downloads.options.${platform.value}.title`),
+  detail: t(`downloads.options.${platform.value}.detail`),
+  format: t(`downloads.options.${platform.value}.format`),
+  note: t(`downloads.options.${platform.value}.note`),
+}));
 const selectedAsset = computed(() => release.value?.assets[platform.value]);
+const features = computed(() => featureIcons.map(({ key, icon }) => ({
+  icon,
+  title: t(`features.items.${key}.title`),
+  text: t(`features.items.${key}.text`),
+})));
+const activeLanguage = computed(() => LOCALE_OPTIONS.find((option) => option.code === locale.value) ?? LOCALE_OPTIONS[0]);
+const themeOptions = computed<IThemeOption[]>(() => [
+  { value: 'system', icon: 'i-lucide-monitor', label: t('theme.system') },
+  { value: 'light', icon: 'i-lucide-sun', label: t('theme.light') },
+  { value: 'dark', icon: 'i-lucide-moon', label: t('theme.dark') },
+]);
+const colorMode = useColorMode();
+const resolvedTheme = computed(() => colorMode.value === 'dark' ? 'dark' : 'light');
+const activeTheme = computed(() => themeOptions.value.find((option) => option.value === colorMode.preference) ?? themeOptions.value[0]!);
+const themeItems = computed(() => themeOptions.value.map((option) => ({
+  label: option.label,
+  icon: option.icon,
+  type: 'checkbox' as const,
+  checked: option.value === colorMode.preference,
+  onUpdateChecked: (checked: boolean) => {
+    if (checked) {
+      colorMode.preference = option.value;
+    }
+  },
+})));
 
 function formatSize(bytes: number) {
-  return `${Math.round(bytes / 1024 ** 2)} MB`;
+  return new Intl.NumberFormat(locale.value, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 0 }).format(bytes / 1024 ** 2);
+}
+
+async function selectLocale(code: TLocale) {
+  languageMenuOpen.value = false;
+  if (code !== locale.value) {
+    await setLocale(code);
+  }
 }
 
 // The page is cached for everyone, so the visitor's system is picked in the browser.
@@ -193,13 +228,17 @@ onMounted(() => {
 });
 
 const siteUrl = useRuntimeConfig().public.siteUrl;
+const pageUrl = computed(() => new URL(localePath('/'), siteUrl).toString());
+const ogLocale = computed(() => LOCALE_OPTIONS.find((option) => option.code === locale.value)?.language.replace('-', '_') ?? 'en_US');
 useSeoMeta({
-  title: 'EVB Player · Offline media player for macOS, Windows, and Linux',
-  description: 'EVB Player turns folders of numbered videos or audio files into playlists with durations, saved progress and tabs. Free, offline and MIT licensed.',
-  ogTitle: 'EVB Player',
-  ogDescription: 'Play your media folders in order. Offline, on macOS, Windows, and Linux.',
-  ogImage: `${siteUrl}/films/player/poster.jpg`,
-  ogUrl: siteUrl,
+  title: () => t('seo.title'),
+  description: () => t('seo.description'),
+  ogTitle: () => t('seo.ogTitle'),
+  ogDescription: () => t('seo.ogDescription'),
+  ogImage: `${siteUrl}/films/player/en-dark/poster.jpg`,
+  ogImageAlt: () => t('seo.ogImageAlt'),
+  ogUrl: () => pageUrl.value,
+  ogLocale: () => ogLocale.value,
   twitterCard: 'summary_large_image',
 });
 </script>
@@ -215,8 +254,33 @@ useSeoMeta({
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 14px;
   padding: 22px 0;
   border-bottom: 1px solid var(--line);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-control {
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink-muted);
+}
+
+.language-menu {
+  display: grid;
+  width: 220px;
+  gap: 2px;
+  padding: 4px;
+}
+
+.language-option {
+  justify-content: flex-start;
 }
 
 .brand {
@@ -324,12 +388,12 @@ h1 {
 }
 
 .platform-tab-active {
-  color: #fff;
+  color: var(--paper-raised);
   background: var(--ink);
 }
 
 .platform-tab-active:hover {
-  color: #fff;
+  color: var(--paper-raised);
 }
 
 .download-row {
@@ -348,8 +412,8 @@ h1 {
 }
 
 .download-row:hover {
-  border-color: rgb(224 103 60 / 45%);
-  box-shadow: 0 10px 30px -18px rgb(178 74 34 / 45%);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 10px 30px -18px color-mix(in srgb, var(--accent) 48%, transparent);
 }
 
 .download-copy {
@@ -382,14 +446,14 @@ h1 {
   height: 42px;
   padding: 0 16px;
   border-radius: 10px;
-  color: #fff;
-  background: var(--accent);
+  color: var(--on-accent);
+  background: var(--accent-button);
   font-size: 14px;
   font-weight: 600;
 }
 
 .download-row:hover .download-button {
-  background: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent-button) 84%, #000);
 }
 
 .download-note {
@@ -498,6 +562,15 @@ h1 {
 
   .hero {
     padding-top: 56px;
+  }
+
+  .site-header {
+    flex-wrap: wrap;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .feature-grid {

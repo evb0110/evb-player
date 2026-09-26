@@ -3,9 +3,10 @@ import { Player, type PlayerRef } from '@remotion/player';
 import { createElement, createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { INTRO_FRAMES } from '~/films/RealFilm';
-import { COMPOSITIONS, type TCompositionId } from '~/films/registry';
+import { loadComposition, type TCompositionId, type TFilmTheme } from '~/films/registry';
 
 export interface IPlayerHandle {
+  durationInFrames: number;
   play: () => void;
   pause: () => void;
   toggle: () => void;
@@ -21,8 +22,14 @@ interface IMountOptions {
   onPlayingChange?: (playing: boolean) => void;
 }
 
-export function mountComposition(el: HTMLElement, id: TCompositionId, options: IMountOptions): IPlayerHandle {
-  const comp = COMPOSITIONS[id];
+export async function mountComposition(
+  el: HTMLElement,
+  id: TCompositionId,
+  locale: string,
+  theme: TFilmTheme,
+  options: IMountOptions,
+): Promise<IPlayerHandle> {
+  const comp = await loadComposition(id, locale, theme);
   const ref = createRef<PlayerRef>();
   const root = createRoot(el);
   root.render(
@@ -61,14 +68,11 @@ export function mountComposition(el: HTMLElement, id: TCompositionId, options: I
     options.onPlayingChange?.(player.isPlaying());
   });
   return {
+    durationInFrames: comp.durationInFrames,
     play: () => ref.current?.play(),
     pause: () => ref.current?.pause(),
     toggle: () => ref.current?.toggle(),
     seekTo: (frame) => ref.current?.seekTo(frame),
     unmount: () => root.unmount(),
   };
-}
-
-export function compositionDuration(id: TCompositionId) {
-  return COMPOSITIONS[id].durationInFrames;
 }

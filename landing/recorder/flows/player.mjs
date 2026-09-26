@@ -68,7 +68,7 @@ export default async function flow(win, rec, { folders }) {
         return media && media.readyState >= 1 && media.currentTime > 180;
     });
     await win.waitForTimeout(600);
-    const play = stage.getByRole('button', { name: 'Play', exact: true });
+    const play = stage.locator('.player-controls .play-button');
     await snap({ dur: 46, transition: 'dip', fade: 12, cursor: [560, 470] });
     await snap({ dur: 20, cursor: await rec.center(play), click: true });
     await play.click();
@@ -77,11 +77,12 @@ export default async function flow(win, rec, { folders }) {
 
     // Mark lesson 4 complete without watching it: zoom into the playlist.
     const playlist = await rec.rect(win.locator('.playlist-panel'), 12);
-    const row = await rec.rect(win.locator('.lesson-row', { hasText: 'Primitives and literals' }), 0);
+    const primitives = win.locator('.lesson-row', { hasText: 'Primitives and literals' });
+    const row = await rec.rect(primitives, 0);
     // A 1.6:1 frame around the row, kept inside the window.
     const rowCenter = Math.round(row[1] + row[3] / 2);
     const zoom = [Math.min(playlist[0] - 90, size.width - 500), rowCenter - 156, 500, 312];
-    const markDone = win.getByRole('button', { name: 'Mark Primitives and literals as complete' });
+    const markDone = primitives.locator('.lesson-row-done');
     await markDone.hover();
     await win.waitForTimeout(250);
     await snap({ dur: 34, cursor: await rec.center(markDone), focus: zoom });
@@ -103,7 +104,7 @@ export default async function flow(win, rec, { folders }) {
 
     // Full window, then its idle state once the controls hide.
     await stage.hover();
-    const fullWindow = win.getByRole('button', { name: 'Full window' });
+    const fullWindow = win.locator('.player-full-window');
     await snap({ dur: 22, cursor: await rec.center(fullWindow), click: true });
     await fullWindow.click();
     await win.waitForTimeout(500);
@@ -115,7 +116,7 @@ export default async function flow(win, rec, { folders }) {
     await win.waitForTimeout(500);
 
     // Back to the Library: the lesson keeps playing in the compact player.
-    const libraryTab = win.getByRole('button', { name: 'Library', exact: true });
+    const libraryTab = win.locator('.app-tab-library');
     await snap({ dur: 30, cursor: await rec.center(libraryTab), click: true });
     await libraryTab.click();
     await win.locator('.library-player').waitFor();

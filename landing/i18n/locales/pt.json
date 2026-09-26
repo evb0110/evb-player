@@ -1,0 +1,43 @@
+{
+  "seo": {
+    "title": "EVB Player · Reprodutor multimédia offline para macOS, Windows e Linux",
+    "description": "Transforme pastas de vídeos e ficheiros de áudio numerados em listas de reprodução com durações, progresso guardado e separadores. Gratuito, offline e com licença MIT.",
+    "ogTitle": "EVB Player",
+    "ogDescription": "Reproduza por ordem os ficheiros das suas pastas. Offline no macOS, Windows e Linux.",
+    "ogImageAlt": "EVB Player a reproduzir um vídeo de uma pasta multimédia"
+  },
+  "header": { "github": "EVB Player no GitHub", "language": "Idioma", "theme": "Tema" },
+  "theme": { "system": "Sistema", "light": "Claro", "dark": "Escuro" },
+  "hero": {
+    "kicker": "Reprodutor multimédia offline",
+    "title": "Reproduza por ordem os ficheiros das suas pastas",
+    "lede": "O EVB Player transforma uma pasta de vídeos ou ficheiros de áudio numerados numa lista de reprodução com secções e durações. Guarda o ponto onde ficou em cada ficheiro e permite manter várias pastas abertas em separadores. Funciona offline no macOS, Windows e Linux. É gratuito e tem licença MIT."
+  },
+  "downloads": {
+    "operatingSystem": "Sistema operativo", "download": "Transferir", "releases": "Versões",
+    "version": "Versão {version}", "installed": "As aplicações instaladas atualizam-se automaticamente", "allReleases": "Todas as versões",
+    "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
+    "options": {
+      "mac": { "title": "Apple Silicon", "detail": "Para Macs com processadores da série M", "format": "Instalador DMG", "note": "Assinado e autenticado pela Apple. Abra o DMG e arraste o EVB Player para Aplicações." },
+      "win": { "title": "Windows 10 e 11", "detail": "Para PCs de 64 bits (x64)", "format": "Instalador", "note": "O instalador ainda não tem assinatura digital. O Windows SmartScreen poderá pedir confirmação: escolha «Mais informações» e depois «Executar mesmo assim»." },
+      "linux": { "title": "Ubuntu e Debian", "detail": "Para PCs de 64 bits (x64)", "format": "Pacote .deb", "note": "Instale com sudo apt install ./ seguido do nome do ficheiro. Será necessária a sua palavra-passe para instalar atualizações." }
+    }
+  },
+  "demo": {
+    "ariaLabel": "O EVB Player abre uma pasta da Biblioteca, reproduz um vídeo, marca outro vídeo como visto, muda de vídeo, mostra-o na janela inteira e regressa à Biblioteca enquanto continua a reproduzir.",
+    "caption": "Gravação da aplicação real com vídeos de demonstração gerados.", "play": "Reproduzir a demonstração", "pause": "Pausar a demonstração", "position": "Posição da demonstração"
+  },
+  "features": {
+    "title": "O que faz",
+    "items": {
+      "folders": { "title": "As pastas tornam-se listas de reprodução", "text": "Os ficheiros são ordenados pelos números e as subpastas tornam-se secções. Nada é copiado, convertido ou carregado." },
+      "durations": { "title": "Durações à partida", "text": "Ao abrir, são lidas as durações de cada ficheiro e da pasta inteira, antes de iniciar a reprodução." },
+      "resume": { "title": "Retome onde ficou", "text": "A sua posição em cada ficheiro é guardada enquanto vê ou ouve. Os ficheiros concluídos ficam assinalados e começa o seguinte." },
+      "skip": { "title": "Avance o que já conhece", "text": "Marque qualquer ficheiro como concluído sem o reproduzir ou reponha um ficheiro ou uma pasta inteira." },
+      "tabs": { "title": "Várias pastas em separadores", "text": "Mantenha várias pastas abertas ao mesmo tempo. Na Biblioteca, o ficheiro atual continua a reproduzir num leitor compacto." },
+      "room": { "title": "Mais espaço para ver", "text": "Modo cinema, janela inteira e ecrã inteiro, controlo da velocidade e atalhos de teclado para tudo." }
+    },
+    "formats": "Reproduz MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg e Opus. Os ficheiros que o leitor integrado não consegue descodificar, como AVI, abrem no seu leitor multimédia habitual."
+  },
+  "footer": { "copyright": "Copyright © 2026 Eugene Barsky", "license": "Licença MIT", "source": "Código-fonte no GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+}

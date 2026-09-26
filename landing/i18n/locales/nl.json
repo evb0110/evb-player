@@ -1,0 +1,43 @@
+{
+  "seo": {
+    "title": "EVB Player · Offline mediaspeler voor macOS, Windows en Linux",
+    "description": "Maak van mappen met genummerde video's en audiobestanden afspeellijsten met speelduur, opgeslagen voortgang en tabbladen. Gratis, offline en onder de MIT-licentie.",
+    "ogTitle": "EVB Player",
+    "ogDescription": "Speel mediabestanden uit je mappen op volgorde af. Offline op macOS, Windows en Linux.",
+    "ogImageAlt": "EVB Player speelt een video uit een mediamap af"
+  },
+  "header": { "github": "EVB Player op GitHub", "language": "Taal", "theme": "Thema" },
+  "theme": { "system": "Systeem", "light": "Licht", "dark": "Donker" },
+  "hero": {
+    "kicker": "Offline mediaspeler",
+    "title": "Speel mediabestanden uit je mappen op volgorde af",
+    "lede": "EVB Player maakt van een map met genummerde video's of audiobestanden een afspeellijst met secties en speelduur. De afspeelpositie wordt per bestand bewaard en je kunt meerdere mappen in tabbladen openhouden. De app werkt offline op macOS, Windows en Linux. Hij is gratis en valt onder de MIT-licentie."
+  },
+  "downloads": {
+    "operatingSystem": "Besturingssysteem", "download": "Downloaden", "releases": "Versies",
+    "version": "Versie {version}", "installed": "Geïnstalleerde apps werken zichzelf bij", "allReleases": "Alle versies",
+    "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
+    "options": {
+      "mac": { "title": "Apple Silicon", "detail": "Voor Macs met M-seriechips", "format": "DMG-installatieprogramma", "note": "Ondertekend en door Apple notarieel bekrachtigd. Open de DMG en sleep EVB Player naar Programma's." },
+      "win": { "title": "Windows 10 en 11", "detail": "Voor 64-bits pc's (x64)", "format": "Installatieprogramma", "note": "Het installatieprogramma is nog niet digitaal ondertekend. Windows SmartScreen kan om bevestiging vragen: kies 'Meer informatie' en daarna 'Toch uitvoeren'." },
+      "linux": { "title": "Ubuntu en Debian", "detail": "Voor 64-bits pc's (x64)", "format": ".deb-pakket", "note": "Installeer met sudo apt install ./ gevolgd door de bestandsnaam. Voor updates wordt om je wachtwoord gevraagd." }
+    }
+  },
+  "demo": {
+    "ariaLabel": "EVB Player opent een map vanuit de bibliotheek, speelt een video af, markeert een andere video als bekeken, wisselt van video, toont de video in het hele venster en keert terug naar de bibliotheek terwijl de video blijft spelen.",
+    "caption": "Opname van de echte app met gegenereerde demovideo's.", "play": "Demo afspelen", "pause": "Demo pauzeren", "position": "Demopositie"
+  },
+  "features": {
+    "title": "Wat het doet",
+    "items": {
+      "folders": { "title": "Mappen worden afspeellijsten", "text": "Bestanden worden op nummer gesorteerd en submappen worden secties. Er wordt niets gekopieerd, omgezet of geüpload." },
+      "durations": { "title": "Speelduur meteen bekend", "text": "Bij het openen wordt de speelduur van elk bestand en de hele map gelezen, voordat je iets afspeelt." },
+      "resume": { "title": "Ga verder waar je stopte", "text": "Je positie in elk bestand wordt tijdens het kijken of luisteren opgeslagen. Afgeronde bestanden worden afgevinkt en het volgende start." },
+      "skip": { "title": "Sla bekende bestanden over", "text": "Markeer een bestand als afgerond zonder het af te spelen of wis de voortgang van een bestand of een hele map." },
+      "tabs": { "title": "Meerdere mappen in tabbladen", "text": "Houd meerdere mappen tegelijk open. In de bibliotheek blijft het huidige bestand in een compacte speler afspelen." },
+      "room": { "title": "Ruimte om te kijken", "text": "Bioscoopmodus, volledig venster en volledig scherm, snelheidsregeling en sneltoetsen voor alles." }
+    },
+    "formats": "Speelt MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg en Opus af. Bestanden die de ingebouwde speler niet kan decoderen, zoals AVI, worden in je gebruikelijke mediaspeler geopend."
+  },
+  "footer": { "copyright": "Copyright © 2026 Eugene Barsky", "license": "MIT-licentie", "source": "Broncode op GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+}

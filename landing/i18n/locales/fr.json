@@ -1,0 +1,43 @@
+{
+  "seo": {
+    "title": "EVB Player · Lecteur multimédia hors ligne pour macOS, Windows et Linux",
+    "description": "Transformez des dossiers de vidéos et fichiers audio numérotés en listes de lecture avec durées, progression mémorisée et onglets. Gratuit, hors ligne et sous licence MIT.",
+    "ogTitle": "EVB Player",
+    "ogDescription": "Lisez les fichiers de vos dossiers dans l'ordre. Hors ligne sur macOS, Windows et Linux.",
+    "ogImageAlt": "EVB Player lisant une vidéo d'un dossier multimédia"
+  },
+  "header": { "github": "EVB Player sur GitHub", "language": "Langue", "theme": "Thème" },
+  "theme": { "system": "Système", "light": "Clair", "dark": "Sombre" },
+  "hero": {
+    "kicker": "Lecteur multimédia hors ligne",
+    "title": "Lisez les fichiers de vos dossiers dans l'ordre",
+    "lede": "EVB Player transforme un dossier de vidéos ou de fichiers audio numérotés en une liste de lecture avec sections et durées. Il mémorise votre position dans chaque fichier et permet de garder plusieurs dossiers ouverts dans des onglets. Il fonctionne hors ligne sur macOS, Windows et Linux. Il est gratuit et sous licence MIT."
+  },
+  "downloads": {
+    "operatingSystem": "Système d'exploitation", "download": "Télécharger", "releases": "Versions",
+    "version": "Version {version}", "installed": "Les applications installées se mettent à jour automatiquement", "allReleases": "Toutes les versions",
+    "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
+    "options": {
+      "mac": { "title": "Apple Silicon", "detail": "Pour les Mac avec puce de la série M", "format": "Installateur DMG", "note": "Signé et notarié par Apple. Ouvrez le DMG et faites glisser EVB Player dans Applications." },
+      "win": { "title": "Windows 10 et 11", "detail": "Pour les PC 64 bits (x64)", "format": "Installateur", "note": "L'installateur n'est pas encore signé numériquement. Windows SmartScreen peut demander une confirmation : choisissez « Informations complémentaires », puis « Exécuter quand même »." },
+      "linux": { "title": "Ubuntu et Debian", "detail": "Pour les PC 64 bits (x64)", "format": "Paquet .deb", "note": "Installez avec sudo apt install ./ suivi du nom du fichier. Votre mot de passe sera demandé avant l'installation des mises à jour." }
+    }
+  },
+  "demo": {
+    "ariaLabel": "EVB Player ouvre un dossier depuis la bibliothèque, lit une vidéo, marque une autre vidéo comme visionnée, change de vidéo, affiche la vidéo dans toute la fenêtre puis revient à la bibliothèque pendant la lecture.",
+    "caption": "Enregistrement de l'application réelle avec des vidéos de démonstration générées.", "play": "Lire la démonstration", "pause": "Mettre la démonstration en pause", "position": "Position de la démonstration"
+  },
+  "features": {
+    "title": "Fonctionnalités",
+    "items": {
+      "folders": { "title": "Les dossiers deviennent des listes", "text": "Les fichiers sont triés par numéro et les sous-dossiers deviennent des sections. Rien n'est copié, converti ou envoyé en ligne." },
+      "durations": { "title": "Durées disponibles dès l'ouverture", "text": "La durée de chaque fichier et du dossier entier est lue à l'ouverture, avant toute lecture." },
+      "resume": { "title": "Reprenez là où vous en étiez", "text": "Votre position dans chaque fichier est mémorisée pendant la lecture ou l'écoute. Les fichiers terminés sont cochés et le suivant démarre." },
+      "skip": { "title": "Passez ce que vous connaissez", "text": "Marquez un fichier comme terminé sans le lire, ou réinitialisez un fichier ou un dossier entier." },
+      "tabs": { "title": "Plusieurs dossiers dans des onglets", "text": "Gardez plusieurs dossiers ouverts. Dans la bibliothèque, le fichier en cours continue dans un lecteur compact." },
+      "room": { "title": "Plus d'espace pour regarder", "text": "Mode cinéma, fenêtre agrandie ou plein écran, réglage de la vitesse et raccourcis clavier pour tout." }
+    },
+    "formats": "Lit les formats MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg et Opus. Les fichiers que le lecteur intégré ne peut pas décoder, comme AVI, s'ouvrent dans votre lecteur multimédia habituel."
+  },
+  "footer": { "copyright": "Copyright © 2026 Eugene Barsky", "license": "Licence MIT", "source": "Code source sur GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+}

@@ -1,0 +1,43 @@
+{
+  "seo": {
+    "title": "EVB Player · Lettore multimediale offline per macOS, Windows e Linux",
+    "description": "Trasforma cartelle di video e file audio numerati in playlist con durate, progressi salvati e schede. Gratuito, offline e con licenza MIT.",
+    "ogTitle": "EVB Player",
+    "ogDescription": "Riproduci in ordine i file delle tue cartelle. Offline su macOS, Windows e Linux.",
+    "ogImageAlt": "EVB Player riproduce un video da una cartella multimediale"
+  },
+  "header": { "github": "EVB Player su GitHub", "language": "Lingua", "theme": "Tema" },
+  "theme": { "system": "Sistema", "light": "Chiaro", "dark": "Scuro" },
+  "hero": {
+    "kicker": "Lettore multimediale offline",
+    "title": "Riproduci in ordine i file delle tue cartelle",
+    "lede": "EVB Player trasforma una cartella di video o file audio numerati in una playlist con sezioni e durate. Salva il punto in cui ti fermi in ogni file e permette di tenere aperte più cartelle in schede. Funziona offline su macOS, Windows e Linux. È gratuito e distribuito con licenza MIT."
+  },
+  "downloads": {
+    "operatingSystem": "Sistema operativo", "download": "Scarica", "releases": "Versioni",
+    "version": "Versione {version}", "installed": "Le app installate si aggiornano automaticamente", "allReleases": "Tutte le versioni",
+    "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
+    "options": {
+      "mac": { "title": "Apple Silicon", "detail": "Per Mac con chip della serie M", "format": "Installer DMG", "note": "Firmato e autenticato da Apple. Apri il DMG e trascina EVB Player in Applicazioni." },
+      "win": { "title": "Windows 10 e 11", "detail": "Per PC a 64 bit (x64)", "format": "Installer", "note": "L'installer non è ancora firmato digitalmente. Windows SmartScreen potrebbe chiedere conferma: seleziona «Ulteriori informazioni» e poi «Esegui comunque»." },
+      "linux": { "title": "Ubuntu e Debian", "detail": "Per PC a 64 bit (x64)", "format": "Pacchetto .deb", "note": "Installa con sudo apt install ./ seguito dal nome del file. Prima di installare gli aggiornamenti ti verrà chiesta la password." }
+    }
+  },
+  "demo": {
+    "ariaLabel": "EVB Player apre una cartella dalla libreria, riproduce un video, contrassegna un altro video come visto, passa a un altro video, lo mostra a finestra intera e torna alla libreria mentre la riproduzione continua.",
+    "caption": "Registrazione dell'app reale con video dimostrativi generati.", "play": "Riproduci la dimostrazione", "pause": "Metti in pausa la dimostrazione", "position": "Posizione della dimostrazione"
+  },
+  "features": {
+    "title": "Cosa offre",
+    "items": {
+      "folders": { "title": "Le cartelle diventano playlist", "text": "I file sono ordinati per numero e le sottocartelle diventano sezioni. Nulla viene copiato, convertito o caricato online." },
+      "durations": { "title": "Durate subito disponibili", "text": "All'apertura vengono lette le durate di ogni file e dell'intera cartella, prima di avviare la riproduzione." },
+      "resume": { "title": "Riprendi da dove eri rimasto", "text": "La posizione in ogni file viene salvata mentre guardi o ascolti. I file completati vengono contrassegnati e parte il successivo." },
+      "skip": { "title": "Salta quello che conosci", "text": "Contrassegna un file come completato senza riprodurlo oppure azzera un file o un'intera cartella." },
+      "tabs": { "title": "Più cartelle in schede", "text": "Tieni aperte più cartelle contemporaneamente. Nella libreria il file corrente continua a riprodursi nel lettore compatto." },
+      "room": { "title": "Più spazio per guardare", "text": "Modalità cinema, finestra intera e schermo intero, controllo della velocità e scorciatoie da tastiera per tutto." }
+    },
+    "formats": "Riproduce MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg e Opus. I file che il lettore integrato non può decodificare, come AVI, si aprono nel tuo lettore multimediale abituale."
+  },
+  "footer": { "copyright": "Copyright © 2026 Eugene Barsky", "license": "Licenza MIT", "source": "Codice sorgente su GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+}

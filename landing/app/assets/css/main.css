@@ -8,13 +8,30 @@
   --paper-raised: #fbf9f5;
   --ink: #1d2125;
   --ink-muted: #4a5055;
-  --ink-subtle: #737a80;
+  --ink-subtle: #656b70;
   --line: rgb(29 33 37 / 12%);
-  --accent: #e0673c;
-  --accent-ink: #b24a22;
-  --accent-soft: rgb(224 103 60 / 10%);
+  --accent: #a94321;
+  --accent-ink: #963b1d;
+  --accent-button: #963b1d;
+  --on-accent: #fff;
+  --accent-soft: rgb(169 67 33 / 10%);
   --sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --paper: #17150f;
+  --paper-raised: #211e17;
+  --ink: #f1ece3;
+  --ink-muted: #c7beae;
+  --ink-subtle: #b0a691;
+  --line: rgb(241 236 227 / 14%);
+  --accent: #f5a076;
+  --accent-ink: #ffa578;
+  --accent-button: #9f4525;
+  --on-accent: #fff;
+  --accent-soft: rgb(245 160 118 / 14%);
 }
 
 html {

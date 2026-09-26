@@ -10,18 +10,18 @@
       <div class="film-screen" :style="{ aspectRatio: `${width} / ${height}` }">
         <div ref="host" class="film-stage" role="img" :aria-label="label" />
         <!-- The first state as a still until the player has drawn the same frame. -->
-        <img v-if="showPoster" class="film-poster" :src="`/films/${id}/poster.jpg`" alt="" :width="width" :height="height">
+        <div v-if="showPoster" class="film-poster" :style="posterStyle" />
       </div>
     </div>
     <figcaption class="film-controls">
-      <button class="film-toggle" type="button" :aria-label="playing ? 'Pause the demo' : 'Play the demo'" @click="toggle">
+      <button class="film-toggle" type="button" :aria-label="playing ? pauseLabel : playLabel" @click="toggle">
         <UIcon :name="playing ? 'i-lucide-pause' : 'i-lucide-play'" />
       </button>
       <div
         class="film-track"
         role="slider"
         tabindex="0"
-        aria-label="Demo position"
+        :aria-label="positionLabel"
         :aria-valuemin="0"
         :aria-valuemax="duration"
         :aria-valuenow="frame"
@@ -39,11 +39,16 @@
 <script setup lang="ts">
 import { useIntersectionObserver, usePreferredReducedMotion } from '@vueuse/core';
 import type { IPlayerHandle } from '~/films/mount';
-import type { TCompositionId } from '~/films/registry';
+import { resolveFilmVariant, type TCompositionId, type TFilmTheme } from '~/films/registry';
 
 const props = defineProps<{
   id: TCompositionId;
+  locale: string;
+  theme: TFilmTheme;
   label: string;
+  playLabel: string;
+  pauseLabel: string;
+  positionLabel: string;
   title: string;
   width: number;
   height: number;
@@ -59,27 +64,49 @@ const visible = ref(false);
 let handle: IPlayerHandle | null = null;
 /** The film has drawn content; playback may start. */
 let ready = false;
+let mountVersion = 0;
+
+// Both posters are CSS backgrounds keyed on the color-mode class, which is set before the first paint,
+// so the server render never knows the theme yet the browser fetches only the matching still.
+const posterStyle = computed(() => ({
+  '--poster-light': `url(/films/${resolveFilmVariant(props.id, props.locale, 'light').path}/poster.jpg)`,
+  '--poster-dark': `url(/films/${resolveFilmVariant(props.id, props.locale, 'dark').path}/poster.jpg)`,
+}));
 
 const time = computed(() => {
   const seconds = frame.value / 30;
   return `${Math.floor(seconds)}.${Math.floor((seconds % 1) * 10)}s`;
 });
 
-async function mount() {
+async function mountVariant() {
+  const version = ++mountVersion;
+  handle?.unmount();
+  handle = null;
+  ready = false;
+  playing.value = false;
+  frame.value = 0;
+  duration.value = 1;
+  showPoster.value = true;
   if (!host.value) {
     return;
   }
-  const { compositionDuration, mountComposition } = await import('~/films/mount');
-  duration.value = compositionDuration(props.id);
-  handle = mountComposition(host.value, props.id, {
+
+  const { mountComposition } = await import('~/films/mount');
+  const mounted = await mountComposition(host.value, props.id, props.locale, props.theme, {
     reducedMotion: reducedMotion.value === 'reduce',
     onReady: () => {
+      if (version !== mountVersion) {
+        return;
+      }
       // Two frames: the player's first content frame is painted before the poster goes.
       requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (version !== mountVersion) {
+          return;
+        }
         showPoster.value = false;
         ready = true;
         if (visible.value && reducedMotion.value !== 'reduce') {
-          handle?.play();
+          mounted.play();
         }
       }));
     },
@@ -90,6 +117,12 @@ async function mount() {
       playing.value = value;
     },
   });
+  if (version !== mountVersion) {
+    mounted.unmount();
+    return;
+  }
+  handle = mounted;
+  duration.value = mounted.durationInFrames;
 }
 
 function toggle() {
@@ -116,7 +149,13 @@ function seekFromPointer(event: PointerEvent) {
   window.addEventListener('pointerup', up);
 }
 
-onMounted(mount);
+onMounted(() => {
+  void mountVariant();
+});
+
+watch(() => [props.locale, props.theme], () => {
+  void mountVariant();
+});
 
 // Plays only while on screen.
 useIntersectionObserver(host, ([entry]) => {
@@ -131,7 +170,10 @@ useIntersectionObserver(host, ([entry]) => {
   }
 });
 
-onBeforeUnmount(() => handle?.unmount());
+onBeforeUnmount(() => {
+  mountVersion++;
+  handle?.unmount();
+});
 </script>
 
 <style scoped>
@@ -143,7 +185,7 @@ onBeforeUnmount(() => handle?.unmount());
   overflow: hidden;
   border: 1px solid rgb(29 33 37 / 14%);
   border-radius: 12px;
-  background: #101214;
+  background: #f5f6f7;
   box-shadow: 0 1px 2px rgb(29 33 37 / 8%), 0 24px 60px -18px rgb(29 33 37 / 38%);
 }
 
@@ -154,8 +196,8 @@ onBeforeUnmount(() => handle?.unmount());
   gap: 8px;
   height: 34px;
   padding: 0 14px;
-  border-bottom: 1px solid rgb(255 255 255 / 6%);
-  background: #1a1d20;
+  border-bottom: 1px solid rgb(25 37 43 / 10%);
+  background: #e9ecee;
 }
 
 .film-light {
@@ -179,7 +221,7 @@ onBeforeUnmount(() => handle?.unmount());
 .film-title {
   position: absolute;
   left: 50%;
-  color: #9aa2a4;
+  color: #536169;
   font-size: 12px;
   font-weight: 600;
   transform: translateX(-50%);
@@ -188,7 +230,22 @@ onBeforeUnmount(() => handle?.unmount());
 .film-screen {
   position: relative;
   width: 100%;
+  background: #f5f6f7;
+}
+
+/* The window frame matches the film's theme, keyed on the color-mode class like the poster. */
+:global(html.dark .film-window),
+:global(html.dark .film-screen) {
   background: #101214;
+}
+
+:global(html.dark .film-titlebar) {
+  border-bottom-color: rgb(255 255 255 / 6%);
+  background: #1a1d20;
+}
+
+:global(html.dark .film-title) {
+  color: #9aa2a4;
 }
 
 .film-stage,
@@ -200,7 +257,11 @@ onBeforeUnmount(() => handle?.unmount());
 }
 
 .film-poster {
-  object-fit: cover;
+  background: var(--poster-light) center / cover no-repeat;
+}
+
+:global(html.dark .film-poster) {
+  background-image: var(--poster-dark);
 }
 
 .film-controls {

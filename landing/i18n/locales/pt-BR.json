@@ -1,0 +1,43 @@
+{
+  "seo": {
+    "title": "EVB Player · Reprodutor de mídia offline para macOS, Windows e Linux",
+    "description": "Transforme pastas de vídeos e arquivos de áudio numerados em playlists com duração, progresso salvo e abas. Gratuito, offline e com licença MIT.",
+    "ogTitle": "EVB Player",
+    "ogDescription": "Reproduza os arquivos das suas pastas em ordem. Offline no macOS, Windows e Linux.",
+    "ogImageAlt": "EVB Player reproduzindo um vídeo de uma pasta de mídia"
+  },
+  "header": { "github": "EVB Player no GitHub", "language": "Idioma", "theme": "Tema" },
+  "theme": { "system": "Sistema", "light": "Claro", "dark": "Escuro" },
+  "hero": {
+    "kicker": "Reprodutor de mídia offline",
+    "title": "Reproduza os arquivos das suas pastas em ordem",
+    "lede": "O EVB Player transforma uma pasta de vídeos ou arquivos de áudio numerados em uma playlist com seções e durações. Salva o ponto em que você parou em cada arquivo e permite manter várias pastas abertas em abas. Funciona offline no macOS, Windows e Linux. É gratuito e tem licença MIT."
+  },
+  "downloads": {
+    "operatingSystem": "Sistema operacional", "download": "Baixar", "releases": "Versões",
+    "version": "Versão {version}", "installed": "Os aplicativos instalados se atualizam automaticamente", "allReleases": "Todas as versões",
+    "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
+    "options": {
+      "mac": { "title": "Apple Silicon", "detail": "Para Macs com chips da série M", "format": "Instalador DMG", "note": "Assinado e notarizado pela Apple. Abra o DMG e arraste o EVB Player para Aplicativos." },
+      "win": { "title": "Windows 10 e 11", "detail": "Para PCs de 64 bits (x64)", "format": "Instalador", "note": "O instalador ainda não tem assinatura digital. O Windows SmartScreen pode pedir confirmação: escolha «Mais informações» e depois «Executar assim mesmo»." },
+      "linux": { "title": "Ubuntu e Debian", "detail": "Para PCs de 64 bits (x64)", "format": "Pacote .deb", "note": "Instale com sudo apt install ./ seguido do nome do arquivo. Sua senha será solicitada antes de instalar atualizações." }
+    }
+  },
+  "demo": {
+    "ariaLabel": "O EVB Player abre uma pasta da Biblioteca, reproduz um vídeo, marca outro como assistido, troca de vídeo, mostra o vídeo na janela inteira e volta à Biblioteca enquanto a reprodução continua.",
+    "caption": "Gravação do aplicativo real com vídeos de demonstração gerados.", "play": "Reproduzir demonstração", "pause": "Pausar demonstração", "position": "Posição da demonstração"
+  },
+  "features": {
+    "title": "O que ele faz",
+    "items": {
+      "folders": { "title": "Pastas viram playlists", "text": "Os arquivos são ordenados pelos números e as subpastas viram seções. Nada é copiado, convertido ou enviado." },
+      "durations": { "title": "Durações desde o início", "text": "Ao abrir, o app lê a duração de cada arquivo e da pasta inteira, antes de começar a reprodução." },
+      "resume": { "title": "Continue de onde parou", "text": "Sua posição em cada arquivo é salva enquanto você assiste ou ouve. Os arquivos concluídos são marcados e o próximo começa." },
+      "skip": { "title": "Pule o que você já conhece", "text": "Marque qualquer arquivo como concluído sem reproduzi-lo ou redefina um arquivo ou a pasta inteira." },
+      "tabs": { "title": "Várias pastas em abas", "text": "Mantenha várias pastas abertas ao mesmo tempo. Na Biblioteca, o arquivo atual continua tocando em um player compacto." },
+      "room": { "title": "Mais espaço para assistir", "text": "Modo cinema, janela inteira e tela cheia, controle de velocidade e atalhos de teclado para tudo." }
+    },
+    "formats": "Reproduz MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg e Opus. Arquivos que o player integrado não consegue decodificar, como AVI, abrem no seu reprodutor de mídia habitual."
+  },
+  "footer": { "copyright": "Direitos autorais © 2026 Eugene Barsky", "license": "Licença MIT", "source": "Código-fonte no GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+}

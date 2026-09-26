@@ -36,17 +36,21 @@ export class FilmRecorder {
     /**
      * @param {import('playwright-core').Page} page
      * @param {string} film film id, also the folder name under public/films
-     * @param {{ width?: number, height?: number, qaDir: string }} options
+     * @param {{ width?: number, height?: number, qaDir: string, locale: string, theme: string }} options
      */
-    constructor(page, film, { width = 1280, height = 800, qaDir }) {
+    constructor(page, film, { width = 1280, height = 800, qaDir, locale, theme }) {
         this.page = page;
         this.film = film;
+        this.locale = locale;
+        this.theme = theme;
+        this.variant = `${locale}-${theme}`;
+        this.assetBase = `${film}/${this.variant}`;
         this.width = width;
         this.height = height;
         this.steps = [];
         this.families = new Set();
-        this.dir = path.join(LANDING, 'public/films', film);
-        this.qaDir = path.join(qaDir, film);
+        this.dir = path.join(LANDING, 'public/films', film, this.variant);
+        this.qaDir = path.join(qaDir, film, this.variant);
         rmSync(this.dir, { recursive: true, force: true });
         rmSync(this.qaDir, { recursive: true, force: true });
         mkdirSync(this.dir, { recursive: true });
@@ -61,7 +65,7 @@ export class FilmRecorder {
             const file = `img-${hash}.${type === 'jpeg' ? 'jpg' : type}`;
             const target = path.join(this.dir, file);
             if (!existsSync(target)) writeFileSync(target, Buffer.from(b64, 'base64'));
-            return `${attr}="/films/${this.film}/${file}"`;
+            return `${attr}="/films/${this.assetBase}/${file}"`;
         });
     }
 
@@ -182,8 +186,8 @@ export class FilmRecorder {
 
     async save({ title }) {
         const fonts = await this.collectFonts();
-        const manifest = { film: this.film, title, width: this.width, height: this.height, background: this.background ?? '#ffffff', fonts, steps: this.steps };
-        const out = path.join(LANDING, 'app/films/manifests', `${this.film}.json`);
+        const manifest = { film: this.assetBase, title, width: this.width, height: this.height, background: this.background ?? '#ffffff', fonts, steps: this.steps };
+        const out = path.join(LANDING, 'app/films/manifests', `${this.film}.${this.locale}.${this.theme}.json`);
         mkdirSync(path.dirname(out), { recursive: true });
         writeFileSync(out, `${JSON.stringify(manifest, null, 1)}\n`);
         const frames = this.steps.reduce((n, s) => n + s.dur, 0);

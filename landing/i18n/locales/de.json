@@ -1,0 +1,43 @@
+{
+  "seo": {
+    "title": "EVB Player · Offline-Mediaplayer für macOS, Windows und Linux",
+    "description": "Machen Sie aus Ordnern mit nummerierten Videos und Audiodateien Wiedergabelisten mit Laufzeiten, gespeichertem Fortschritt und Tabs. Kostenlos, offline und unter MIT-Lizenz.",
+    "ogTitle": "EVB Player",
+    "ogDescription": "Spielen Sie Medien aus Ihren Ordnern der Reihe nach ab. Offline auf macOS, Windows und Linux.",
+    "ogImageAlt": "EVB Player spielt ein Video aus einem Medienordner ab"
+  },
+  "header": { "github": "EVB Player auf GitHub", "language": "Sprache", "theme": "Darstellung" },
+  "theme": { "system": "System", "light": "Hell", "dark": "Dunkel" },
+  "hero": {
+    "kicker": "Offline-Mediaplayer",
+    "title": "Medienordner der Reihe nach abspielen",
+    "lede": "EVB Player macht aus einem Ordner mit nummerierten Videos oder Audiodateien eine Wiedergabeliste mit Abschnitten und Laufzeiten. Die aktuelle Position in jeder Datei wird gespeichert, und mehrere Ordner lassen sich in Tabs geöffnet halten. Die App läuft offline auf macOS, Windows und Linux. Sie ist kostenlos und steht unter der MIT-Lizenz."
+  },
+  "downloads": {
+    "operatingSystem": "Betriebssystem", "download": "Herunterladen", "releases": "Versionen",
+    "version": "Version {version}", "installed": "Installierte Apps aktualisieren sich selbst", "allReleases": "Alle Versionen",
+    "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
+    "options": {
+      "mac": { "title": "Apple Silicon", "detail": "Für Macs mit Chips der M-Serie", "format": "DMG-Installer", "note": "Von Apple signiert und notariell beglaubigt. Öffnen Sie die DMG-Datei und ziehen Sie EVB Player in den Ordner „Programme“." },
+      "win": { "title": "Windows 10 und 11", "detail": "Für 64-Bit-PCs (x64)", "format": "Installer", "note": "Der Installer ist noch nicht digital signiert. Windows SmartScreen fragt möglicherweise nach einer Bestätigung: Wählen Sie „Weitere Informationen“ und dann „Trotzdem ausführen“." },
+      "linux": { "title": "Ubuntu und Debian", "detail": "Für 64-Bit-PCs (x64)", "format": ".deb-Paket", "note": "Installieren Sie mit sudo apt install ./ gefolgt vom Dateinamen. Vor der Installation von Updates werden Sie nach Ihrem Passwort gefragt." }
+    }
+  },
+  "demo": {
+    "ariaLabel": "EVB Player öffnet einen Ordner aus der Bibliothek, spielt ein Video ab, markiert ein weiteres Video als angesehen, wechselt das Video, zeigt es im ganzen Fenster und kehrt bei laufender Wiedergabe zur Bibliothek zurück.",
+    "caption": "Aufnahme der echten App mit generierten Demo-Videos.", "play": "Demo abspielen", "pause": "Demo pausieren", "position": "Position der Demo"
+  },
+  "features": {
+    "title": "Funktionen",
+    "items": {
+      "folders": { "title": "Ordner werden zu Wiedergabelisten", "text": "Dateien werden nach Nummern sortiert, Unterordner werden zu Abschnitten. Es wird nichts kopiert, umgewandelt oder hochgeladen." },
+      "durations": { "title": "Laufzeiten auf einen Blick", "text": "Beim Öffnen werden die Laufzeiten aller Dateien und des gesamten Ordners ausgelesen, noch bevor etwas abgespielt wird." },
+      "resume": { "title": "Genau dort weitermachen", "text": "Ihre Position in jeder Datei wird beim Ansehen oder Anhören gespeichert. Beendete Dateien werden abgehakt und die nächste startet." },
+      "skip": { "title": "Bekanntes überspringen", "text": "Markieren Sie eine Datei ohne Wiedergabe als erledigt oder setzen Sie eine Datei oder einen ganzen Ordner zurück." },
+      "tabs": { "title": "Mehrere Ordner in Tabs", "text": "Halten Sie mehrere Ordner gleichzeitig geöffnet. In der Bibliothek läuft die aktuelle Datei im kompakten Player weiter." },
+      "room": { "title": "Mehr Platz zum Anschauen", "text": "Kinomodus, maximiertes Fenster und Vollbild, Geschwindigkeitsregelung und Tastenkürzel für alle Funktionen." }
+    },
+    "formats": "Unterstützt MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg und Opus. Dateien, die der eingebaute Player nicht decodieren kann, etwa AVI, werden im üblichen Mediaplayer geöffnet."
+  },
+  "footer": { "copyright": "Copyright © 2026 Eugene Barsky", "license": "MIT-Lizenz", "source": "Quellcode auf GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+}

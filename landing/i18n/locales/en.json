@@ -1,0 +1,101 @@
+{
+  "seo": {
+    "title": "EVB Player · Offline media player for macOS, Windows, and Linux",
+    "description": "Turn folders of numbered videos and audio files into playlists with durations, saved progress, and tabs. Free, offline, and MIT licensed.",
+    "ogTitle": "EVB Player",
+    "ogDescription": "Play your media folders in order. Offline on macOS, Windows, and Linux.",
+    "ogImageAlt": "EVB Player playing a video from a media folder"
+  },
+  "header": {
+    "github": "EVB Player on GitHub",
+    "language": "Language",
+    "theme": "Theme"
+  },
+  "theme": {
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "hero": {
+    "kicker": "Offline media player",
+    "title": "Play your media folders in order",
+    "lede": "EVB Player turns a folder of numbered videos or audio files into a playlist with sections and durations, saves your place in every file as you watch or listen, and keeps several folders open in tabs. It runs offline on macOS, Windows, and Linux, and it is free and MIT licensed."
+  },
+  "downloads": {
+    "operatingSystem": "Operating system",
+    "download": "Download",
+    "releases": "Releases",
+    "version": "Version {version}",
+    "installed": "Installed apps update themselves",
+    "allReleases": "All releases",
+    "platforms": {
+      "mac": "macOS",
+      "win": "Windows",
+      "linux": "Linux"
+    },
+    "options": {
+      "mac": {
+        "title": "Apple Silicon",
+        "detail": "For Macs with M-series chips",
+        "format": "DMG installer",
+        "note": "Signed and notarized by Apple. Open the DMG and drag EVB Player to Applications."
+      },
+      "win": {
+        "title": "Windows 10 and 11",
+        "detail": "For 64-bit PCs (x64)",
+        "format": "Installer",
+        "note": "The installer is not code-signed yet, so Windows SmartScreen may ask you to confirm. Choose More info, then Run anyway."
+      },
+      "linux": {
+        "title": "Ubuntu and Debian",
+        "detail": "For 64-bit PCs (x64)",
+        "format": ".deb package",
+        "note": "Install with sudo apt install ./ followed by the file name. Updates ask for your password before installing."
+      }
+    }
+  },
+  "demo": {
+    "ariaLabel": "EVB Player opening a folder from the Library, playing a video, marking another video as watched, switching videos, filling the window with the video, and returning to the Library while it keeps playing.",
+    "caption": "Recorded from the real app with generated demo videos.",
+    "play": "Play the demo",
+    "pause": "Pause the demo",
+    "position": "Demo position"
+  },
+  "features": {
+    "title": "What it does",
+    "items": {
+      "folders": {
+        "title": "Folders become playlists",
+        "text": "Files are sorted by their numbers and subfolders become sections. Nothing is copied, converted, or uploaded."
+      },
+      "durations": {
+        "title": "Durations up front",
+        "text": "The length of every file and of the whole folder is read when it opens, before you play anything."
+      },
+      "resume": {
+        "title": "Resume where you stopped",
+        "text": "Your position in every file is saved as you watch or listen. Finished files are ticked off and the next one starts."
+      },
+      "skip": {
+        "title": "Skip what you know",
+        "text": "Mark any file as done without playing it, or reset one file or a whole folder."
+      },
+      "tabs": {
+        "title": "Several folders in tabs",
+        "text": "Keep a few folders open at once. The Library keeps the current file playing in a compact player."
+      },
+      "room": {
+        "title": "Room to watch",
+        "text": "Theater mode, full window and fullscreen, speed control, and keyboard shortcuts for everything."
+      }
+    },
+    "formats": "Plays MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg, and Opus. Files the built-in player can't decode, such as AVI, open in your usual media player."
+  },
+  "footer": {
+    "copyright": "Copyright © 2026 Eugene Barsky",
+    "license": "MIT License",
+    "source": "Source on GitHub",
+    "viewer": "EVB Viewer",
+    "website": "evb-stack.com"
+  }
+}

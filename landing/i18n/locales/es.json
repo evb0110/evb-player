@@ -1,0 +1,43 @@
+{
+  "seo": {
+    "title": "EVB Player · Reproductor multimedia sin conexión para macOS, Windows y Linux",
+    "description": "Convierte carpetas de vídeos y audios numerados en listas de reproducción con duraciones, progreso guardado y pestañas. Gratis, sin conexión y con licencia MIT.",
+    "ogTitle": "EVB Player",
+    "ogDescription": "Reproduce los archivos de tus carpetas en orden. Sin conexión en macOS, Windows y Linux.",
+    "ogImageAlt": "EVB Player reproduciendo un vídeo de una carpeta multimedia"
+  },
+  "header": { "github": "EVB Player en GitHub", "language": "Idioma", "theme": "Tema" },
+  "theme": { "system": "Sistema", "light": "Claro", "dark": "Oscuro" },
+  "hero": {
+    "kicker": "Reproductor multimedia sin conexión",
+    "title": "Reproduce los archivos de tus carpetas en orden",
+    "lede": "EVB Player convierte una carpeta de vídeos o archivos de audio numerados en una lista de reproducción con secciones y duraciones. Guarda tu posición en cada archivo y permite mantener varias carpetas abiertas en pestañas. Funciona sin conexión en macOS, Windows y Linux. Es gratis y tiene licencia MIT."
+  },
+  "downloads": {
+    "operatingSystem": "Sistema operativo", "download": "Descargar", "releases": "Versiones",
+    "version": "Versión {version}", "installed": "Las aplicaciones instaladas se actualizan automáticamente", "allReleases": "Todas las versiones",
+    "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
+    "options": {
+      "mac": { "title": "Apple Silicon", "detail": "Para Mac con chips de la serie M", "format": "Instalador DMG", "note": "Firmado y notarizado por Apple. Abre el DMG y arrastra EVB Player a Aplicaciones." },
+      "win": { "title": "Windows 10 y 11", "detail": "Para PC de 64 bits (x64)", "format": "Instalador", "note": "El instalador aún no tiene firma digital. Windows SmartScreen puede pedirte confirmación: selecciona «Más información» y después «Ejecutar de todas formas»." },
+      "linux": { "title": "Ubuntu y Debian", "detail": "Para PC de 64 bits (x64)", "format": "Paquete .deb", "note": "Instala con sudo apt install ./ seguido del nombre del archivo. Se te pedirá la contraseña antes de instalar las actualizaciones." }
+    }
+  },
+  "demo": {
+    "ariaLabel": "EVB Player abre una carpeta desde la biblioteca, reproduce un vídeo, marca otro como visto, cambia de vídeo, amplía el vídeo a toda la ventana y vuelve a la biblioteca mientras sigue reproduciéndose.",
+    "caption": "Grabación de la aplicación real con vídeos de demostración generados.", "play": "Reproducir la demostración", "pause": "Pausar la demostración", "position": "Posición de la demostración"
+  },
+  "features": {
+    "title": "Qué ofrece",
+    "items": {
+      "folders": { "title": "Las carpetas se convierten en listas", "text": "Los archivos se ordenan por número y las subcarpetas se convierten en secciones. No se copia, convierte ni sube nada." },
+      "durations": { "title": "Duraciones desde el principio", "text": "Al abrir una carpeta se leen las duraciones de todos sus archivos y del conjunto, antes de reproducir nada." },
+      "resume": { "title": "Continúa donde lo dejaste", "text": "Tu posición en cada archivo se guarda mientras lo ves o escuchas. Los archivos terminados se marcan y empieza el siguiente." },
+      "skip": { "title": "Salta lo que ya conoces", "text": "Marca cualquier archivo como terminado sin reproducirlo o reinicia un archivo o toda una carpeta." },
+      "tabs": { "title": "Varias carpetas en pestañas", "text": "Mantén varias carpetas abiertas a la vez. En la biblioteca, el archivo actual sigue reproduciéndose en un reproductor compacto." },
+      "room": { "title": "Más espacio para ver", "text": "Modo cine, ventana completa y pantalla completa, control de velocidad y atajos de teclado para todo." }
+    },
+    "formats": "Reproduce MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg y Opus. Los archivos que el reproductor integrado no puede decodificar, como AVI, se abren en tu reproductor habitual."
+  },
+  "footer": { "copyright": "Copyright © 2026 Eugene Barsky", "license": "Licencia MIT", "source": "Código fuente en GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+}
