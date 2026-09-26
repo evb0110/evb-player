@@ -317,7 +317,7 @@
                     variant="soft"
                     @click="currentLesson && library.toggleComplete(currentLesson)"
                   />
-                  <UButton color="error" icon="i-lucide-rotate-ccw" label="Reset progress" variant="ghost" @click="currentLesson && requestLessonProgressReset(currentLesson)" />
+                  <UButton v-if="currentLesson && hasLessonProgress(currentLesson)" color="error" icon="i-lucide-rotate-ccw" label="Reset progress" variant="ghost" @click="requestLessonProgressReset(currentLesson)" />
                 </div>
               </div>
             </div>
@@ -345,11 +345,19 @@
                     class="lesson-row"
                     :class="{ 'lesson-row-active': currentLesson?.id === lesson.id }"
                   >
+                    <button
+                      class="lesson-row-done"
+                      type="button"
+                      :aria-pressed="isLessonComplete(lesson)"
+                      :aria-label="isLessonComplete(lesson) ? `Mark ${lesson.title} as not complete` : `Mark ${lesson.title} as complete`"
+                      :title="isLessonComplete(lesson) ? 'Mark as not complete' : 'Mark as complete'"
+                      @click="library.toggleComplete(lesson)"
+                    >
+                      <UIcon v-if="isLessonComplete(lesson)" class="lesson-row-done-idle lesson-row-done-check" name="i-lucide-check" />
+                      <span v-else class="lesson-row-done-idle">{{ String(lesson.sequence).padStart(2, '0') }}</span>
+                      <UIcon class="lesson-row-done-hover" :name="isLessonComplete(lesson) ? 'i-lucide-x' : 'i-lucide-circle-check'" />
+                    </button>
                     <button class="lesson-row-select" type="button" :aria-current="currentLesson?.id === lesson.id ? 'true' : undefined" :title="lesson.relativePath" @click="handleLessonRowClick(lesson)">
-                      <span class="lesson-row-index">
-                        <UIcon v-if="isLessonComplete(lesson)" name="i-lucide-check" />
-                        <span v-else>{{ String(lesson.sequence).padStart(2, '0') }}</span>
-                      </span>
                       <span class="lesson-row-copy">
                         <strong>{{ lesson.title }}</strong>
                         <small>{{ lesson.kind === 'audio' ? 'Audio · ' : '' }}{{ formatDuration(library.lessonProgress(currentCourse.id, lesson.id)?.duration || lesson.duration) }}</small>
@@ -363,9 +371,10 @@
                         <UIcon v-else class="lesson-row-playing" name="i-lucide-play" aria-label="Play" />
                       </template>
                     </button>
-                    <button class="lesson-row-reset" type="button" :aria-label="`Reset progress for ${lesson.title}`" :title="`Reset progress for ${lesson.title}`" @click="requestLessonProgressReset(lesson)">
+                    <button v-if="hasLessonProgress(lesson)" class="lesson-row-reset" type="button" :aria-label="`Reset progress for ${lesson.title}`" :title="`Reset progress for ${lesson.title}`" @click="requestLessonProgressReset(lesson)">
                       <UIcon name="i-lucide-rotate-ccw" />
                     </button>
+                    <span v-else class="lesson-row-reset-space" />
                   </div>
                 </div>
               </div>
@@ -621,6 +630,12 @@ function progressForLesson(lesson: IMediaLesson) {
 function isLessonComplete(lesson: IMediaLesson) {
   const course = currentCourse.value;
   return Boolean(course && library.lessonProgress(course.id, lesson.id)?.completed);
+}
+
+function hasLessonProgress(lesson: IMediaLesson) {
+  const course = currentCourse.value;
+  const progress = course ? library.lessonProgress(course.id, lesson.id) : null;
+  return Boolean(progress && (progress.completed || progress.position > 0));
 }
 
 function requestLessonProgressReset(lesson: IMediaLesson) {

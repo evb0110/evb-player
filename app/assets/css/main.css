@@ -1007,14 +1007,60 @@ button:disabled {
   transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 }
 
+.lesson-row-done {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  align-self: flex-start;
+  margin: 10px 0 0 9px;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--shell-text-subtle);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lesson-row-done:hover,
+.lesson-row-done:focus-visible {
+  color: var(--shell-text);
+  background: rgb(255 255 255 / 8%);
+}
+
+.lesson-row-done .iconify {
+  width: 14px;
+  height: 14px;
+}
+
+.lesson-row-done-check {
+  color: var(--shell-green);
+}
+
+.lesson-row-done-hover,
+.lesson-row-done:hover .lesson-row-done-idle,
+.lesson-row-done:focus-visible .lesson-row-done-idle {
+  display: none;
+}
+
+.lesson-row-done:hover .lesson-row-done-hover,
+.lesson-row-done:focus-visible .lesson-row-done-hover {
+  display: block;
+}
+
 .lesson-row-select {
   display: flex;
   flex: 1;
   min-width: 0;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 9px;
+  padding: 10px 9px 10px 10px;
   text-align: left;
+}
+
+.lesson-row-reset-space {
+  flex: none;
+  width: 30px;
+  margin-right: 6px;
 }
 
 .lesson-row-reset {
@@ -1045,25 +1091,8 @@ button:disabled {
   background: var(--shell-accent-soft);
 }
 
-.lesson-row-index {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  flex: none;
-  place-items: center;
-  color: var(--shell-text-subtle);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
-.lesson-row-active .lesson-row-index {
+.lesson-row-active .lesson-row-done {
   color: var(--shell-accent);
-}
-
-.lesson-row-index .iconify {
-  width: 14px;
-  height: 14px;
-  color: var(--shell-green);
 }
 
 .lesson-row-copy {

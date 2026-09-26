@@ -32,8 +32,8 @@ The local DMG is intentionally unsigned for this private, single-machine prototy
 - The player supports play/pause, ten-second skip, seeking, volume, playback speed, and fullscreen for video.
 - Volume and playback speed are remembered between launches. Theater mode expands the player; full window fills the app window with the player and hides the tabs and course panels, while the window's title bar stays; the keyboard button lists available shortcuts.
 - Playback position is saved while a lesson is watched.
-- Lessons can be manually marked complete; ended lessons are completed automatically and advance to the next lesson when available.
-- Every playlist row has a reset-progress button, including tracks that are not selected. Resetting another track does not interrupt playback. Confirmed resets clear only saved positions and completion state, never media files; a separate button resets the entire course.
+- Lessons can be marked complete without watching them: click the lesson number in the playlist, or use Mark complete under the player. Click the check again to undo. Ended lessons are completed automatically and advance to the next lesson when available.
+- Every playlist row with a saved position or completion shows a reset-progress button, including tracks that are not selected; untouched tracks have nothing to reset and show none. Resetting another track does not interrupt playback. Confirmed resets clear only saved positions and completion state, never media files; a separate button resets the entire course.
 - Clicking a playlist row or the in-player previous/next buttons switches lessons and starts playback.
 - Several courses can be open in tabs. Recent folders and the last opened course are restored on launch.
 - Use the × beside a folder in the sidebar to remove it from the collection and close its tab. Media files and saved progress are kept; opening the folder again restores its progress.
