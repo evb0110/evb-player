@@ -151,7 +151,7 @@ const ptBR = {
     video: '{count} vídeo | {count} vídeos | {count} vídeos',
     audio: '{count} faixa de áudio | {count} faixas de áudio | {count} faixas de áudio',
     position: 'Faixa {current} de {total}',
-    watched: '{count} de {total} faixas concluídas',
+    watched: 'Faixas concluídas: {count} de {total}',
   },
   reset: {
     folderMenu: 'Redefinir o progresso da pasta',

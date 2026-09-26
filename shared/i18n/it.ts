@@ -151,7 +151,7 @@ const it = {
     video: '{count} video | {count} video | {count} video',
     audio: '{count} traccia audio | {count} tracce audio | {count} tracce audio',
     position: 'Traccia {current} di {total}',
-    watched: '{count} tracce completate su {total}',
+    watched: 'Tracce completate: {count} su {total}',
   },
   reset: {
     folderMenu: 'Azzera i progressi della cartella',

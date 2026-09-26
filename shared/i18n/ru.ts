@@ -151,7 +151,7 @@ const ru = {
     video: '{count} видео | {count} видео | {count} видео | {count} видео',
     audio: '{count} аудиотрек | {count} аудиотрека | {count} аудиотреков | {count} аудиотрека',
     position: 'Трек {current} из {total}',
-    watched: 'Завершён {count} из {total} треков | Завершены {count} из {total} треков | Завершено {count} из {total} треков | Завершено {count} из {total} треков',
+    watched: 'Завершено треков: {count} из {total}',
   },
   reset: {
     folderMenu: 'Сбросить прогресс папки',

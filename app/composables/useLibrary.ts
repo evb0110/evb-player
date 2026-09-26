@@ -450,6 +450,10 @@ export function useLibrary() {
         return;
       }
       recentFolders.value = recentFolders.value.filter((candidate) => candidate.id !== recentFolder.id);
+      // Its files can't be played once it leaves the Library; saved playlists keep the entries for its return.
+      openFolders.value = openFolders.value.map((folder) => folder.addedTracks.some((track) => track.folderId === recentFolder.id)
+        ? {...folder, addedTracks: folder.addedTracks.filter((track) => track.folderId !== recentFolder.id)}
+        : folder);
       closeFolderState(recentFolder.id);
       try {
         const refreshedRecentFolders = await api.getRecentFolders();
@@ -673,9 +677,14 @@ export function useLibrary() {
 
   function showPlaylist(folder: IFolder) {
     const tracks = playlistTracks(folder);
+    const shownFolder = openFolders.value.find((candidate) => candidate.id === folder.id);
+    const selectedTrackId = selectedTrackByFolder.value[folder.id];
     openFolders.value = openFolders.value.map((candidate) => candidate.id === folder.id ? folder : candidate);
-    if (!tracks.some((track) => track.id === selectedTrackByFolder.value[folder.id])) {
-      selectedTrackByFolder.value = {...selectedTrackByFolder.value, [folder.id]: tracks[0]?.id ?? ''};
+    if (!tracks.some((track) => track.id === selectedTrackId)) {
+      // Removing the selected track selects the one that took its place, not the first track.
+      const index = shownFolder ? playlistTracks(shownFolder).findIndex((track) => track.id === selectedTrackId) : -1;
+      const nextTrack = tracks[Math.max(0, Math.min(index, tracks.length - 1))];
+      selectedTrackByFolder.value = {...selectedTrackByFolder.value, [folder.id]: nextTrack?.id ?? ''};
     }
     recentFolders.value = recentFolders.value.map((recentFolder) => recentFolder.id === folder.id
       ? {...recentFolder, mediaCount: tracks.length, completedCount: Math.min(tracks.length, recentFolder.completedCount)}

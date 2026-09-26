@@ -151,7 +151,7 @@ const fr = {
     video: '{count} vidéo | {count} vidéos | {count} vidéos',
     audio: '{count} piste audio | {count} pistes audio | {count} pistes audio',
     position: 'Piste {current} sur {total}',
-    watched: '{count} pistes terminées sur {total}',
+    watched: 'Pistes terminées : {count} sur {total}',
   },
   reset: {
     folderMenu: 'Réinitialiser la progression du dossier',
