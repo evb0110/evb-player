@@ -1,13 +1,29 @@
 {
   "fill" : {
-    "solid" : "srgb:0.12549,0.15686,0.17647,1.00000"
+    "solid" : "srgb:0.94118,0.47059,0.30588,1.00000"
   },
   "groups" : [
     {
       "layers" : [
         {
-          "image-name" : "shelf.svg",
-          "name" : "shelf"
+          "image-name" : "play.svg",
+          "name" : "play"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "image-name" : "playlist.svg",
+          "name" : "playlist"
         }
       ],
       "shadow" : {

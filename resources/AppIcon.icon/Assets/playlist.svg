@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <!-- The flat icon's 432 px frame (resources/icon.svg) scaled to the full-bleed 1024 canvas. -->
+  <g transform="scale(2.37037) translate(-40 -40)">
+    <g transform="translate(256, 256) scale(0.92) translate(-205, -235)">
+      <rect x="105" y="90" width="200" height="290" rx="18" fill="#FFFFFF"/>
+      <circle cx="140" cy="140" r="11" fill="#79C5A2"/>
+      <rect x="163" y="134" width="110" height="12" rx="4" fill="#D6D3D1"/>
+      <circle cx="140" cy="190" r="11" fill="#79C5A2"/>
+      <rect x="163" y="184" width="90" height="12" rx="4" fill="#D6D3D1"/>
+      <circle cx="140" cy="240" r="11" fill="#E7E5E4"/>
+      <rect x="163" y="234" width="120" height="12" rx="4" fill="#D6D3D1"/>
+      <circle cx="140" cy="290" r="11" fill="#E7E5E4"/>
+      <rect x="163" y="284" width="70" height="12" rx="4" fill="#D6D3D1"/>
+    </g>
+  </g>
+</svg>
