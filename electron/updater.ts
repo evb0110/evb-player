@@ -1,5 +1,6 @@
 import {app, ipcMain, type BrowserWindow, type WebContents} from 'electron';
-import electronUpdater from 'electron-updater';
+// A named import: electron-updater marks itself as an ES module, so a default import compiles to an undefined `.default`.
+import {autoUpdater} from 'electron-updater';
 
 const FIRST_CHECK_DELAY_MS = 10_000;
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -11,7 +12,7 @@ export function startUpdater(getWindow: () => BrowserWindow | null, isTrustedRen
   ipcMain.handle('update:get-ready', (event) => isTrustedRenderer(event.sender) ? readyVersion : null);
   ipcMain.handle('update:install', (event) => {
     if (isTrustedRenderer(event.sender) && readyVersion) {
-      electronUpdater.autoUpdater.quitAndInstall();
+      autoUpdater.quitAndInstall();
     }
   });
 
@@ -20,7 +21,6 @@ export function startUpdater(getWindow: () => BrowserWindow | null, isTrustedRen
     return;
   }
 
-  const {autoUpdater} = electronUpdater;
   autoUpdater.autoDownload = true;
   // Installing a .deb asks for an administrator password, so Linux installs only when the user restarts from the toast.
   autoUpdater.autoInstallOnAppQuit = process.platform !== 'linux';
