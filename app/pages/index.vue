@@ -38,7 +38,7 @@
       </div>
     </nav>
 
-    <div class="workspace" :class="{ 'workspace-folder': !isLibraryActive }">
+    <div class="workspace" :class="isLibraryActive ? 'workspace-library' : 'workspace-folder'">
       <main class="main-content">
         <div v-if="error" class="error-banner" role="alert">
           <UIcon name="i-lucide-circle-alert" />
