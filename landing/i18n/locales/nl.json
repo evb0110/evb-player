@@ -1,7 +1,7 @@
 {
   "seo": {
-    "title": "EVB Player · Offline mediaspeler voor macOS, Windows en Linux",
-    "description": "Maak van mappen met genummerde video's en audiobestanden afspeellijsten met speelduur, opgeslagen voortgang en tabbladen. Gratis, offline en onder de MIT-licentie.",
+    "title": "EVB Player · Onthoudt waar je stopte in elk bestand",
+    "description": "Speel video of audio uit mappen op volgorde af en ga verder waar je stopte: onlinecursussen, lezingen en luisterboeken. Gratis en offline voor Mac, Windows en Linux.",
     "ogTitle": "EVB Player",
     "ogDescription": "Speel mediabestanden uit je mappen op volgorde af. Offline op macOS, Windows en Linux.",
     "ogImageAlt": "EVB Player speelt een video uit een mediamap af",
@@ -35,14 +35,100 @@
   "features": {
     "title": "Wat het doet",
     "items": {
-      "folders": { "title": "Mappen worden afspeellijsten", "text": "Bestanden worden op nummer gesorteerd en submappen worden secties. Er wordt niets gekopieerd, omgezet of geüpload." },
-      "durations": { "title": "Speelduur meteen bekend", "text": "Bij het openen wordt de speelduur van elk bestand en de hele map gelezen, voordat je iets afspeelt." },
-      "resume": { "title": "Ga verder waar je stopte", "text": "Je positie in elk bestand wordt tijdens het kijken of luisteren opgeslagen. Afgeronde bestanden worden afgevinkt en het volgende start." },
-      "skip": { "title": "Sla bekende bestanden over", "text": "Markeer een bestand als afgerond zonder het af te spelen of wis de voortgang van een bestand of een hele map." },
-      "tabs": { "title": "Meerdere mappen in tabbladen", "text": "Houd meerdere mappen tegelijk open. In de bibliotheek blijft het huidige bestand in een compacte speler afspelen." },
-      "room": { "title": "Ruimte om te kijken", "text": "Bioscoopmodus, volledig venster en volledig scherm, snelheidsregeling en sneltoetsen voor alles." }
-    },
-    "formats": "Speelt MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg en Opus af. Bestanden die de ingebouwde speler niet kan decoderen, zoals AVI, worden in je gebruikelijke mediaspeler geopend."
+      "folders": {
+        "title": "Mappen worden afspeellijsten",
+        "text": "Bestanden worden op nummer gesorteerd en submappen worden secties. Er wordt niets gekopieerd, omgezet of geüpload."
+      },
+      "durations": {
+        "title": "Speelduur meteen bekend",
+        "text": "Bij het openen wordt de speelduur van elk bestand en de hele map gelezen, voordat je iets afspeelt."
+      },
+      "resume": {
+        "title": "Ga verder waar je stopte",
+        "text": "Je positie in elk bestand wordt tijdens het kijken of luisteren opgeslagen. Afgeronde bestanden worden afgevinkt en het volgende start."
+      },
+      "skip": {
+        "title": "Sla bekende bestanden over",
+        "text": "Markeer een bestand als afgerond zonder het af te spelen of wis de voortgang van een bestand of een hele map."
+      },
+      "order": {
+        "title": "Je eigen volgorde",
+        "text": "Zet tracks in een andere volgorde, geef favorieten een ster, verberg wat je niet nodig hebt en voeg tracks uit andere mappen toe. De bestanden op schijf blijven zoals ze zijn."
+      },
+      "window": {
+        "title": "Tabbladen en volledig venster",
+        "text": "Houd meerdere mappen open in tabbladen. Bioscoopmodus, volledig venster, volledig scherm, snelheidsregeling en sneltoetsen voor alles."
+      }
+    }
   },
-  "footer": { "copyright": "Copyright © 2026 {name}", "license": "MIT-licentie", "source": "Broncode op GitHub", "viewer": "EVB Viewer" }
+  "whoFor": {
+    "title": "Voor wie is het?",
+    "items": {
+      "courses": {
+        "title": "Onlinecursussen",
+        "text": "Werk les voor les door een cursus die je hebt gedownload. Elke video onthoudt waar je stopte en de map laat zien hoever je bent."
+      },
+      "lectures": {
+        "title": "Colleges en lezingen",
+        "text": "Opgenomen colleges, lezingen op conferenties en tutorials worden afgespeeld op volgorde van hun bestandsnamen, met een sectie voor elke submap."
+      },
+      "audiobooks": {
+        "title": "Luisterboeken",
+        "text": "Een boek dat uit tientallen bestanden bestaat, speelt op volgorde af en gaat verder in het juiste hoofdstuk, zelfs weken later."
+      },
+      "languagePractice": {
+        "title": "Talen oefenen",
+        "text": "Luisteroefeningen en videolessen voor de taal die je leert, met snelheidsregeling en snel tien seconden terugspoelen."
+      }
+    }
+  },
+  "faq": {
+    "title": "Vragen",
+    "links": {
+      "sourceCode": "openbare broncode op GitHub",
+      "browserUrl": "evb-player-web.vercel.app"
+    },
+    "items": {
+      "free": {
+        "question": "Is het gratis?",
+        "answer": "Ja. EVB Player is gratis en open source onder de MIT-licentie, zonder advertenties, accounts of abonnementen."
+      },
+      "files": {
+        "question": "Worden mijn bestanden ergens geüpload?",
+        "answer": "Nee. De desktopapp leest je mappen rechtstreeks en bewaart je voortgang op je computer. De browserversie speelt je bestanden in de browser af; niets verlaat je apparaat."
+      },
+      "order": {
+        "question": "In welke volgorde speelt het bestanden af?",
+        "answer": "Op de cijfers aan het begin van de bestandsnaam: 10 komt na 9, niet na 1. Submappen worden secties. Je kunt een afspeellijst ook zelf anders indelen."
+      },
+      "formats": {
+        "question": "Welke formaten speelt het af?",
+        "answer": "Speelt MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg en Opus af. Bestanden die de ingebouwde speler niet kan decoderen, zoals AVI, worden in je gebruikelijke mediaspeler geopend."
+      },
+      "windows": {
+        "question": "Windows zegt: ‘Windows heeft uw pc beschermd’. Is het veilig?",
+        "answer": "Het Windows-installatieprogramma is nog niet digitaal ondertekend, dus Windows waarschuwt voor een onbekende uitgever. Kies ‘Meer informatie’ en daarna ‘Toch uitvoeren’. De app is gemaakt op basis van de {sourceCode}."
+      },
+      "browser": {
+        "question": "Kan ik het gebruiken zonder iets te installeren?",
+        "answer": "Ja, in de browser op {browserUrl}. Chrome en Edge onthouden je mappen tussen bezoeken; in andere browsers moet je de map opnieuw kiezen."
+      },
+      "updates": {
+        "question": "Hoe wordt het bijgewerkt?",
+        "answer": "De desktopapp controleert op nieuwe versies en vraagt je toestemming voordat er een wordt gedownload."
+      }
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "metaTitle": "Privacy · EVB Player",
+    "metaDescription": "Lees hoe EVB Player omgaat met je media, voortgang en websitegegevens.",
+    "media": "EVB Player uploadt je media nooit. De desktopapp leest je mappen rechtstreeks en bewaart je voortgang, afspeellijsten en instellingen in bestanden op je computer. De browserversie bewaart ze in de opslag van je browser.",
+    "updates": "De desktopapp maakt alleen verbinding met internet om op GitHub naar nieuwe versies te zoeken.",
+    "analytics": "Deze website telt paginaweergaven en downloads om te zien hoe mensen de site vinden. Per weergave of download registreert de site de taal van de pagina, het platform, het land (afgeleid van het netwerk), de website waar je vandaan kwam en een anonieme code die elke dag verandert. IP-adressen en browsergegevens worden niet opgeslagen; hiervoor worden geen cookies geplaatst.",
+    "cookies": "De website gebruikt drie kleine cookies: een voor het gekozen thema, een voor de lichte of donkere instelling van je systeem en een voor je taal.",
+    "questions": "Vragen? {issue}.",
+    "issueLink": "Stel je vraag op GitHub"
+  },
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "MIT-licentie", "privacy": "Privacy", "source": "Broncode op GitHub", "viewer": "EVB Viewer" }
 }

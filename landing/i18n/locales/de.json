@@ -1,7 +1,7 @@
 {
   "seo": {
-    "title": "EVB Player · Offline-Mediaplayer für macOS, Windows und Linux",
-    "description": "Machen Sie aus Ordnern mit nummerierten Videos und Audiodateien Wiedergabelisten mit Laufzeiten, gespeichertem Fortschritt und Tabs. Kostenlos, offline und unter MIT-Lizenz.",
+    "title": "EVB Player · Merkt sich, wo Sie in jeder Datei aufgehört haben",
+    "description": "Videos und Audio aus Ordnern der Reihe nach abspielen und an jeder Stelle fortsetzen: Onlinekurse, Vorträge, Hörbücher. Kostenlos und offline für Mac, Windows und Linux.",
     "ogTitle": "EVB Player",
     "ogDescription": "Spielen Sie Medien aus Ihren Ordnern der Reihe nach ab. Offline auf macOS, Windows und Linux.",
     "ogImageAlt": "EVB Player spielt ein Video aus einem Medienordner ab",
@@ -35,14 +35,100 @@
   "features": {
     "title": "Funktionen",
     "items": {
-      "folders": { "title": "Ordner werden zu Wiedergabelisten", "text": "Dateien werden nach Nummern sortiert, Unterordner werden zu Abschnitten. Es wird nichts kopiert, umgewandelt oder hochgeladen." },
-      "durations": { "title": "Laufzeiten auf einen Blick", "text": "Beim Öffnen werden die Laufzeiten aller Dateien und des gesamten Ordners ausgelesen, noch bevor etwas abgespielt wird." },
-      "resume": { "title": "Genau dort weitermachen", "text": "Ihre Position in jeder Datei wird beim Ansehen oder Anhören gespeichert. Beendete Dateien werden abgehakt und die nächste startet." },
-      "skip": { "title": "Bekanntes überspringen", "text": "Markieren Sie eine Datei ohne Wiedergabe als erledigt oder setzen Sie eine Datei oder einen ganzen Ordner zurück." },
-      "tabs": { "title": "Mehrere Ordner in Tabs", "text": "Halten Sie mehrere Ordner gleichzeitig geöffnet. In der Bibliothek läuft die aktuelle Datei im kompakten Player weiter." },
-      "room": { "title": "Mehr Platz zum Anschauen", "text": "Kinomodus, maximiertes Fenster und Vollbild, Geschwindigkeitsregelung und Tastenkürzel für alle Funktionen." }
-    },
-    "formats": "Unterstützt MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg und Opus. Dateien, die der eingebaute Player nicht decodieren kann, etwa AVI, werden im üblichen Mediaplayer geöffnet."
+      "folders": {
+        "title": "Ordner werden zu Wiedergabelisten",
+        "text": "Dateien werden nach Nummern sortiert, Unterordner werden zu Abschnitten. Es wird nichts kopiert, umgewandelt oder hochgeladen."
+      },
+      "durations": {
+        "title": "Laufzeiten auf einen Blick",
+        "text": "Beim Öffnen werden die Laufzeiten aller Dateien und des gesamten Ordners ausgelesen, noch bevor etwas abgespielt wird."
+      },
+      "resume": {
+        "title": "Genau dort weitermachen",
+        "text": "Ihre Position in jeder Datei wird beim Ansehen oder Anhören gespeichert. Beendete Dateien werden abgehakt und die nächste startet."
+      },
+      "skip": {
+        "title": "Bekanntes überspringen",
+        "text": "Markieren Sie eine Datei ohne Wiedergabe als erledigt oder setzen Sie eine Datei oder einen ganzen Ordner zurück."
+      },
+      "order": {
+        "title": "Ihre eigene Reihenfolge",
+        "text": "Ordnen Sie Tracks neu, markieren Sie Favoriten mit einem Stern, blenden Sie Unnötiges aus und fügen Sie Tracks aus anderen Ordnern hinzu. Die Dateien auf dem Datenträger bleiben unverändert."
+      },
+      "window": {
+        "title": "Tabs und Vollfenster",
+        "text": "Halten Sie mehrere Ordner in Tabs geöffnet. Kinomodus, Vollfenster, Vollbild, Geschwindigkeitsregelung und Tastenkürzel für alles."
+      }
+    }
   },
-  "footer": { "copyright": "Copyright © 2026 {name}", "license": "MIT-Lizenz", "source": "Quellcode auf GitHub", "viewer": "EVB Viewer" }
+  "whoFor": {
+    "title": "Für wen ist es gedacht?",
+    "items": {
+      "courses": {
+        "title": "Onlinekurse",
+        "text": "Arbeiten Sie einen heruntergeladenen Kurs Lektion für Lektion durch. Jedes Video merkt sich, wo Sie aufgehört haben, und der Ordner zeigt Ihren Fortschritt."
+      },
+      "lectures": {
+        "title": "Vorträge und Präsentationen",
+        "text": "Aufgezeichnete Vorträge, Konferenzbeiträge und Tutorials werden nach Dateinamen abgespielt, mit einem Abschnitt für jeden Unterordner."
+      },
+      "audiobooks": {
+        "title": "Hörbücher",
+        "text": "Ein Buch, auf Dutzende Dateien verteilt, wird der Reihe nach abgespielt und setzt sogar Wochen später im richtigen Kapitel fort."
+      },
+      "languagePractice": {
+        "title": "Sprachen lernen",
+        "text": "Hörübungen und Videolektionen für eine Sprache, die Sie lernen, mit Geschwindigkeitsregelung und einem schnellen Sprung zehn Sekunden zurück."
+      }
+    }
+  },
+  "faq": {
+    "title": "Fragen",
+    "links": {
+      "sourceCode": "öffentlichen Quellcode auf GitHub",
+      "browserUrl": "evb-player-web.vercel.app"
+    },
+    "items": {
+      "free": {
+        "question": "Ist es kostenlos?",
+        "answer": "Ja. EVB Player ist kostenlos und quelloffen unter der MIT-Lizenz, ohne Werbung, Konten oder Abonnements."
+      },
+      "files": {
+        "question": "Werden meine Dateien irgendwo hochgeladen?",
+        "answer": "Nein. Die Desktop-App liest Ihre Ordner direkt und speichert den Fortschritt auf Ihrem Computer. Die Browserversion spielt Ihre Dateien im Browser ab; nichts verlässt Ihr Gerät."
+      },
+      "order": {
+        "question": "In welcher Reihenfolge werden Dateien abgespielt?",
+        "answer": "Nach den Zahlen am Anfang des Dateinamens: 10 kommt nach 9, nicht nach 1. Unterordner werden zu Abschnitten. Sie können eine Wiedergabeliste auch selbst neu ordnen."
+      },
+      "formats": {
+        "question": "Welche Formate werden abgespielt?",
+        "answer": "Unterstützt MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg und Opus. Dateien, die der eingebaute Player nicht decodieren kann, etwa AVI, werden im üblichen Mediaplayer geöffnet."
+      },
+      "windows": {
+        "question": "Windows meldet „Windows hat Ihren PC geschützt“. Ist die App sicher?",
+        "answer": "Der Windows-Installer ist noch nicht digital signiert. Deshalb warnt Windows vor einem unbekannten Herausgeber. Wählen Sie „Weitere Informationen“ und dann „Trotzdem ausführen“. Die App wird aus ihrem {sourceCode} erstellt."
+      },
+      "browser": {
+        "question": "Kann ich es ohne Installation verwenden?",
+        "answer": "Ja, im Browser unter {browserUrl}. Chrome und Edge merken sich Ihre Ordner zwischen Besuchen; in anderen Browsern müssen Sie den Ordner erneut auswählen."
+      },
+      "updates": {
+        "question": "Wie wird die App aktualisiert?",
+        "answer": "Die Desktop-App sucht nach neuen Versionen und fragt Sie, bevor sie eine herunterlädt."
+      }
+    }
+  },
+  "privacy": {
+    "title": "Datenschutz",
+    "metaTitle": "Datenschutz · EVB Player",
+    "metaDescription": "Erfahren Sie, wie EVB Player mit Ihren Medien, Ihrem Fortschritt und Website-Daten umgeht.",
+    "media": "EVB Player lädt Ihre Medien niemals hoch. Die Desktop-App liest Ihre Ordner direkt und speichert Ihren Fortschritt, Ihre Wiedergabelisten und Einstellungen in Dateien auf Ihrem Computer. Die Browserversion speichert sie im Browserspeicher.",
+    "updates": "Die Desktop-App verbindet sich nur mit dem Internet, um auf GitHub nach neuen Versionen zu suchen.",
+    "analytics": "Diese Website zählt Seitenaufrufe und Downloads, um zu erfahren, wie Besucher sie finden. Für jeden Aufruf und Download speichert sie die Seitensprache, die Plattform, das Land (aus dem Netzwerk), die Website, von der Sie kamen, und einen anonymen Code, der sich täglich ändert. IP-Adressen und Browserdetails werden nicht gespeichert; dafür werden keine Cookies gesetzt.",
+    "cookies": "Die Website verwendet drei kleine Cookies: eines für das gewählte Design, eines für die Hell- oder Dunkel-Einstellung Ihres Systems und eines für Ihre Sprache.",
+    "questions": "Fragen? {issue}.",
+    "issueLink": "Eröffnen Sie ein Issue auf GitHub"
+  },
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "MIT-Lizenz", "privacy": "Datenschutz", "source": "Quellcode auf GitHub", "viewer": "EVB Viewer" }
 }

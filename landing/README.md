@@ -26,7 +26,7 @@ Telegram and Facebook cache images by URL. The initial cards use version 1; when
 
 ## Analytics
 
-The landing counts page views and downloads in the table `evb_player_landing_event` of the shared Neon database, created by `server/analytics.sql`. The server records them, with no script, cookie or stored address in the browser: a page view when a landing page renders, and a download when an installer button goes through `/download/<platform>`, which then redirects to the installer in the latest GitHub release. Crawlers and prefetches are skipped. Each row keeps the kind, the landing language, the platform, the downloaded version, the country from Vercel's edge, the host of an external referrer, and a visitor hash that changes every day. Production reads the database from `NUXT_DATABASE_URL`; without it, nothing is recorded.
+The landing counts page views and downloads in the table `evb_player_landing_event` of the shared Neon database, created by `server/analytics.sql`. The server records them, with no script, cookie or stored address in the browser: a page view when the home page renders in any language (other pages such as /privacy aren't counted), and a download when an installer button goes through `/download/<platform>`, which then redirects to the installer in the latest GitHub release. Crawlers and prefetches are skipped. Each row keeps the kind, the landing language, the platform, the downloaded version, the country from Vercel's edge, the host of an external referrer, and a visitor hash that changes every day. Production reads the database from `NUXT_DATABASE_URL`; without it, nothing is recorded.
 
 ```sql
 -- Daily traffic

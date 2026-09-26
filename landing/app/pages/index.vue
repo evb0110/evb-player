@@ -1,23 +1,6 @@
 <template>
   <div class="page">
-    <header class="site-header">
-      <NuxtLink class="brand" :to="localePath('/')">
-        <img class="brand-icon" src="/icon.png" alt="" width="30" height="30">
-        <span class="brand-name">EVB Player</span>
-        <span v-if="release" class="brand-version">v{{ release.version }}</span>
-      </NuxtLink>
-      <div class="header-actions">
-        <UButton color="neutral" variant="ghost" icon="i-lucide-globe" :label="t('header.useInBrowser')" :to="WEB_APP_URL" target="_blank" rel="noreferrer" />
-        <ThemeToggle
-          :theme="resolvedTheme"
-          :switch-to-light-label="t('header.switchToLightTheme')"
-          :switch-to-dark-label="t('header.switchToDarkTheme')"
-          @change="chooseTheme"
-        />
-        <LanguageMenu :locale="activeLocale" :label="t('header.language')" @change="selectLocale" />
-        <UButton color="neutral" icon="i-simple-icons-github" variant="ghost" to="https://github.com/evb0110/evb-player" target="_blank" rel="noreferrer" :aria-label="t('header.github')" :title="t('header.github')" />
-      </div>
-    </header>
+    <SiteHeader :version="release?.version" />
 
     <main>
       <section class="hero">
@@ -93,22 +76,41 @@
             <p>{{ feature.text }}</p>
           </article>
         </div>
-        <p class="formats">{{ t('features.formats') }}</p>
+      </section>
+
+      <section class="use-cases" aria-labelledby="use-cases-title">
+        <h2 id="use-cases-title" class="kicker">{{ t('whoFor.title') }}</h2>
+        <div class="feature-grid use-case-grid">
+          <article v-for="item in useCases" :key="item.title" class="feature">
+            <UIcon class="feature-icon" :name="item.icon" />
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.text }}</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="questions" aria-labelledby="questions-title">
+        <h2 id="questions-title" class="kicker">{{ t('faq.title') }}</h2>
+        <div class="faq-list">
+          <article v-for="item in faq" :key="item.key" class="faq-item">
+            <h3>{{ item.question }}</h3>
+            <p v-if="item.key === 'windows'">
+              <i18n-t keypath="faq.items.windows.answer" scope="global">
+                <template #sourceCode><a href="https://github.com/evb0110/evb-player" target="_blank" rel="noreferrer">{{ t('faq.links.sourceCode') }}</a></template>
+              </i18n-t>
+            </p>
+            <p v-else-if="item.key === 'browser'">
+              <i18n-t keypath="faq.items.browser.answer" scope="global">
+                <template #browserUrl><a :href="WEB_APP_URL" target="_blank" rel="noreferrer">{{ t('faq.links.browserUrl') }}</a></template>
+              </i18n-t>
+            </p>
+            <p v-else>{{ item.answer }}</p>
+          </article>
+        </div>
       </section>
     </main>
 
-    <footer class="site-footer">
-      <span>
-        <i18n-t keypath="footer.copyright" scope="global">
-          <template #name><a href="https://evb-stack.com" title="evb-stack.com" target="_blank" rel="noreferrer">Eugene Barsky</a></template>
-        </i18n-t>
-        · {{ t('footer.license') }}
-      </span>
-      <span>
-        <a href="https://github.com/evb0110/evb-player" target="_blank" rel="noreferrer">{{ t('footer.source') }}</a> ·
-        <a href="https://evb-viewer.com" target="_blank" rel="noreferrer">{{ t('footer.viewer') }}</a>
-      </span>
-    </footer>
+    <SiteFooter />
   </div>
 </template>
 
@@ -116,9 +118,6 @@
 import { detectPlatform } from '#shared/platform';
 import { RELEASES_URL, type ILatestRelease, type TPlatform } from '#shared/release';
 import { LOCALE_OPTIONS } from '../../../shared/i18n/locales';
-import type { TLocale } from '../../../shared/types';
-import LanguageMenu from '../../../shared/ui/LanguageMenu.vue';
-import ThemeToggle from '../../../shared/ui/ThemeToggle.vue';
 import { useTheme } from '../composables/useTheme';
 
 const WEB_APP_URL = 'https://evb-player-web.vercel.app';
@@ -144,11 +143,18 @@ const featureIcons = [
   { key: 'durations', icon: 'i-lucide-timer' },
   { key: 'resume', icon: 'i-lucide-history' },
   { key: 'skip', icon: 'i-lucide-circle-check' },
-  { key: 'tabs', icon: 'i-lucide-panels-top-left' },
-  { key: 'room', icon: 'i-lucide-expand' },
+  { key: 'order', icon: 'i-lucide-list-ordered' },
+  { key: 'window', icon: 'i-lucide-expand' },
 ];
 
-const { t, locale, setLocale } = useI18n();
+const useCaseIcons = [
+  { key: 'courses', icon: 'i-lucide-graduation-cap' },
+  { key: 'lectures', icon: 'i-lucide-presentation' },
+  { key: 'audiobooks', icon: 'i-lucide-book-headphones' },
+  { key: 'languagePractice', icon: 'i-lucide-languages' },
+];
+
+const { t, locale } = useI18n();
 const localePath = useLocalePath();
 const { data: release } = await useFetch<ILatestRelease | null>('/api/release', { default: () => null });
 
@@ -170,19 +176,26 @@ const features = computed(() => featureIcons.map(({ key, icon }) => ({
   title: t(`features.items.${key}.title`),
   text: t(`features.items.${key}.text`),
 })));
-const activeLocale = computed(() => locale.value as TLocale);
-const { theme: resolvedTheme, chooseTheme } = useTheme();
+const useCases = computed(() => useCaseIcons.map(({ key, icon }) => ({
+  icon,
+  title: t(`whoFor.items.${key}.title`),
+  text: t(`whoFor.items.${key}.text`),
+})));
+const faqKeys = ['free', 'files', 'order', 'formats', 'windows', 'browser', 'updates'] as const;
+const faq = computed(() => faqKeys.map((key) => ({
+  key,
+  question: t(`faq.items.${key}.question`),
+  answer: key === 'windows'
+    ? t(`faq.items.${key}.answer`, { sourceCode: t('faq.links.sourceCode') })
+    : key === 'browser'
+      ? t(`faq.items.${key}.answer`, { browserUrl: t('faq.links.browserUrl') })
+      : t(`faq.items.${key}.answer`),
+})));
+const { theme: resolvedTheme } = useTheme();
 
 function formatSize(bytes: number) {
   return new Intl.NumberFormat(locale.value, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 0 }).format(bytes / 1024 ** 2);
 }
-
-async function selectLocale(code: TLocale) {
-  if (code !== locale.value) {
-    await setLocale(code);
-  }
-}
-
 
 const siteUrl = useRuntimeConfig().public.siteUrl;
 const pageUrl = computed(() => new URL(localePath('/'), siteUrl).toString());
@@ -229,6 +242,15 @@ const schemaGraph = computed(() => {
         url: 'https://evb-stack.com',
         sameAs: ['https://github.com/evb0110'],
       },
+      {
+        '@type': 'FAQPage',
+        inLanguage: LOCALE_OPTIONS.find((option) => option.code === locale.value)?.language ?? locale.value,
+        mainEntity: faq.value.map(({ question, answer }) => ({
+          '@type': 'Question',
+          name: question,
+          acceptedAnswer: { '@type': 'Answer', text: answer },
+        })),
+      },
     ],
   };
 });
@@ -268,43 +290,6 @@ useHead(() => ({
   max-width: 1440px;
   margin: 0 auto;
   padding: 0 28px;
-}
-
-.site-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 22px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-}
-
-.brand-icon {
-  border-radius: 7px;
-}
-
-.brand-name {
-  font-size: 16px;
-  font-weight: 650;
-}
-
-.brand-version {
-  color: var(--ink-subtle);
-  font-family: var(--mono);
-  font-size: 13px;
 }
 
 /* The film sits beside the copy on wide screens, so the whole recording is visible without scrolling. */
@@ -536,24 +521,46 @@ h1 {
   line-height: 1.55;
 }
 
-.formats {
-  max-width: 680px;
-  margin: 26px auto 0;
-  color: var(--ink-subtle);
-  font-size: 14px;
+.use-cases {
+  padding: 0 0 56px;
+  text-align: center;
+}
+
+.use-case-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.questions {
+  padding: 24px 0 72px;
+  text-align: center;
+}
+
+.faq-list {
+  max-width: 850px;
+  margin: 30px auto 0;
+  text-align: left;
+}
+
+.faq-item {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-item h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.faq-item p {
+  margin: 8px 0 0;
+  color: var(--ink-muted);
+  font-size: 15px;
   line-height: 1.6;
 }
 
-.site-footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 26px 0 36px;
-  border-top: 1px solid var(--line);
-  color: var(--ink-subtle);
-  font-family: var(--mono);
-  font-size: 12px;
+.faq-item a {
+  color: var(--accent-ink);
 }
 
 @media (max-width: 1023px) {
@@ -577,6 +584,12 @@ h1 {
   }
 }
 
+@media (max-width: 1100px) {
+  .use-case-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 580px) {
   .page {
     padding: 0 18px;
@@ -586,16 +599,11 @@ h1 {
     padding-top: 32px;
   }
 
-  .site-header {
-    flex-wrap: wrap;
-  }
-
-  .header-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
   .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .use-case-grid {
     grid-template-columns: 1fr;
   }
 

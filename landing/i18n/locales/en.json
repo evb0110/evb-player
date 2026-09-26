@@ -1,7 +1,7 @@
 {
   "seo": {
-    "title": "EVB Player · Offline media player for macOS, Windows, and Linux",
-    "description": "Turn folders of numbered videos and audio files into playlists with durations, saved progress, and tabs. Free, offline, and MIT licensed.",
+    "title": "EVB Player · Free player that remembers your place in every file",
+    "description": "Play a folder of videos or audio in order and resume every file where you stopped: online courses, lectures, audiobooks. Free and offline for Mac, Windows and Linux.",
     "ogTitle": "EVB Player",
     "ogDescription": "Play your media folders in order. Offline on macOS, Windows, and Linux.",
     "ogImageAlt": "EVB Player playing a video from a media folder",
@@ -77,20 +77,89 @@
         "title": "Skip what you know",
         "text": "Mark any file as done without playing it, or reset one file or a whole folder."
       },
-      "tabs": {
-        "title": "Several folders in tabs",
-        "text": "Keep a few folders open at once. The Library keeps the current file playing in a compact player."
+      "order": {
+        "title": "Your own order",
+        "text": "Reorder tracks, star favorites, hide what you don't need and add tracks from other folders. The files on disk stay as they are."
       },
-      "room": {
-        "title": "Room to watch",
-        "text": "Theater mode, full window and fullscreen, speed control, and keyboard shortcuts for everything."
+      "window": {
+        "title": "Tabs and full window",
+        "text": "Keep several folders open in tabs. Theater mode, full window, fullscreen, speed control and keyboard shortcuts for everything."
       }
+    }
+  },
+  "whoFor": {
+    "title": "Who it's for",
+    "items": {
+      "courses": {
+        "title": "Online courses",
+        "text": "Work through a course you downloaded, lesson by lesson. Every video remembers where you stopped, and the folder shows how far you've got."
+      },
+      "lectures": {
+        "title": "Lectures and talks",
+        "text": "Recorded lectures, conference talks and tutorials play in the order of their file names, with a section for each subfolder."
+      },
+      "audiobooks": {
+        "title": "Audiobooks",
+        "text": "A book split into dozens of files plays in order and resumes in the right chapter, even weeks later."
+      },
+      "languagePractice": {
+        "title": "Language practice",
+        "text": "Listening practice and video lessons for a language you're learning, with speed control and a quick ten-second replay."
+      }
+    }
+  },
+  "faq": {
+    "title": "Questions",
+    "links": {
+      "sourceCode": "public source code on GitHub",
+      "browserUrl": "evb-player-web.vercel.app"
     },
-    "formats": "Plays MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg, and Opus. Files the built-in player can't decode, such as AVI, open in your usual media player."
+    "items": {
+      "free": {
+        "question": "Is it free?",
+        "answer": "Yes. EVB Player is free and open source under the MIT license, with no ads, accounts or subscriptions."
+      },
+      "files": {
+        "question": "Are my files uploaded anywhere?",
+        "answer": "No. The desktop app reads your folders directly and keeps its progress on your computer. The browser version plays your files in the browser; nothing leaves your device."
+      },
+      "order": {
+        "question": "In what order does it play files?",
+        "answer": "By the numbers at the start of file names, so 10 comes after 9, not after 1. Subfolders become sections. You can also reorder a playlist yourself."
+      },
+      "formats": {
+        "question": "Which formats does it play?",
+        "answer": "Plays MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg, and Opus. Files the built-in player can't decode, such as AVI, open in your usual media player."
+      },
+      "windows": {
+        "question": "Windows says “Windows protected your PC”. Is it safe?",
+        "answer": "The Windows installer isn't code-signed yet, so Windows warns about an unknown publisher. Choose More info, then Run anyway. The app is built from its {sourceCode}."
+      },
+      "browser": {
+        "question": "Can I use it without installing anything?",
+        "answer": "Yes, in the browser at {browserUrl}. Chrome and Edge remember your folders between visits; in other browsers you choose the folder again."
+      },
+      "updates": {
+        "question": "How does it update?",
+        "answer": "The desktop app checks for new versions and asks you before it downloads one."
+      }
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "metaTitle": "Privacy · EVB Player",
+    "metaDescription": "Learn how EVB Player handles your media, progress and website data.",
+    "media": "EVB Player never uploads your media. The desktop app reads your folders directly and keeps your progress, playlists and settings in files on your computer. The browser version keeps them in your browser's storage.",
+    "updates": "The desktop app connects to the internet only to check GitHub for new versions.",
+    "analytics": "This website counts page views and downloads to learn how people find it. For each one it records the page's language, the platform, the country (from the network), the website you came from, and an anonymous code that changes every day. It stores no IP addresses or browser details and sets no cookies for this.",
+    "cookies": "The website uses three small cookies: one for the theme you chose, one for your system's light or dark setting, and one for your language.",
+    "questions": "Questions: {issue}.",
+    "issueLink": "open an issue on GitHub"
   },
   "footer": {
     "copyright": "Copyright © 2026 {name}",
     "license": "MIT License",
+    "privacy": "Privacy",
     "source": "Source on GitHub",
     "viewer": "EVB Viewer"
   }

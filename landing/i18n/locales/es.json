@@ -1,7 +1,7 @@
 {
   "seo": {
-    "title": "EVB Player · Reproductor multimedia sin conexión para macOS, Windows y Linux",
-    "description": "Convierte carpetas de vídeos y audios numerados en listas de reproducción con duraciones, progreso guardado y pestañas. Gratis, sin conexión y con licencia MIT.",
+    "title": "EVB Player · Recuerda dónde dejaste cada archivo",
+    "description": "Vídeos y audio en orden, con reanudación donde lo dejaste: cursos online, conferencias y audiolibros. Gratis y sin conexión para Mac, Windows y Linux.",
     "ogTitle": "EVB Player",
     "ogDescription": "Reproduce los archivos de tus carpetas en orden. Sin conexión en macOS, Windows y Linux.",
     "ogImageAlt": "EVB Player reproduciendo un vídeo de una carpeta multimedia",
@@ -35,14 +35,100 @@
   "features": {
     "title": "Qué ofrece",
     "items": {
-      "folders": { "title": "Las carpetas se convierten en listas", "text": "Los archivos se ordenan por número y las subcarpetas se convierten en secciones. No se copia, convierte ni sube nada." },
-      "durations": { "title": "Duraciones desde el principio", "text": "Al abrir una carpeta se leen las duraciones de todos sus archivos y del conjunto, antes de reproducir nada." },
-      "resume": { "title": "Continúa donde lo dejaste", "text": "Tu posición en cada archivo se guarda mientras lo ves o escuchas. Los archivos terminados se marcan y empieza el siguiente." },
-      "skip": { "title": "Salta lo que ya conoces", "text": "Marca cualquier archivo como terminado sin reproducirlo o reinicia un archivo o toda una carpeta." },
-      "tabs": { "title": "Varias carpetas en pestañas", "text": "Mantén varias carpetas abiertas a la vez. En la biblioteca, el archivo actual sigue reproduciéndose en un reproductor compacto." },
-      "room": { "title": "Más espacio para ver", "text": "Modo cine, ventana completa y pantalla completa, control de velocidad y atajos de teclado para todo." }
-    },
-    "formats": "Reproduce MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg y Opus. Los archivos que el reproductor integrado no puede decodificar, como AVI, se abren en tu reproductor habitual."
+      "folders": {
+        "title": "Las carpetas se convierten en listas",
+        "text": "Los archivos se ordenan por número y las subcarpetas se convierten en secciones. No se copia, convierte ni sube nada."
+      },
+      "durations": {
+        "title": "Duraciones desde el principio",
+        "text": "Al abrir una carpeta se leen las duraciones de todos sus archivos y del conjunto, antes de reproducir nada."
+      },
+      "resume": {
+        "title": "Continúa donde lo dejaste",
+        "text": "Tu posición en cada archivo se guarda mientras lo ves o escuchas. Los archivos terminados se marcan y empieza el siguiente."
+      },
+      "skip": {
+        "title": "Salta lo que ya conoces",
+        "text": "Marca cualquier archivo como terminado sin reproducirlo o reinicia un archivo o toda una carpeta."
+      },
+      "order": {
+        "title": "Tu propio orden",
+        "text": "Reordena pistas, marca tus favoritas con una estrella, oculta lo que no necesitas y añade pistas de otras carpetas. Los archivos del disco siguen tal como están."
+      },
+      "window": {
+        "title": "Pestañas y ventana completa",
+        "text": "Mantén varias carpetas abiertas en pestañas. Modo cine, ventana completa, pantalla completa, control de velocidad y atajos de teclado para todo."
+      }
+    }
   },
-  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licencia MIT", "source": "Código fuente en GitHub", "viewer": "EVB Viewer" }
+  "whoFor": {
+    "title": "Para quién es",
+    "items": {
+      "courses": {
+        "title": "Cursos online",
+        "text": "Avanza lección a lección por un curso que hayas descargado. Cada vídeo recuerda dónde lo dejaste y la carpeta muestra cuánto has avanzado."
+      },
+      "lectures": {
+        "title": "Conferencias y charlas",
+        "text": "Las conferencias grabadas, las charlas y los tutoriales se reproducen según el nombre de sus archivos, con una sección para cada subcarpeta."
+      },
+      "audiobooks": {
+        "title": "Audiolibros",
+        "text": "Un libro dividido en decenas de archivos se reproduce en orden y retoma el capítulo correcto, incluso semanas después."
+      },
+      "languagePractice": {
+        "title": "Practicar idiomas",
+        "text": "Ejercicios de escucha y lecciones en vídeo para el idioma que estás aprendiendo, con control de velocidad y una repetición rápida de diez segundos."
+      }
+    }
+  },
+  "faq": {
+    "title": "Preguntas",
+    "links": {
+      "sourceCode": "código fuente público en GitHub",
+      "browserUrl": "evb-player-web.vercel.app"
+    },
+    "items": {
+      "free": {
+        "question": "¿Es gratis?",
+        "answer": "Sí. EVB Player es gratis y de código abierto con licencia MIT, sin anuncios, cuentas ni suscripciones."
+      },
+      "files": {
+        "question": "¿Se suben mis archivos a algún sitio?",
+        "answer": "No. La aplicación de escritorio lee tus carpetas directamente y guarda el progreso en tu ordenador. La versión del navegador reproduce tus archivos en el navegador; nada sale de tu dispositivo."
+      },
+      "order": {
+        "question": "¿En qué orden reproduce los archivos?",
+        "answer": "Por los números al principio del nombre: el 10 va después del 9, no después del 1. Las subcarpetas se convierten en secciones. También puedes reordenar una lista por tu cuenta."
+      },
+      "formats": {
+        "question": "¿Qué formatos reproduce?",
+        "answer": "Reproduce MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg y Opus. Los archivos que el reproductor integrado no puede decodificar, como AVI, se abren en tu reproductor habitual."
+      },
+      "windows": {
+        "question": "Windows dice «Windows protegió tu PC». ¿Es seguro?",
+        "answer": "El instalador de Windows aún no tiene firma digital, así que Windows avisa de que el editor es desconocido. Elige «Más información» y después «Ejecutar de todas formas». La aplicación se crea a partir de su {sourceCode}."
+      },
+      "browser": {
+        "question": "¿Puedo usarlo sin instalar nada?",
+        "answer": "Sí, en el navegador, en {browserUrl}. Chrome y Edge recuerdan tus carpetas entre visitas; en otros navegadores tendrás que volver a elegir la carpeta."
+      },
+      "updates": {
+        "question": "¿Cómo se actualiza?",
+        "answer": "La aplicación de escritorio comprueba si hay versiones nuevas y te pregunta antes de descargar una."
+      }
+    }
+  },
+  "privacy": {
+    "title": "Privacidad",
+    "metaTitle": "Privacidad · EVB Player",
+    "metaDescription": "Descubre cómo EVB Player gestiona tus archivos, tu progreso y los datos del sitio web.",
+    "media": "EVB Player nunca sube tus archivos multimedia. La aplicación de escritorio lee directamente tus carpetas y guarda tu progreso, listas de reproducción y ajustes en archivos de tu ordenador. La versión del navegador los guarda en el almacenamiento del navegador.",
+    "updates": "La aplicación de escritorio solo se conecta a Internet para consultar en GitHub si hay versiones nuevas.",
+    "analytics": "Este sitio cuenta las visitas a páginas y las descargas para saber cómo lo encuentra la gente. En cada caso registra el idioma de la página, la plataforma, el país (a partir de la red), el sitio web desde el que llegaste y un código anónimo que cambia cada día. No guarda direcciones IP ni datos del navegador, y no usa cookies para esto.",
+    "cookies": "El sitio usa tres cookies pequeñas: una para el tema que elegiste, otra para el ajuste claro u oscuro de tu sistema y otra para tu idioma.",
+    "questions": "¿Tienes preguntas? {issue}.",
+    "issueLink": "Abre una incidencia en GitHub"
+  },
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licencia MIT", "privacy": "Privacidad", "source": "Código fuente en GitHub", "viewer": "EVB Viewer" }
 }

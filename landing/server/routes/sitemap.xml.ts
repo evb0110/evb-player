@@ -6,18 +6,21 @@ function escapeXml(value: string) {
 
 export default defineEventHandler((event) => {
   const siteUrl = useRuntimeConfig(event).public.siteUrl;
-  const localizedPages = LOCALE_OPTIONS.map(({ code, language }) => ({
-    language,
-    url: new URL(code === 'en' ? '/' : `/${code}`, siteUrl).toString(),
-  }));
-  const defaultUrl = new URL('/', siteUrl).toString();
-  const urls = localizedPages.map(({ url }) => {
-    const alternates = [
-      ...localizedPages.map(({ language, url: alternateUrl }) => `    <xhtml:link rel="alternate" hreflang="${escapeXml(language)}" href="${escapeXml(alternateUrl)}" />`),
-      `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(defaultUrl)}" />`,
-    ].join('\n');
-    return `  <url>\n    <loc>${escapeXml(url)}</loc>\n${alternates}\n  </url>`;
-  }).join('\n');
+  const urls = ['', '/privacy'].map((path) => {
+    const localizedPages = LOCALE_OPTIONS.map(({ code, language }) => ({
+      language,
+      url: new URL(code === 'en' ? path || '/' : `/${code}${path}`, siteUrl).toString(),
+    }));
+    const defaultUrl = new URL(path || '/', siteUrl).toString();
+
+    return localizedPages.map(({ url }) => {
+      const alternates = [
+        ...localizedPages.map(({ language, url: alternateUrl }) => `    <xhtml:link rel="alternate" hreflang="${escapeXml(language)}" href="${escapeXml(alternateUrl)}" />`),
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(defaultUrl ?? '')}" />`,
+      ].join('\n');
+      return `  <url>\n    <loc>${escapeXml(url)}</loc>\n${alternates}\n  </url>`;
+    });
+  }).flat().join('\n');
 
   setHeader(event, 'Content-Type', 'application/xml; charset=utf-8');
   setHeader(event, 'Cache-Control', 'public, max-age=3600, s-maxage=3600');

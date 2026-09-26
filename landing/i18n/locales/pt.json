@@ -1,7 +1,7 @@
 {
   "seo": {
-    "title": "EVB Player · Reprodutor multimédia offline para macOS, Windows e Linux",
-    "description": "Transforme pastas de vídeos e ficheiros de áudio numerados em listas de reprodução com durações, progresso guardado e separadores. Gratuito, offline e com licença MIT.",
+    "title": "EVB Player · Retoma onde parou em cada ficheiro",
+    "description": "Reproduza pastas de vídeos ou áudio por ordem e retome cada ficheiro onde parou: cursos online, palestras e audiolivros. Gratuito e offline para Mac, Windows e Linux.",
     "ogTitle": "EVB Player",
     "ogDescription": "Reproduza por ordem os ficheiros das suas pastas. Offline no macOS, Windows e Linux.",
     "ogImageAlt": "EVB Player a reproduzir um vídeo de uma pasta multimédia",
@@ -35,14 +35,100 @@
   "features": {
     "title": "O que faz",
     "items": {
-      "folders": { "title": "As pastas tornam-se listas de reprodução", "text": "Os ficheiros são ordenados pelos números e as subpastas tornam-se secções. Nada é copiado, convertido ou carregado." },
-      "durations": { "title": "Durações à partida", "text": "Ao abrir, são lidas as durações de cada ficheiro e da pasta inteira, antes de iniciar a reprodução." },
-      "resume": { "title": "Retome onde ficou", "text": "A sua posição em cada ficheiro é guardada enquanto vê ou ouve. Os ficheiros concluídos ficam assinalados e começa o seguinte." },
-      "skip": { "title": "Avance o que já conhece", "text": "Marque qualquer ficheiro como concluído sem o reproduzir ou reponha um ficheiro ou uma pasta inteira." },
-      "tabs": { "title": "Várias pastas em separadores", "text": "Mantenha várias pastas abertas ao mesmo tempo. Na Biblioteca, o ficheiro atual continua a reproduzir num leitor compacto." },
-      "room": { "title": "Mais espaço para ver", "text": "Modo cinema, janela inteira e ecrã inteiro, controlo da velocidade e atalhos de teclado para tudo." }
-    },
-    "formats": "Reproduz MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg e Opus. Os ficheiros que o leitor integrado não consegue descodificar, como AVI, abrem no seu leitor multimédia habitual."
+      "folders": {
+        "title": "As pastas tornam-se listas de reprodução",
+        "text": "Os ficheiros são ordenados pelos números e as subpastas tornam-se secções. Nada é copiado, convertido ou carregado."
+      },
+      "durations": {
+        "title": "Durações à partida",
+        "text": "Ao abrir, são lidas as durações de cada ficheiro e da pasta inteira, antes de iniciar a reprodução."
+      },
+      "resume": {
+        "title": "Retome onde ficou",
+        "text": "A sua posição em cada ficheiro é guardada enquanto vê ou ouve. Os ficheiros concluídos ficam assinalados e começa o seguinte."
+      },
+      "skip": {
+        "title": "Avance o que já conhece",
+        "text": "Marque qualquer ficheiro como concluído sem o reproduzir ou reponha um ficheiro ou uma pasta inteira."
+      },
+      "order": {
+        "title": "A sua própria ordem",
+        "text": "Reordene as faixas, marque as favoritas com uma estrela, oculte o que não precisa e adicione faixas de outras pastas. Os ficheiros no disco ficam como estão."
+      },
+      "window": {
+        "title": "Separadores e janela inteira",
+        "text": "Mantenha várias pastas abertas em separadores. Modo cinema, janela inteira, ecrã inteiro, controlo da velocidade e atalhos de teclado para tudo."
+      }
+    }
   },
-  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licença MIT", "source": "Código-fonte no GitHub", "viewer": "EVB Viewer" }
+  "whoFor": {
+    "title": "Para quem é",
+    "items": {
+      "courses": {
+        "title": "Cursos online",
+        "text": "Acompanhe um curso que descarregou, lição a lição. Cada vídeo lembra-se de onde parou e a pasta mostra o seu progresso."
+      },
+      "lectures": {
+        "title": "Palestras e apresentações",
+        "text": "Palestras gravadas, conferências e tutoriais são reproduzidos pela ordem dos nomes dos ficheiros, com uma secção para cada subpasta."
+      },
+      "audiobooks": {
+        "title": "Audiolivros",
+        "text": "Um livro dividido em dezenas de ficheiros é reproduzido por ordem e retoma no capítulo certo, mesmo semanas depois."
+      },
+      "languagePractice": {
+        "title": "Prática de idiomas",
+        "text": "Exercícios de compreensão oral e aulas em vídeo para o idioma que está a aprender, com controlo da velocidade e uma repetição rápida de dez segundos."
+      }
+    }
+  },
+  "faq": {
+    "title": "Perguntas",
+    "links": {
+      "sourceCode": "código-fonte público no GitHub",
+      "browserUrl": "evb-player-web.vercel.app"
+    },
+    "items": {
+      "free": {
+        "question": "É gratuito?",
+        "answer": "Sim. O EVB Player é gratuito e de código aberto, com licença MIT, sem anúncios, contas ou subscrições."
+      },
+      "files": {
+        "question": "Os meus ficheiros são carregados para algum lado?",
+        "answer": "Não. A aplicação para computador lê diretamente as suas pastas e guarda o progresso no computador. A versão no navegador reproduz os ficheiros no navegador; nada sai do seu dispositivo."
+      },
+      "order": {
+        "question": "Por que ordem são reproduzidos os ficheiros?",
+        "answer": "Pelos números no início do nome: 10 vem depois de 9, não depois de 1. As subpastas tornam-se secções. Também pode reordenar uma lista de reprodução."
+      },
+      "formats": {
+        "question": "Que formatos reproduz?",
+        "answer": "Reproduz MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg e Opus. Os ficheiros que o leitor integrado não consegue descodificar, como AVI, abrem no seu leitor multimédia habitual."
+      },
+      "windows": {
+        "question": "O Windows diz «O Windows protegeu o seu PC». É seguro?",
+        "answer": "O instalador do Windows ainda não tem assinatura digital, por isso o Windows avisa que o editor é desconhecido. Escolha «Mais informações» e depois «Executar mesmo assim». A aplicação é criada a partir do seu {sourceCode}."
+      },
+      "browser": {
+        "question": "Posso usar sem instalar nada?",
+        "answer": "Sim, no navegador em {browserUrl}. O Chrome e o Edge lembram-se das suas pastas entre visitas; noutros navegadores, terá de escolher a pasta novamente."
+      },
+      "updates": {
+        "question": "Como é atualizado?",
+        "answer": "A aplicação para computador procura novas versões e pede autorização antes de transferir uma."
+      }
+    }
+  },
+  "privacy": {
+    "title": "Privacidade",
+    "metaTitle": "Privacidade · EVB Player",
+    "metaDescription": "Saiba como o EVB Player trata os seus ficheiros, o progresso e os dados do site.",
+    "media": "O EVB Player nunca carrega os seus ficheiros multimédia. A aplicação para computador lê diretamente as suas pastas e guarda o progresso, as listas de reprodução e as definições em ficheiros no computador. A versão no navegador guarda-os no armazenamento do navegador.",
+    "updates": "A aplicação para computador só se liga à Internet para verificar no GitHub se existem novas versões.",
+    "analytics": "Este site conta as visualizações de páginas e as transferências para perceber como os visitantes o encontram. Em cada uma regista o idioma da página, a plataforma, o país (a partir da rede), o site de origem e um código anónimo que muda todos os dias. Não guarda endereços IP nem detalhes do navegador e não usa cookies para isto.",
+    "cookies": "O site usa três pequenos cookies: um para o tema escolhido, um para a definição clara ou escura do sistema e um para o idioma.",
+    "questions": "Dúvidas? {issue}.",
+    "issueLink": "Abra um pedido no GitHub"
+  },
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licença MIT", "privacy": "Privacidade", "source": "Código-fonte no GitHub", "viewer": "EVB Viewer" }
 }

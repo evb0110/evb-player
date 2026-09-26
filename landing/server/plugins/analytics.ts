@@ -1,10 +1,13 @@
 import { detectPlatform } from '#shared/platform';
 
-// Counts rendered landing pages. Crawlers, prefetches and error pages don't count.
+// Counts views of the landing's home page in each language; other pages such as /privacy, crawlers,
+// prefetches and error pages don't count.
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('render:html', async (_html, { event }) => {
     const purpose = getRequestHeader(event, 'sec-purpose') ?? getRequestHeader(event, 'purpose') ?? '';
-    if (event.method !== 'GET' || event.node.res.statusCode !== 200 || purpose.includes('prefetch')) {
+    const path = event.path.split('?')[0]!.replace(/\/$/u, '') || '/';
+    const isHome = path === '/' || path === `/${localeForPath(path)}`;
+    if (event.method !== 'GET' || event.node.res.statusCode !== 200 || purpose.includes('prefetch') || !isHome) {
       return;
     }
     await recordLandingEvent(event, {

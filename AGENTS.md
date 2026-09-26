@@ -19,4 +19,4 @@ Agent-owned runs of the app never show a window, take focus, or put an icon in t
 
 ## Wording
 
-The product never says "course", in the UI, the landing, the docs, or code names. It plays folders of video and audio.
+The product never says "course", in the UI, the docs, or code names. It plays folders of video and audio, and the items in a folder are tracks. One exception: the landing's use cases and search copy may name online courses, since that is what people search for.

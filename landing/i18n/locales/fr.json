@@ -1,7 +1,7 @@
 {
   "seo": {
-    "title": "EVB Player · Lecteur multimédia hors ligne pour macOS, Windows et Linux",
-    "description": "Transformez des dossiers de vidéos et fichiers audio numérotés en listes de lecture avec durées, progression mémorisée et onglets. Gratuit, hors ligne et sous licence MIT.",
+    "title": "EVB Player · Reprend là où vous en étiez dans chaque fichier",
+    "description": "Vidéo et audio dans l’ordre, avec reprise là où vous vous êtes arrêté : cours en ligne, conférences, livres audio. Gratuit et hors ligne sur Mac, Windows et Linux.",
     "ogTitle": "EVB Player",
     "ogDescription": "Lisez les fichiers de vos dossiers dans l'ordre. Hors ligne sur macOS, Windows et Linux.",
     "ogImageAlt": "EVB Player lisant une vidéo d'un dossier multimédia",
@@ -35,14 +35,100 @@
   "features": {
     "title": "Fonctionnalités",
     "items": {
-      "folders": { "title": "Les dossiers deviennent des listes", "text": "Les fichiers sont triés par numéro et les sous-dossiers deviennent des sections. Rien n'est copié, converti ou envoyé en ligne." },
-      "durations": { "title": "Durées disponibles dès l'ouverture", "text": "La durée de chaque fichier et du dossier entier est lue à l'ouverture, avant toute lecture." },
-      "resume": { "title": "Reprenez là où vous en étiez", "text": "Votre position dans chaque fichier est mémorisée pendant la lecture ou l'écoute. Les fichiers terminés sont cochés et le suivant démarre." },
-      "skip": { "title": "Passez ce que vous connaissez", "text": "Marquez un fichier comme terminé sans le lire, ou réinitialisez un fichier ou un dossier entier." },
-      "tabs": { "title": "Plusieurs dossiers dans des onglets", "text": "Gardez plusieurs dossiers ouverts. Dans la bibliothèque, le fichier en cours continue dans un lecteur compact." },
-      "room": { "title": "Plus d'espace pour regarder", "text": "Mode cinéma, fenêtre agrandie ou plein écran, réglage de la vitesse et raccourcis clavier pour tout." }
-    },
-    "formats": "Lit les formats MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg et Opus. Les fichiers que le lecteur intégré ne peut pas décoder, comme AVI, s'ouvrent dans votre lecteur multimédia habituel."
+      "folders": {
+        "title": "Les dossiers deviennent des listes",
+        "text": "Les fichiers sont triés par numéro et les sous-dossiers deviennent des sections. Rien n'est copié, converti ou envoyé en ligne."
+      },
+      "durations": {
+        "title": "Durées disponibles dès l'ouverture",
+        "text": "La durée de chaque fichier et du dossier entier est lue à l'ouverture, avant toute lecture."
+      },
+      "resume": {
+        "title": "Reprenez là où vous en étiez",
+        "text": "Votre position dans chaque fichier est mémorisée pendant la lecture ou l'écoute. Les fichiers terminés sont cochés et le suivant démarre."
+      },
+      "skip": {
+        "title": "Passez ce que vous connaissez",
+        "text": "Marquez un fichier comme terminé sans le lire, ou réinitialisez un fichier ou un dossier entier."
+      },
+      "order": {
+        "title": "Votre ordre",
+        "text": "Réorganisez les pistes, ajoutez une étoile à vos préférées, masquez ce dont vous n’avez pas besoin et ajoutez des pistes d’autres dossiers. Les fichiers sur le disque restent inchangés."
+      },
+      "window": {
+        "title": "Onglets et fenêtre entière",
+        "text": "Gardez plusieurs dossiers ouverts dans des onglets. Mode cinéma, fenêtre entière, plein écran, réglage de la vitesse et raccourcis clavier pour tout."
+      }
+    }
   },
-  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licence MIT", "source": "Code source sur GitHub", "viewer": "EVB Viewer" }
+  "whoFor": {
+    "title": "Pour qui ?",
+    "items": {
+      "courses": {
+        "title": "Cours en ligne",
+        "text": "Suivez un cours téléchargé, leçon après leçon. Chaque vidéo reprend là où vous en étiez et le dossier montre votre progression."
+      },
+      "lectures": {
+        "title": "Conférences et présentations",
+        "text": "Les conférences enregistrées, interventions et tutoriels sont lus selon le nom de leurs fichiers, avec une section pour chaque sous-dossier."
+      },
+      "audiobooks": {
+        "title": "Livres audio",
+        "text": "Un livre réparti en dizaines de fichiers est lu dans l’ordre et reprend au bon chapitre, même plusieurs semaines plus tard."
+      },
+      "languagePractice": {
+        "title": "Pratique des langues",
+        "text": "Écoutez des exercices et regardez des leçons vidéo dans la langue que vous apprenez, avec réglage de la vitesse et retour rapide de dix secondes."
+      }
+    }
+  },
+  "faq": {
+    "title": "Questions",
+    "links": {
+      "sourceCode": "code source public sur GitHub",
+      "browserUrl": "evb-player-web.vercel.app"
+    },
+    "items": {
+      "free": {
+        "question": "Est-ce gratuit ?",
+        "answer": "Oui. EVB Player est gratuit et open source sous licence MIT, sans publicité, compte ni abonnement."
+      },
+      "files": {
+        "question": "Mes fichiers sont-ils envoyés quelque part ?",
+        "answer": "Non. L’application de bureau lit directement vos dossiers et conserve votre progression sur votre ordinateur. La version navigateur lit vos fichiers dans le navigateur ; rien ne quitte votre appareil."
+      },
+      "order": {
+        "question": "Dans quel ordre les fichiers sont-ils lus ?",
+        "answer": "Selon les chiffres au début de leur nom : 10 vient après 9, et non après 1. Les sous-dossiers deviennent des sections. Vous pouvez aussi réorganiser vous-même une liste."
+      },
+      "formats": {
+        "question": "Quels formats lit-il ?",
+        "answer": "Lit les formats MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg et Opus. Les fichiers que le lecteur intégré ne peut pas décoder, comme AVI, s'ouvrent dans votre lecteur multimédia habituel."
+      },
+      "windows": {
+        "question": "Windows affiche « Windows a protégé votre PC ». Est-ce sûr ?",
+        "answer": "L’installateur Windows n’est pas encore signé numériquement, donc Windows signale un éditeur inconnu. Choisissez « Informations complémentaires », puis « Exécuter quand même ». L’application est créée à partir de son {sourceCode}."
+      },
+      "browser": {
+        "question": "Puis-je l’utiliser sans rien installer ?",
+        "answer": "Oui, dans le navigateur à l’adresse {browserUrl}. Chrome et Edge mémorisent vos dossiers entre deux visites ; dans les autres navigateurs, vous devez choisir le dossier à nouveau."
+      },
+      "updates": {
+        "question": "Comment se fait la mise à jour ?",
+        "answer": "L’application de bureau vérifie si une nouvelle version est disponible et vous demande votre accord avant de la télécharger."
+      }
+    }
+  },
+  "privacy": {
+    "title": "Confidentialité",
+    "metaTitle": "Confidentialité · EVB Player",
+    "metaDescription": "Découvrez comment EVB Player traite vos fichiers, votre progression et les données du site.",
+    "media": "EVB Player n’envoie jamais vos fichiers multimédias. L’application de bureau lit directement vos dossiers et conserve votre progression, vos listes de lecture et vos réglages dans des fichiers sur votre ordinateur. La version navigateur les conserve dans le stockage de votre navigateur.",
+    "updates": "L’application de bureau se connecte à Internet uniquement pour vérifier sur GitHub si une nouvelle version est disponible.",
+    "analytics": "Ce site compte les pages vues et les téléchargements pour comprendre comment les visiteurs le trouvent. Pour chacun, il enregistre la langue de la page, la plateforme, le pays (déduit du réseau), le site d’origine et un code anonyme qui change chaque jour. Il ne conserve ni adresse IP ni détail sur le navigateur et ne dépose aucun cookie pour cela.",
+    "cookies": "Le site utilise trois petits cookies : un pour le thème choisi, un pour le réglage clair ou sombre de votre système et un pour votre langue.",
+    "questions": "Des questions ? {issue}.",
+    "issueLink": "Ouvrez un ticket sur GitHub"
+  },
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licence MIT", "privacy": "Confidentialité", "source": "Code source sur GitHub", "viewer": "EVB Viewer" }
 }
