@@ -920,7 +920,10 @@ app.on('will-quit', (event) => {
   }
   event.preventDefault();
   quitFlushStarted = true;
-  void drainStateWrites().then(() => app.quit(), () => app.quit());
+  // Quit again from a macrotask: when app.quit() closed the windows, will-quit is emitted from native code and a
+  // microtask would run before Electron clears its quitting flag, so the second quit would be ignored.
+  const quitAfterDrain = () => setImmediate(() => app.quit());
+  void drainStateWrites().then(quitAfterDrain, quitAfterDrain);
 });
 
 app.on('window-all-closed', () => {
