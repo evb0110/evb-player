@@ -30,16 +30,16 @@ interface IProgressWrite {
 }
 
 export function useCourseLibrary() {
-  const recentCourses = useState<IRecentCourse[]>('course-shelf-recent', () => []);
-  const openCourses = useState<ICourse[]>('course-shelf-open', () => []);
-  const activeTab = useState<string>('course-shelf-active-tab', () => 'library');
-  const playbackCourseId = useState<string | null>('course-shelf-playback-course', () => null);
-  const progressByCourse = useState<Record<string, TCourseProgress>>('course-shelf-progress', () => ({}));
-  const selectedLessonByCourse = useState<Record<string, string>>('course-shelf-selected-lesson', () => ({}));
-  const loading = useState<boolean>('course-shelf-loading', () => false);
-  const loadingMessage = useState<string>('course-shelf-loading-message', () => 'Scanning your folder…');
-  const error = useState<string>('course-shelf-error', () => '');
-  const progressError = useState<string>('course-shelf-progress-error', () => '');
+  const recentCourses = useState<IRecentCourse[]>('evb-player-recent', () => []);
+  const openCourses = useState<ICourse[]>('evb-player-open', () => []);
+  const activeTab = useState<string>('evb-player-active-tab', () => 'library');
+  const playbackCourseId = useState<string | null>('evb-player-playback-course', () => null);
+  const progressByCourse = useState<Record<string, TCourseProgress>>('evb-player-progress', () => ({}));
+  const selectedLessonByCourse = useState<Record<string, string>>('evb-player-selected-lesson', () => ({}));
+  const loading = useState<boolean>('evb-player-loading', () => false);
+  const loadingMessage = useState<string>('evb-player-loading-message', () => 'Scanning your folder…');
+  const error = useState<string>('evb-player-error', () => '');
+  const progressError = useState<string>('evb-player-progress-error', () => '');
   let progressWriteQueue: Promise<void> = Promise.resolve();
   let operationGeneration = 0;
   const progressRevisionByCourse = new Map<string, number>();
@@ -60,7 +60,7 @@ export function useCourseLibrary() {
   }
 
   function getApi() {
-    return import.meta.client ? window.courseShelf : null;
+    return import.meta.client ? window.evbPlayer : null;
   }
 
   function messageFor(cause: unknown, fallback: string) {

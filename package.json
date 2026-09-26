@@ -1,9 +1,17 @@
 {
-  "name": "course-shelf",
-  "productName": "Course Shelf",
-  "version": "0.1.2",
-  "description": "A private local course and media player for macOS.",
-  "author": "Eugene Barsky",
+  "name": "evb-player",
+  "productName": "EVB Player",
+  "version": "0.2.0",
+  "description": "A local course and media player for macOS, Windows, and Linux.",
+  "author": {
+    "name": "Eugene Barsky",
+    "email": "34789976+evb0110@users.noreply.github.com"
+  },
+  "homepage": "https://evb-player.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/evb0110/evb-player.git"
+  },
   "main": "dist-electron/electron/main.js",
   "private": true,
   "scripts": {
@@ -14,19 +22,23 @@
     "check:icons": "node scripts/check-icons.mjs",
     "build:electron": "tsc -p tsconfig.electron.json",
     "start": "pnpm run build && electron .",
-    "package:mac": "pnpm run build && CSC_IDENTITY_AUTO_DISCOVERY=false pnpm exec electron-builder --mac",
-    "typecheck": "nuxi typecheck && tsc -p tsconfig.electron.json --noEmit"
+    "package:mac": "pnpm run build && electron-builder --mac --publish never",
+    "typecheck": "nuxi typecheck && tsc -p tsconfig.electron.json --noEmit",
+    "package:win": "pnpm run build && electron-builder --win --publish never",
+    "package:linux": "pnpm run build && electron-builder --linux --publish never"
   },
   "dependencies": {
-    "@vueuse/core": "^14.4.0",
-    "es-toolkit": "^1.52.0"
+    "electron-updater": "^6.8.9",
+    "music-metadata": "^11.16.1"
   },
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.93",
     "@nuxt/ui": "4.11.1",
     "@types/node": "^24.0.0",
+    "@vueuse/core": "^14.4.0",
     "electron": "^44.3.0",
     "electron-builder": "^26.15.3",
+    "es-toolkit": "^1.52.0",
     "nuxt": "4.5.2",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",

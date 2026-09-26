@@ -1,8 +1,8 @@
-import type {ICourseShelfApi} from '../../shared/types';
+import type {IPlayerApi} from '../../shared/types';
 
 declare global {
   interface Window {
-    courseShelf: ICourseShelfApi;
+    evbPlayer: IPlayerApi;
   }
 }
 

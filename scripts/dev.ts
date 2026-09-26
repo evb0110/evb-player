@@ -1,6 +1,8 @@
 import {spawn, spawnSync, type ChildProcess} from 'node:child_process';
 
 const port = 3131;
+// pnpm is a .cmd shim on Windows, which only starts through a shell.
+const shell = process.platform === 'win32';
 const devUrl = `http://127.0.0.1:${port}`;
 const children: ChildProcess[] = [];
 
@@ -33,14 +35,15 @@ function waitForServer(url: string) {
 }
 
 async function main() {
-  const build = spawnSync('pnpm', ['run', 'build:electron'], {stdio: 'inherit'});
+  const build = spawnSync('pnpm', ['run', 'build:electron'], {stdio: 'inherit', shell});
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
   }
 
   const nuxt = spawn('pnpm', ['exec', 'nuxi', 'dev', '--host', '127.0.0.1', '--port', String(port)], {
     stdio: 'inherit',
-    env: {...process.env, COURSE_SHELF_DEV_SERVER_URL: devUrl},
+    shell,
+    env: {...process.env, EVB_PLAYER_DEV_SERVER_URL: devUrl},
   });
   children.push(nuxt);
 
@@ -53,7 +56,8 @@ async function main() {
 
   const electron = spawn('pnpm', ['exec', 'electron', '.'], {
     stdio: 'inherit',
-    env: {...process.env, COURSE_SHELF_DEV_SERVER_URL: devUrl},
+    shell,
+    env: {...process.env, EVB_PLAYER_DEV_SERVER_URL: devUrl},
   });
   children.push(electron);
 

@@ -448,9 +448,9 @@ const playlistRef = ref<HTMLElement | null>(null);
 const isPlaying = ref(false);
 const currentTime = ref(0);
 const loadedDuration = ref(0);
-const volume = useStorage('course-shelf-volume', 1);
-const lastVolume = useStorage('course-shelf-last-volume', 1);
-const playbackRate = useStorage('course-shelf-playback-rate', 1);
+const volume = useStorage('evb-player-volume', 1);
+const lastVolume = useStorage('evb-player-last-volume', 1);
+const playbackRate = useStorage('evb-player-playback-rate', 1);
 volume.value = Number.isFinite(volume.value) ? Math.max(0, Math.min(1, volume.value)) : 1;
 lastVolume.value = Number.isFinite(lastVolume.value) && lastVolume.value > 0 ? Math.min(1, lastVolume.value) : 1;
 playbackRate.value = [0.75, 1, 1.25, 1.5, 2].includes(playbackRate.value) ? playbackRate.value : 1;
@@ -469,6 +469,7 @@ const isResettingProgress = ref(false);
 const isRetryingProgress = ref(false);
 let controlsHideTimer: ReturnType<typeof setTimeout> | null = null;
 let removeWindowFullscreenListener: (() => void) | null = null;
+let removeUpdateListener: (() => void) | null = null;
 let isPointerInteraction = false;
 let lessonLoadRequest = 0;
 let progressPersistenceGeneration = 0;
@@ -994,7 +995,7 @@ async function toggleFullscreen() {
       await document.exitFullscreen();
       return;
     }
-    const api = import.meta.client ? window.courseShelf : null;
+    const api = import.meta.client ? window.evbPlayer : null;
     if (api) {
       isFullscreen.value = await api.setWindowFullscreen(!isFullscreen.value);
       return;
@@ -1118,8 +1119,8 @@ function syncFullscreenDocumentClass(fullscreen: boolean) {
   if (!import.meta.client) {
     return;
   }
-  document.documentElement.classList.toggle('course-shelf-fullscreen', fullscreen);
-  document.body.classList.toggle('course-shelf-fullscreen', fullscreen);
+  document.documentElement.classList.toggle('evb-player-fullscreen', fullscreen);
+  document.body.classList.toggle('evb-player-fullscreen', fullscreen);
 }
 
 function handleKeyboard(event: KeyboardEvent) {
@@ -1246,7 +1247,7 @@ watch([() => currentCourse.value?.id, () => currentLesson.value?.id], async ([co
       if (document.fullscreenElement) {
         void document.exitFullscreen().catch(() => undefined);
       } else {
-        void window.courseShelf?.setWindowFullscreen(false);
+        void window.evbPlayer?.setWindowFullscreen(false);
       }
       isFullscreen.value = false;
     }
@@ -1297,9 +1298,9 @@ function retryPlayback() {
 }
 
 async function openMediaExternally() {
-  if (!currentLesson.value || !window.courseShelf) return;
+  if (!currentLesson.value || !window.evbPlayer) return;
   try {
-    await window.courseShelf.openMediaExternally(currentLesson.value.mediaUrl);
+    await window.evbPlayer.openMediaExternally(currentLesson.value.mediaUrl);
   } catch {
     toast.add({title: 'Could not open this file', description: 'Check that the course folder is still available.', color: 'error'});
   }
@@ -1307,8 +1308,8 @@ async function openMediaExternally() {
 
 async function revealCourse(rootPath: string) {
   try {
-    if (!window.courseShelf) throw new Error('Showing folders is available in the desktop app.');
-    await window.courseShelf.revealCourse(rootPath);
+    if (!window.evbPlayer) throw new Error('Showing folders is available in the desktop app.');
+    await window.evbPlayer.revealCourse(rootPath);
   } catch (cause) {
     toast.add({title: 'Could not reveal the course', description: cause instanceof Error ? cause.message : 'Check that the course folder is still available.', color: 'error'});
   }
@@ -1355,15 +1356,28 @@ watch(search, async () => {if (!search.value) {await nextTick(); revealCurrentLe
 
 watch(() => isFullscreen.value || isFullWindow.value, syncFullscreenDocumentClass);
 
+function announceUpdate(version: string) {
+  toast.add({
+    id: 'update-ready',
+    title: `EVB Player ${version} is ready`,
+    description: 'Restart to install it.',
+    icon: 'i-lucide-download',
+    duration: 0,
+    actions: [{label: 'Restart now', color: 'primary', onClick: () => void window.evbPlayer.installUpdate()}],
+  });
+}
+
 onMounted(async () => {
   document.addEventListener('fullscreenchange', handleFullscreenChange);
   document.addEventListener('keydown', handleKeyboard);
   window.addEventListener('pagehide', saveBeforeLeaving);
   window.addEventListener('beforeunload', saveBeforeLeaving);
-  if (import.meta.client && window.courseShelf) {
-    removeWindowFullscreenListener = window.courseShelf.onWindowFullscreenChanged((fullscreen) => {
+  if (import.meta.client && window.evbPlayer) {
+    removeWindowFullscreenListener = window.evbPlayer.onWindowFullscreenChanged((fullscreen) => {
       isFullscreen.value = fullscreen;
     });
+    removeUpdateListener = window.evbPlayer.onUpdateReady(announceUpdate);
+    void window.evbPlayer.getReadyUpdate().then((version) => version && announceUpdate(version));
   }
   syncFullscreenDocumentClass(isFullscreen.value || isFullWindow.value);
   await library.load();
@@ -1378,6 +1392,8 @@ onUnmounted(() => {
   window.removeEventListener('beforeunload', saveBeforeLeaving);
   removeWindowFullscreenListener?.();
   removeWindowFullscreenListener = null;
+  removeUpdateListener?.();
+  removeUpdateListener = null;
   syncFullscreenDocumentClass(false);
 });
 </script>

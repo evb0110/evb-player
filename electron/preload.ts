@@ -1,13 +1,13 @@
 import {contextBridge, ipcRenderer} from 'electron';
 import type {
   ICourse,
-  ICourseShelfApi,
+  IPlayerApi,
   IRecentCourse,
   ISaveLessonProgressPayload,
   TCourseProgress,
 } from '../shared/types';
 
-const api: ICourseShelfApi = {
+const api: IPlayerApi = {
   chooseFolder: () => ipcRenderer.invoke('course:choose-folder') as Promise<ICourse | null>,
   openRecentCourse: (rootPath: string) => ipcRenderer.invoke('course:open-recent', rootPath) as Promise<ICourse | null>,
   restoreLastCourse: () => ipcRenderer.invoke('course:restore-last') as Promise<ICourse | null>,
@@ -25,6 +25,17 @@ const api: ICourseShelfApi = {
     ipcRenderer.on('window:fullscreen-changed', handler);
     return () => ipcRenderer.removeListener('window:fullscreen-changed', handler);
   },
+  getReadyUpdate: () => ipcRenderer.invoke('update:get-ready') as Promise<string | null>,
+  onUpdateReady: (listener: (version: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, version: unknown) => {
+      if (typeof version === 'string') {
+        listener(version);
+      }
+    };
+    ipcRenderer.on('update:ready', handler);
+    return () => ipcRenderer.removeListener('update:ready', handler);
+  },
+  installUpdate: () => ipcRenderer.invoke('update:install') as Promise<void>,
 };
 
-contextBridge.exposeInMainWorld('courseShelf', api);
+contextBridge.exposeInMainWorld('evbPlayer', api);

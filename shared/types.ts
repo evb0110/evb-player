@@ -48,7 +48,7 @@ export interface ISaveLessonProgressPayload {
   progress: ILessonProgress;
 }
 
-export interface ICourseShelfApi {
+export interface IPlayerApi {
   chooseFolder(): Promise<ICourse | null>;
   openRecentCourse(rootPath: string): Promise<ICourse | null>;
   restoreLastCourse(): Promise<ICourse | null>;
@@ -62,4 +62,7 @@ export interface ICourseShelfApi {
   openMediaExternally(mediaUrl: string): Promise<void>;
   setWindowFullscreen(fullscreen: boolean): Promise<boolean>;
   onWindowFullscreenChanged(listener: (fullscreen: boolean) => void): () => void;
+  getReadyUpdate(): Promise<string | null>;
+  onUpdateReady(listener: (version: string) => void): () => void;
+  installUpdate(): Promise<void>;
 }

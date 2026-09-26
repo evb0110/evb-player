@@ -1,26 +1,60 @@
-appId: net.course-shelf.app
-productName: Course Shelf
+appId: com.evb.player
+productName: EVB Player
+copyright: Copyright © 2026 Eugene Barsky
 asar: true
 files:
   - dist-electron/**
+  - "!dist-electron/**/*.map"
   - .output/public/**
   - package.json
   - resources/icon.png
 directories:
   output: release
+publish:
+  provider: github
+  owner: evb0110
+  repo: evb-player
 mac:
   # Icon Composer asset, compiled to Assets.car plus an .icns fallback. Needs Xcode 26 actool.
   icon: resources/AppIcon.icon
   category: public.app-category.education
   target:
-    - dmg
-  artifactName: Course-Shelf-${version}-${arch}.${ext}
-  hardenedRuntime: false
-  gatekeeperAssess: false
+    # The zip is what auto-update downloads; the DMG is for first installs.
+    - target: dmg
+      arch: arm64
+    - target: zip
+      arch: arm64
+  artifactName: EVB-Player-${version}-${arch}.${ext}
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Signing uses CSC_LINK/CSC_KEY_PASSWORD; notarization runs when APPLE_API_KEY,
+  # APPLE_API_KEY_ID and APPLE_API_ISSUER are set and is skipped otherwise.
 win:
   icon: resources/icon.ico
+  target:
+    - target: nsis
+      arch: x64
+  artifactName: EVB-Player-${version}-${arch}-setup.${ext}
+nsis:
+  # Per-user install without an admin prompt, so auto-update can replace it silently.
+  oneClick: true
+  perMachine: false
+  deleteAppDataOnUninstall: false
 linux:
   icon: resources/icon.png
+  target:
+    - target: deb
+      arch: x64
+  artifactName: EVB-Player-${version}-${arch}.${ext}
+  category: AudioVideo
+  maintainer: Eugene Barsky <34789976+evb0110@users.noreply.github.com>
+  vendor: Eugene Barsky
+  synopsis: Local course and media player
+  description: EVB Player plays video and audio courses stored in local folders, with a playlist, saved progress, and tabs for several courses.
+  desktop:
+    entry:
+      Keywords: video;audio;course;player;lessons;
 dmg:
   # Keep the Finder layout stable across machines. The background dimensions are
   # 600x450, so the coordinates below are in the same logical coordinate space.

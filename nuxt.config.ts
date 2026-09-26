@@ -11,9 +11,9 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2026-09-22',
   app: {
-    baseURL: process.env.COURSE_SHELF_DEV_SERVER_URL ? '/' : './',
+    baseURL: process.env.EVB_PLAYER_DEV_SERVER_URL ? '/' : './',
     head: {
-      title: 'Course Shelf',
+      title: 'EVB Player',
       link: [{rel: 'icon', type: 'image/png', href: './favicon.png'}],
       meta: [
         {name: 'viewport', content: 'width=device-width, initial-scale=1'},

@@ -1,11 +1,9 @@
-import {app, BrowserWindow, dialog, ipcMain, net, protocol, session, shell} from 'electron';
+import {app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, session, shell} from 'electron';
 import {createHash} from 'node:crypto';
 import {createReadStream} from 'node:fs';
 import {access, copyFile, mkdir, readdir, readFile, realpath, rename, stat, unlink, writeFile} from 'node:fs/promises';
 import {basename, dirname, extname, join, relative, resolve, sep} from 'node:path';
-import {execFile} from 'node:child_process';
 import {Readable} from 'node:stream';
-import {promisify} from 'node:util';
 import {pathToFileURL} from 'node:url';
 import type {
   ICourse,
@@ -22,20 +20,27 @@ import {
   sanitizeStoredState,
   type IStoredState,
 } from './state';
+import {readDurationMap} from './durations';
+import {startUpdater} from './updater';
 
-const execFileAsync = promisify(execFile);
-const MEDIA_SCHEME = 'course-media';
-const RENDERER_SCHEME = 'course-shelf';
-const DEV_SERVER_URL = process.env.COURSE_SHELF_DEV_SERVER_URL?.trim();
+const MEDIA_SCHEME = 'evb-media';
+const RENDERER_SCHEME = 'evb-player';
+const DEV_SERVER_URL = process.env.EVB_PLAYER_DEV_SERVER_URL?.trim();
 const appIconPath = join(app.getAppPath(), 'resources', 'icon.png');
 const mediaRoots = new Set<string>();
 const authorizedCourseRoots = new Set<string>();
-const stateFilePath = () => join(app.getPath('userData'), 'course-shelf-state.json');
+// Automation runs keep the window off screen so they never take focus from the desktop.
+const HIDE_WINDOW = process.env.EVB_PLAYER_HIDE_WINDOW === '1';
+const stateFilePath = () => join(app.getPath('userData'), 'evb-player-state.json');
+// The app was called Course Shelf before 0.2.0; its progress file, in a sibling profile folder,
+// is read once when EVB Player has none.
+const legacyStateFilePath = () => join(dirname(app.getPath('userData')), app.isPackaged ? 'Course Shelf' : 'Course Shelf Dev', 'course-shelf-state.json');
 
 // Source runs get their own name and profile so they never share progress,
-// storage, or the single-instance lock with the installed app.
-if (!app.isPackaged) {
-  const devAppName = 'Course Shelf Dev';
+// storage, or the single-instance lock with the installed app. An explicit
+// --user-data-dir (used by automation) takes precedence.
+if (!app.isPackaged && !app.commandLine.hasSwitch('user-data-dir')) {
+  const devAppName = 'EVB Player Dev';
   app.setName(devAppName);
   app.setPath('userData', join(app.getPath('appData'), devAppName));
 }
@@ -176,14 +181,14 @@ function ensureState() {
   }
 
   stateLoadPromise = (async () => {
-    const primaryState = await readStoredStateFile(stateFilePath());
-    if (primaryState) {
-      storedState = primaryState;
-      return storedState;
+    for (const filePath of [stateFilePath(), `${stateFilePath()}.bak`, legacyStateFilePath(), `${legacyStateFilePath()}.bak`]) {
+      const state = await readStoredStateFile(filePath);
+      if (state) {
+        storedState = state;
+        return storedState;
+      }
     }
-
-    const backupState = await readStoredStateFile(`${stateFilePath()}.bak`);
-    storedState = backupState ?? createDefaultState();
+    storedState = createDefaultState();
     return storedState;
   })().catch((error: unknown) => {
     stateLoadPromise = null;
@@ -310,34 +315,6 @@ async function collectMediaFiles(directory: string, isRoot = false): Promise<str
   }
 
   return files;
-}
-
-async function readDurationMap(filePaths: string[]) {
-  if (filePaths.length === 0) {
-    return new Map<string, number>();
-  }
-
-  const durations = new Map<string, number>();
-  const batchSize = 64;
-  for (let index = 0; index < filePaths.length; index += batchSize) {
-    const batch = filePaths.slice(index, index + batchSize);
-    try {
-      const result = await execFileAsync('mdls', ['-raw', '-name', 'kMDItemDurationSeconds', ...batch], {
-        maxBuffer: 4 * 1024 * 1024,
-        timeout: 30_000,
-      });
-      const values = result.stdout.split('\0').map((value) => value.trim());
-      batch.forEach((filePath, batchIndex) => {
-        const value = Number(values[batchIndex]);
-        if (Number.isFinite(value) && value > 0) {
-          durations.set(filePath, value);
-        }
-      });
-    } catch {
-      // A missing metadata record or one failing batch must not hide the course.
-    }
-  }
-  return durations;
 }
 
 async function collectFileStats(filePaths: string[]) {
@@ -667,10 +644,12 @@ function createWindow() {
     height: 960,
     minWidth: 1040,
     minHeight: 700,
-    title: 'Course Shelf',
+    title: 'EVB Player',
     icon: appIconPath,
     backgroundColor: '#101214',
+    show: !HIDE_WINDOW,
     webPreferences: {
+      backgroundThrottling: !HIDE_WINDOW,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -882,7 +861,7 @@ function registerIpcHandlers() {
     }
     const requestedPath = mediaPathFromUrl(mediaUrl);
     if (!requestedPath) {
-      throw new Error('Only local Course Shelf media can be opened externally.');
+      throw new Error('Only local EVB Player media can be opened externally.');
     }
     const filePath = await isAllowedMediaPath(requestedPath);
     if (!filePath) {
@@ -912,8 +891,13 @@ app.whenReady().then(() => {
   if (!singleInstanceLock) {
     return;
   }
+  // Dark native title bars on Windows and Linux, matching the app.
+  nativeTheme.themeSource = 'dark';
   if (process.platform === 'darwin') {
     app.dock?.setIcon(appIconPath);
+  } else {
+    // macOS keeps its standard app menu; elsewhere Electron's default File/Edit/View bar has nothing to offer.
+    Menu.setApplicationMenu(null);
   }
   protocol.handle(MEDIA_SCHEME, handleMediaRequest);
   protocol.handle(RENDERER_SCHEME, handleRendererRequest);
@@ -921,6 +905,7 @@ app.whenReady().then(() => {
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
   session.defaultSession.setPermissionCheckHandler(() => false);
   createWindow();
+  startUpdater(() => mainWindow, isTrustedRenderer);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
