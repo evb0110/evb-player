@@ -62,18 +62,13 @@ function toggleTheme(event) {
 </script>
 
 <style scoped>
-.theme-toggle {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-}
-
 .theme-toggle-icons {
   position: relative;
   display: grid;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   place-items: center;
+  font-size: 20px;
 }
 
 .theme-toggle-icon {

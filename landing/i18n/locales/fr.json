@@ -9,6 +9,7 @@
   "header": {
     "github": "EVB Player sur GitHub",
     "language": "Langue",
+    "useInBrowser": "Utiliser dans le navigateur",
     "switchToLightTheme": "Passer au thème clair",
     "switchToDarkTheme": "Passer au thème sombre"
   },

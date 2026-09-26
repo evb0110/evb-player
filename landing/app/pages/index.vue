@@ -7,6 +7,7 @@
         <span v-if="release" class="brand-version">v{{ release.version }}</span>
       </NuxtLink>
       <div class="header-actions">
+        <UButton color="neutral" variant="ghost" icon="i-lucide-globe" :label="t('header.useInBrowser')" :to="WEB_APP_URL" target="_blank" rel="noreferrer" />
         <ThemeToggle
           :theme="resolvedTheme"
           :switch-to-light-label="t('header.switchToLightTheme')"
@@ -14,7 +15,7 @@
           @change="chooseTheme"
         />
         <LanguageMenu :locale="activeLocale" :label="t('header.language')" @change="selectLocale" />
-        <UButton color="neutral" icon="i-simple-icons-github" variant="ghost" to="https://github.com/evb0110/evb-player" :aria-label="t('header.github')" :title="t('header.github')" />
+        <UButton color="neutral" icon="i-simple-icons-github" variant="ghost" to="https://github.com/evb0110/evb-player" target="_blank" rel="noreferrer" :aria-label="t('header.github')" :title="t('header.github')" />
       </div>
     </header>
 
@@ -41,7 +42,7 @@
             </button>
           </div>
 
-          <a class="download-row" :href="selectedAsset?.url ?? RELEASES_URL" role="tabpanel">
+          <a class="download-row" :href="selectedAsset?.url ?? RELEASES_URL" :target="selectedAsset ? undefined : '_blank'" rel="noreferrer" role="tabpanel">
             <span class="download-copy">
               <strong>{{ selectedDetails.title }}</strong>
               <span>{{ selectedDetails.detail }}</span>
@@ -57,10 +58,10 @@
 
         <p class="release-line">
           <template v-if="release">{{ t('downloads.version', { version: release.version }) }} · </template>{{ t('downloads.installed') }} ·
-          <a :href="release?.pageUrl ?? RELEASES_URL">{{ t('downloads.allReleases') }}</a>
+          <a :href="release?.pageUrl ?? RELEASES_URL" target="_blank" rel="noreferrer">{{ t('downloads.allReleases') }}</a>
         </p>
         <p class="release-line">
-          <a href="https://evb-player-web.vercel.app">{{ t('downloads.web') }}</a>
+          <a :href="WEB_APP_URL" target="_blank" rel="noreferrer">{{ t('downloads.web') }}</a>
         </p>
       </section>
 
@@ -96,13 +97,13 @@
     <footer class="site-footer">
       <span>
         <i18n-t keypath="footer.copyright" scope="global">
-          <template #name><a href="https://evb-stack.com" title="evb-stack.com">Eugene Barsky</a></template>
+          <template #name><a href="https://evb-stack.com" title="evb-stack.com" target="_blank" rel="noreferrer">Eugene Barsky</a></template>
         </i18n-t>
         · {{ t('footer.license') }}
       </span>
       <span>
-        <a href="https://github.com/evb0110/evb-player">{{ t('footer.source') }}</a> ·
-        <a href="https://evb-viewer.com">{{ t('footer.viewer') }}</a>
+        <a href="https://github.com/evb0110/evb-player" target="_blank" rel="noreferrer">{{ t('footer.source') }}</a> ·
+        <a href="https://evb-viewer.com" target="_blank" rel="noreferrer">{{ t('footer.viewer') }}</a>
       </span>
     </footer>
   </div>
@@ -115,6 +116,8 @@ import type { TLocale } from '../../../shared/types';
 import LanguageMenu from '../../../shared/ui/LanguageMenu.vue';
 import ThemeToggle from '../../../shared/ui/ThemeToggle.vue';
 import { useTheme } from '../composables/useTheme';
+
+const WEB_APP_URL = 'https://evb-player-web.vercel.app';
 
 interface IPlatformOption {
   id: TPlatform;
