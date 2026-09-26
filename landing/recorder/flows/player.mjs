@@ -15,11 +15,13 @@ const TS_TRACKS = [
 /** Three folders in the Library, each with some progress; the TypeScript folder resumes video 3. */
 export function seed({ folders, folderId, trackId }) {
     const done = (updatedAt, duration) => ({ position: duration, duration, completed: true, updatedAt });
+    // The Library shows when each folder was last opened, so the times are recent.
+    const hoursAgo = (hours) => Date.now() - hours * 60 * 60 * 1000;
     return {
         recentFolders: [
-            { id: folderId(TS), name: TS, rootPath: `${folders}/${TS}`, mediaCount: 12, lastOpenedAt: 3 },
-            { id: folderId(SQL), name: SQL, rootPath: `${folders}/${SQL}`, mediaCount: 6, lastOpenedAt: 2 },
-            { id: folderId(SPANISH), name: SPANISH, rootPath: `${folders}/${SPANISH}`, mediaCount: 8, lastOpenedAt: 1 },
+            { id: folderId(TS), name: TS, rootPath: `${folders}/${TS}`, mediaCount: 12, lastOpenedAt: hoursAgo(2) },
+            { id: folderId(SQL), name: SQL, rootPath: `${folders}/${SQL}`, mediaCount: 6, lastOpenedAt: hoursAgo(26) },
+            { id: folderId(SPANISH), name: SPANISH, rootPath: `${folders}/${SPANISH}`, mediaCount: 8, lastOpenedAt: hoursAgo(98) },
         ],
         progress: {
             [folderId(TS)]: {

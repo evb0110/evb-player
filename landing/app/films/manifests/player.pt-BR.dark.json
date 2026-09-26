@@ -42,8 +42,8 @@
    "transition": "cut",
    "fade": 8,
    "cursor": [
-    352,
-    220
+    185,
+    243
    ],
    "click": true,
    "focus": null,

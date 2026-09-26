@@ -42,8 +42,8 @@
    "transition": "cut",
    "fade": 8,
    "cursor": [
-    352,
-    220
+    178,
+    243
    ],
    "click": true,
    "focus": null,
@@ -72,8 +72,8 @@
    "transition": "cut",
    "fade": 8,
    "cursor": [
-    59,
-    474
+    65,
+    583
    ],
    "click": true,
    "focus": null,
@@ -99,12 +99,12 @@
    "transition": "cut",
    "fade": 8,
    "cursor": [
-    775,
+    979,
     483
    ],
    "click": false,
    "focus": [
-    642,
+    780,
     337,
     500,
     312
@@ -119,12 +119,12 @@
    "transition": "cut",
    "fade": 8,
    "cursor": [
-    775,
+    979,
     483
    ],
    "click": true,
    "focus": [
-    642,
+    780,
     337,
     500,
     312
@@ -139,12 +139,12 @@
    "transition": "cut",
    "fade": 8,
    "cursor": [
-    956,
+    1190,
     557
    ],
    "click": false,
    "focus": [
-    642,
+    780,
     337,
     500,
     312
@@ -159,7 +159,7 @@
    "transition": "cut",
    "fade": 8,
    "cursor": [
-    870,
+    1089,
     623
    ],
    "click": true,
@@ -174,7 +174,7 @@
    "transition": "cut",
    "fade": 8,
    "cursor": [
-    870,
+    1089,
     623
    ],
    "click": false,
@@ -189,7 +189,7 @@
    "transition": "cut",
    "fade": 8,
    "cursor": [
-    658,
+    858,
     144
    ],
    "click": true,
