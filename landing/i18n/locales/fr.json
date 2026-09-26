@@ -39,5 +39,5 @@
     },
     "formats": "Lit les formats MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg et Opus. Les fichiers que le lecteur intégré ne peut pas décoder, comme AVI, s'ouvrent dans votre lecteur multimédia habituel."
   },
-  "footer": { "copyright": "Copyright © 2026 Eugene Barsky", "license": "Licence MIT", "source": "Code source sur GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licence MIT", "source": "Code source sur GitHub", "viewer": "EVB Viewer" }
 }

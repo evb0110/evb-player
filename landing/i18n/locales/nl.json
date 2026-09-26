@@ -39,5 +39,5 @@
     },
     "formats": "Speelt MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg en Opus af. Bestanden die de ingebouwde speler niet kan decoderen, zoals AVI, worden in je gebruikelijke mediaspeler geopend."
   },
-  "footer": { "copyright": "Copyright © 2026 Eugene Barsky", "license": "MIT-licentie", "source": "Broncode op GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "MIT-licentie", "source": "Broncode op GitHub", "viewer": "EVB Viewer" }
 }

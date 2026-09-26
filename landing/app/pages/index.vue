@@ -129,11 +129,15 @@
     </main>
 
     <footer class="site-footer">
-      <span>{{ t('footer.copyright') }} · {{ t('footer.license') }}</span>
+      <span>
+        <i18n-t keypath="footer.copyright" scope="global">
+          <template #name><a href="https://evb-stack.com" title="evb-stack.com">Eugene Barsky</a></template>
+        </i18n-t>
+        · {{ t('footer.license') }}
+      </span>
       <span>
         <a href="https://github.com/evb0110/evb-player">{{ t('footer.source') }}</a> ·
-        <a href="https://evb-viewer.com">{{ t('footer.viewer') }}</a> ·
-        <a href="https://evb-stack.com">{{ t('footer.website') }}</a>
+        <a href="https://evb-viewer.com">{{ t('footer.viewer') }}</a>
       </span>
     </footer>
   </div>

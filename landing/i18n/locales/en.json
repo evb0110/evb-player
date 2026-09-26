@@ -92,10 +92,9 @@
     "formats": "Plays MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg, and Opus. Files the built-in player can't decode, such as AVI, open in your usual media player."
   },
   "footer": {
-    "copyright": "Copyright © 2026 Eugene Barsky",
+    "copyright": "Copyright © 2026 {name}",
     "license": "MIT License",
     "source": "Source on GitHub",
-    "viewer": "EVB Viewer",
-    "website": "evb-stack.com"
+    "viewer": "EVB Viewer"
   }
 }

@@ -141,7 +141,7 @@
         </section>
 
         <footer v-if="isLibraryActive && !loading" class="library-footer">
-          {{ t('footer.copyright') }} © 2026 Eugene Barsky · <a href="https://evb-stack.com" target="_blank" rel="noreferrer">evb-stack.com</a><template v-if="!capabilities.revealFolder"> · <a href="https://evb-player.vercel.app/" target="_blank" rel="noreferrer">{{ t('footer.desktopDownloads') }}</a></template>
+          {{ t('footer.copyright') }} © 2026 <a href="https://evb-stack.com" title="evb-stack.com" target="_blank" rel="noreferrer">Eugene Barsky</a><template v-if="!capabilities.revealFolder"> · <a href="https://evb-player.vercel.app/" target="_blank" rel="noreferrer">{{ t('footer.desktopDownloads') }}</a></template>
         </footer>
 
         <section v-if="currentFolder" v-show="!isLibraryActive" class="folder-view">

@@ -39,5 +39,5 @@
     },
     "formats": "Reproduz MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg e Opus. Os ficheiros que o leitor integrado não consegue descodificar, como AVI, abrem no seu leitor multimédia habitual."
   },
-  "footer": { "copyright": "Copyright © 2026 Eugene Barsky", "license": "Licença MIT", "source": "Código-fonte no GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licença MIT", "source": "Código-fonte no GitHub", "viewer": "EVB Viewer" }
 }

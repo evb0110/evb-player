@@ -39,5 +39,5 @@
     },
     "formats": "Unterstützt MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg und Opus. Dateien, die der eingebaute Player nicht decodieren kann, etwa AVI, werden im üblichen Mediaplayer geöffnet."
   },
-  "footer": { "copyright": "Copyright © 2026 Eugene Barsky", "license": "MIT-Lizenz", "source": "Quellcode auf GitHub", "viewer": "EVB Viewer", "website": "evb-stack.com" }
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "MIT-Lizenz", "source": "Quellcode auf GitHub", "viewer": "EVB Viewer" }
 }
