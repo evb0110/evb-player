@@ -2,7 +2,7 @@
 
 EVB Player plays video and audio courses stored in local folders. Point it at a folder and it builds a playlist from the numbered files inside, remembers where you stopped in every lesson, and keeps several courses open in tabs. Nothing is uploaded; the app works offline.
 
-Downloads for macOS (Apple Silicon), Windows 10 and 11 (x64), and Ubuntu (x64 `.deb`) are on [evb-player.com](https://evb-player.com) and on the [releases page](https://github.com/evb0110/evb-player/releases/latest). Installed apps update themselves from new releases.
+Downloads for macOS (Apple Silicon), Windows 10 and 11 (x64), and Ubuntu (x64 `.deb`) are on [evb-player.vercel.app](https://evb-player.vercel.app) and on the [releases page](https://github.com/evb0110/evb-player/releases/latest). Installed apps update themselves from new releases.
 
 ## Features
 

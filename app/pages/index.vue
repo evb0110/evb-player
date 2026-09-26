@@ -49,7 +49,7 @@
               <span class="recent-course-icon"><UIcon name="i-lucide-folder" /></span>
               <span class="recent-course-copy">
                 <strong>{{ recentCourse.name }}</strong>
-                <small>{{ recentCourse.mediaCount }} media files</small>
+                <small>{{ recentCourse.mediaCount }} {{ recentCourse.mediaCount === 1 ? 'lesson' : 'lessons' }}</small>
               </span>
               <UIcon class="recent-course-arrow" name="i-lucide-chevron-right" />
             </button>
@@ -555,7 +555,8 @@ const courseMeta = computed(() => {
     parts.push(formatCourseDuration(course.totalDuration));
   }
   parts.push(formatBytes(course.totalBytes));
-  return parts.join(' · ');
+  // Wrap only between parts, never inside "4 MB" or "Lesson 3 of 12".
+  return parts.map((part) => part.replaceAll(' ', '\u00a0')).join(' · ');
 });
 const courseMenuItems = computed(() => {
   const course = currentCourse.value;
