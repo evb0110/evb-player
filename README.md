@@ -23,6 +23,7 @@ Run the browser version with `pnpm dev:web`. Build the static site with `pnpm bu
 - Playback position is saved as you watch. Ended lessons are marked complete and the next one starts.
 - Mark any lesson complete without watching it by clicking its number in the playlist; click the check again to undo. Lessons with saved progress show a reset button, and the folder menu resets the whole folder.
 - Several folders can be open in tabs. Recent folders and the last opened folder are restored on launch. The Library tab lists your folders; Add folder opens another one.
+- The application menu includes Add Folder, text editing commands, fullscreen, help, and an About panel. On Windows and Linux, press `Alt` to show the menu; on macOS it appears in the system menu bar. Help includes the keyboard shortcuts and EVB Player website.
 - Choose System, Light or Dark from the theme menu, and switch the interface among English, Russian, French, German, Spanish, Italian, Portuguese, Brazilian Portuguese and Dutch from the language menu.
 - Switching to the Library keeps the current lesson playing, with a compact player to pause or return.
 - Show in folder reveals a folder in Finder, Explorer or the Linux file manager.
@@ -42,7 +43,11 @@ Progress and the folder list are stored in `evb-player-state.json` in the app's 
 - Windows: `%APPDATA%\EVB Player\`
 - Linux: `~/.config/EVB Player/`
 
-Theme and language preferences are stored separately in `evb-player-settings.json` in the same folder, with `theme` and `locale` fields. The theme defaults to Dark; when no language is saved, the app chooses the closest supported system language or English.
+Theme, language, and the skipped update version are stored separately in `evb-player-settings.json` in the same folder. Its fields are `theme`, `locale`, and `skippedUpdateVersion`; the last field is `null` until a version is skipped, then stores that version string. The theme defaults to Dark; when no language is saved, the app chooses the closest supported system language or English.
+
+The About panel shows EVB Player, its current version, and the translated copyright line. On macOS and Windows it lists `evb-stack.com`; on Linux it lists Eugene Barsky and links to [evb-stack.com](https://evb-stack.com).
+
+Packaged desktop builds check for updates shortly after launch and every six hours. When an update is found, choose Download to fetch it in the background. The dialog can be closed while it downloads. Once ready, choose Restart Now to install, or Later to wait. Linux shows a note that installation asks for your password. Skip This Version stores that version in the settings file; a later, newer version is offered normally. Check for Updates in Help performs an immediate check and reports when the app is current or the check fails. The browser version does not offer updates.
 
 Media files are never modified. If the progress file can't be read, for example after an older version wrote it in another format, it is kept as `evb-player-state.json.unreadable-<time>` before a new one replaces it.
 

@@ -6,9 +6,11 @@ import type {
   IPlayerSettings,
   IRecentFolder,
   ISaveLessonProgressPayload,
+  IUpdateStatus,
   TFolderProgress,
   TLocale,
   TTheme,
+  TMenuAction,
 } from '../../shared/types';
 import {isSupportedLocale, resolveSupportedLocale} from '../../shared/i18n';
 import {
@@ -60,6 +62,7 @@ let stateCanBeWritten = true;
 let browserSettings: IPlayerSettings | null = null;
 let settingsCanBeWritten = true;
 const mediaUrlsByFolder = new Map<string, Set<string>>();
+const idleUpdateStatus: IUpdateStatus = {phase: 'idle', currentVersion: '', manual: false, requiresPassword: false};
 
 function readStoredState() {
   if (browserState) {
@@ -112,6 +115,7 @@ function defaultSettings(): IPlayerSettings {
   return {
     theme: 'dark',
     locale: resolveSupportedLocale(navigator.languages.length ? navigator.languages : [navigator.language]),
+    skippedUpdateVersion: null,
   };
 }
 
@@ -128,12 +132,19 @@ function readStoredSettings() {
     const parsed: unknown = JSON.parse(saved);
     if (!isPlainRecord(parsed)
       || !(['system', 'light', 'dark'] as unknown[]).includes(parsed.theme)
-      || !isSupportedLocale(parsed.locale)) {
+      || !isSupportedLocale(parsed.locale)
+      || (parsed.skippedUpdateVersion !== undefined
+        && parsed.skippedUpdateVersion !== null
+        && (typeof parsed.skippedUpdateVersion !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(parsed.skippedUpdateVersion)))) {
       settingsCanBeWritten = false;
       browserSettings = defaultSettings();
       return browserSettings;
     }
-    browserSettings = {theme: parsed.theme as TTheme, locale: parsed.locale as TLocale};
+    browserSettings = {
+      theme: parsed.theme as TTheme,
+      locale: parsed.locale as TLocale,
+      skippedUpdateVersion: typeof parsed.skippedUpdateVersion === 'string' ? parsed.skippedUpdateVersion : null,
+    };
   } catch {
     settingsCanBeWritten = false;
     browserSettings = defaultSettings();
@@ -455,11 +466,17 @@ export const browserPlayerApi: IPlayerApi = {
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
   },
-  async getReadyUpdate() {
-    return null;
-  },
-  onUpdateReady() {
+  onMenuAction(_listener: (action: TMenuAction) => void) {
     return () => undefined;
   },
+  async getUpdateStatus() {
+    return {...idleUpdateStatus};
+  },
+  onUpdateStatus(_listener: (status: IUpdateStatus) => void) {
+    return () => undefined;
+  },
+  async checkForUpdates() {},
+  async downloadUpdate() {},
   async installUpdate() {},
+  async skipUpdate(_version: string) {},
 };

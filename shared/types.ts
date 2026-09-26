@@ -5,7 +5,21 @@ export type TLocale = 'en' | 'ru' | 'fr' | 'de' | 'es' | 'it' | 'pt' | 'pt-BR' |
 export interface IPlayerSettings {
   theme: TTheme;
   locale: TLocale;
+  skippedUpdateVersion: string | null;
 }
+
+export type TUpdatePhase = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'up-to-date' | 'error';
+
+export interface IUpdateStatus {
+  phase: TUpdatePhase;
+  currentVersion: string;
+  version?: string;
+  percent?: number;
+  manual: boolean;
+  requiresPassword: boolean;
+}
+
+export type TMenuAction = 'add-folder' | 'keyboard-shortcuts' | 'check-for-updates';
 
 export interface IMediaLesson {
   id: string;
@@ -80,7 +94,11 @@ export interface IPlayerApi {
   openMediaExternally(mediaUrl: string): Promise<void>;
   setWindowFullscreen(fullscreen: boolean): Promise<boolean>;
   onWindowFullscreenChanged(listener: (fullscreen: boolean) => void): () => void;
-  getReadyUpdate(): Promise<string | null>;
-  onUpdateReady(listener: (version: string) => void): () => void;
+  onMenuAction(listener: (action: TMenuAction) => void): () => void;
+  getUpdateStatus(): Promise<IUpdateStatus>;
+  onUpdateStatus(listener: (status: IUpdateStatus) => void): () => void;
+  checkForUpdates(): Promise<void>;
+  downloadUpdate(): Promise<void>;
   installUpdate(): Promise<void>;
+  skipUpdate(version: string): Promise<void>;
 }

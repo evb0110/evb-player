@@ -1,4 +1,4 @@
-import {app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, session, shell} from 'electron';
+import {app, BrowserWindow, dialog, ipcMain, nativeTheme, net, protocol, session, shell} from 'electron';
 import {createHash} from 'node:crypto';
 import {createReadStream} from 'node:fs';
 import {access, copyFile, mkdir, readdir, readFile, realpath, rename, stat, unlink, writeFile} from 'node:fs/promises';
@@ -11,6 +11,7 @@ import type {
   IPlayerSettings,
   IRecentFolder,
   TLocale,
+  TMenuAction,
   TTheme,
   TFolderProgress,
 } from '../shared/types';
@@ -26,6 +27,7 @@ import {
 } from './state';
 import {readDurationMap} from './durations';
 import {readSettingsFile, writeSettingsFile} from './settings';
+import {setApplicationMenu} from './menu';
 import {startUpdater} from './updater';
 
 const MEDIA_SCHEME = 'evb-media';
@@ -222,15 +224,22 @@ function applyTheme(theme: TTheme) {
 }
 
 function updateAboutPanel(locale: TLocale) {
-  if (process.platform !== 'darwin') {
-    return;
-  }
-  app.setAboutPanelOptions({
+  const options: Electron.AboutPanelOptionsOptions = {
     applicationName: 'EVB Player',
     applicationVersion: app.getVersion(),
     copyright: `${messages[locale].footer.copyright} © 2026 Eugene Barsky`,
-    website: 'https://evb-stack.com',
-  });
+  };
+  if (process.platform === 'darwin' || process.platform === 'win32') {
+    options.credits = 'evb-stack.com';
+  }
+  if (process.platform === 'linux') {
+    options.website = 'https://evb-stack.com';
+    options.authors = ['Eugene Barsky'];
+  }
+  if (process.platform === 'win32' || process.platform === 'linux') {
+    options.iconPath = appIconPath;
+  }
+  app.setAboutPanelOptions(options);
 }
 
 function updateSettings(update: (settings: IPlayerSettings) => IPlayerSettings) {
@@ -682,6 +691,13 @@ function isTrustedRenderer(sender: Electron.WebContents) {
   return mainWindow?.webContents === sender && isAllowedRendererUrl(sender.getURL());
 }
 
+function sendMenuAction(action: TMenuAction) {
+  const window = mainWindow;
+  if (window && !window.isDestroyed() && isTrustedRenderer(window.webContents)) {
+    window.webContents.send('menu:action', action);
+  }
+}
+
 function isNonEmptyText(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= 4096;
 }
@@ -696,6 +712,7 @@ function createWindow() {
     icon: appIconPath,
     backgroundColor: shellBackgroundColor(),
     show: !HIDE_WINDOW,
+    autoHideMenuBar: process.platform !== 'darwin',
     webPreferences: {
       backgroundThrottling: !HIDE_WINDOW,
       contextIsolation: true,
@@ -753,7 +770,7 @@ function createWindow() {
 function registerIpcHandlers() {
   ipcMain.handle('settings:get', async (event) => {
     if (!isTrustedRenderer(event.sender)) {
-      return {theme: 'dark', locale: 'en'} satisfies IPlayerSettings;
+      return {theme: 'dark', locale: 'en', skippedUpdateVersion: null} satisfies IPlayerSettings;
     }
     return {...await ensureSettings()};
   });
@@ -772,6 +789,7 @@ function registerIpcHandlers() {
     }
     const settings = await updateSettings((current) => ({...current, locale}));
     updateAboutPanel(settings.locale);
+    setApplicationMenu(settings.locale, sendMenuAction);
   });
 
   ipcMain.handle('folder:choose', async (event) => {
@@ -985,17 +1003,20 @@ app.whenReady().then(() => {
     updateAboutPanel(settings.locale);
     if (process.platform === 'darwin') {
       app.dock?.setIcon(appIconPath);
-    } else {
-      // macOS keeps its standard app menu; elsewhere Electron's default File/Edit/View bar has nothing to offer.
-      Menu.setApplicationMenu(null);
     }
+    setApplicationMenu(settings.locale, sendMenuAction);
     protocol.handle(MEDIA_SCHEME, handleMediaRequest);
     protocol.handle(RENDERER_SCHEME, handleRendererRequest);
     registerIpcHandlers();
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
+    startUpdater(() => mainWindow, isTrustedRenderer, {
+      getSkippedVersion: async () => (await ensureSettings()).skippedUpdateVersion,
+      setSkippedVersion: async (version) => {
+        await updateSettings((current) => ({...current, skippedUpdateVersion: version}));
+      },
+    });
     createWindow();
-    startUpdater(() => mainWindow, isTrustedRenderer);
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {

@@ -10,11 +10,18 @@ export function createDefaultSettings(preferredLanguages: readonly string[]): IP
   return {
     theme: 'dark',
     locale: resolveSupportedLocale(preferredLanguages),
+    skippedUpdateVersion: null,
   };
 }
 
 function isTheme(value: unknown): value is TTheme {
   return value === 'system' || value === 'light' || value === 'dark';
+}
+
+function isVersion(value: unknown): value is string {
+  return typeof value === 'string'
+    && value.length <= 64
+    && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(value);
 }
 
 export function sanitizeSettings(value: unknown, preferredLanguages: readonly string[]): IPlayerSettings {
@@ -26,6 +33,7 @@ export function sanitizeSettings(value: unknown, preferredLanguages: readonly st
   return {
     theme: isTheme(value.theme) ? value.theme : defaults.theme,
     locale: isSupportedLocale(value.locale) ? value.locale : defaults.locale,
+    skippedUpdateVersion: isVersion(value.skippedUpdateVersion) ? value.skippedUpdateVersion : null,
   };
 }
 

@@ -421,6 +421,17 @@
         </dl>
       </template>
     </UModal>
+
+    <UpdateDialog
+      v-if="capabilities.updates"
+      :open="isUpdateDialogOpen"
+      :status="updateStatus"
+      @update:open="setUpdateDialogOpen"
+      @download="downloadUpdate"
+      @install="installUpdate"
+      @retry="checkForUpdates"
+      @skip="skipUpdate"
+    />
   </div>
 </template>
 
@@ -429,7 +440,7 @@ import {useDebounceFn, useResizeObserver, useStorage} from '@vueuse/core';
 import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useI18n} from 'vue-i18n';
 import {UI_LOCALES} from '../../shared/i18n';
-import type {IMediaLesson, IPlayerCapabilities, IRecentFolder, TLocale, TTheme} from '../../shared/types';
+import type {IMediaLesson, IPlayerApi, IPlayerCapabilities, IRecentFolder, IUpdateStatus, TLocale, TMenuAction, TTheme} from '../../shared/types';
 import {useLibrary} from '../composables/useLibrary';
 import {getPlayerApi} from '../utils/playerApi';
 
@@ -523,12 +534,19 @@ const isResettingProgress = ref(false);
 const isRetryingProgress = ref(false);
 let controlsHideTimer: ReturnType<typeof setTimeout> | null = null;
 let removeWindowFullscreenListener: (() => void) | null = null;
+let removeMenuActionListener: (() => void) | null = null;
 let removeUpdateListener: (() => void) | null = null;
+let playerApi: IPlayerApi | null = null;
+let updateStatusEventCount = 0;
 let isPointerInteraction = false;
 let lessonLoadRequest = 0;
 let progressPersistenceGeneration = 0;
 let isProgressPersistenceSuspended = false;
 let playbackSession: IPlaybackSession | null = null;
+const updateStatus = ref<IUpdateStatus>({phase: 'idle', currentVersion: '', manual: false, requiresPassword: false});
+const isUpdateDialogOpen = ref(false);
+const dismissedUpdateDialogs = new Set<string>();
+let deferredUpdateDialog: string | null = null;
 
 const currentFolder = library.playbackFolder;
 const currentLesson = library.playbackLesson;
@@ -1461,6 +1479,17 @@ async function retryProgressWrites() {
 }
 
 watch(() => currentFolder.value?.id, () => {search.value = '';});
+watch(isPlaying, (playing) => {
+  if (playing || !deferredUpdateDialog) {
+    return;
+  }
+  const status = updateStatus.value;
+  const key = updateDialogKey(status);
+  if (deferredUpdateDialog === key && !dismissedUpdateDialogs.has(key)) {
+    isUpdateDialogOpen.value = true;
+  }
+  deferredUpdateDialog = null;
+});
 watch(isLibraryActive, (libraryActive) => {if (libraryActive) isFullWindow.value = false;});
 // Each full window or fullscreen session starts with only the video.
 watch(isImmersive, (immersive) => {if (!immersive) isImmersivePlaylistOpen.value = false;});
@@ -1468,16 +1497,89 @@ watch(search, async () => {if (!search.value) {await nextTick(); revealCurrentLe
 
 watch(() => isFullscreen.value || isFullWindow.value, syncFullscreenDocumentClass);
 
-function announceUpdate(version: string) {
-  if (!capabilities.value.updates) return;
-  toast.add({
-    id: 'update-ready',
-    title: t('toast.updateReady', {version}),
-    description: t('toast.updateDescription'),
-    icon: 'i-lucide-download',
-    duration: 0,
-    actions: [{label: t('toast.restartNow'), color: 'primary', onClick: () => void getPlayerApi().then((api) => api.installUpdate())}],
-  });
+function updateDialogKey(status: IUpdateStatus) {
+  return `${status.version ?? ''}:${status.phase}`;
+}
+
+function considerUpdateDialog(status: IUpdateStatus) {
+  if (!capabilities.value.updates) {
+    return;
+  }
+  if (status.manual && status.phase !== 'idle') {
+    deferredUpdateDialog = null;
+    isUpdateDialogOpen.value = true;
+    return;
+  }
+  if (status.phase !== 'available' && status.phase !== 'ready') {
+    deferredUpdateDialog = null;
+    return;
+  }
+
+  const key = updateDialogKey(status);
+  if (dismissedUpdateDialogs.has(key)) {
+    deferredUpdateDialog = null;
+    return;
+  }
+  deferredUpdateDialog = key;
+  if (!isPlaying.value) {
+    deferredUpdateDialog = null;
+    isUpdateDialogOpen.value = true;
+  }
+}
+
+function receiveUpdateStatus(status: IUpdateStatus) {
+  updateStatusEventCount += 1;
+  updateStatus.value = status;
+  considerUpdateDialog(status);
+}
+
+function setUpdateDialogOpen(open: boolean) {
+  if (!open) {
+    const status = updateStatus.value;
+    const key = updateDialogKey(status);
+    dismissedUpdateDialogs.add(key);
+    if (deferredUpdateDialog === key) {
+      deferredUpdateDialog = null;
+    }
+  }
+  isUpdateDialogOpen.value = open;
+}
+
+function handleMenuAction(action: TMenuAction) {
+  if (action === 'add-folder') {
+    void library.openFolder();
+  } else if (action === 'keyboard-shortcuts') {
+    isShortcutsOpen.value = true;
+  } else {
+    isUpdateDialogOpen.value = true;
+    void playerApi?.checkForUpdates().catch(() => undefined);
+  }
+}
+
+function checkForUpdates() {
+  isUpdateDialogOpen.value = true;
+  void playerApi?.checkForUpdates().catch(() => undefined);
+}
+
+function downloadUpdate() {
+  void playerApi?.downloadUpdate().catch(() => undefined);
+}
+
+function installUpdate() {
+  void playerApi?.installUpdate().catch(() => undefined);
+}
+
+async function skipUpdate() {
+  const version = updateStatus.value.version;
+  if (!version || !playerApi) {
+    return;
+  }
+  try {
+    await playerApi.skipUpdate(version);
+    isUpdateDialogOpen.value = false;
+  } catch {
+    // The status remains available so the user can try skipping again.
+  }
 }
 
 onMounted(async () => {
@@ -1488,13 +1590,20 @@ onMounted(async () => {
   if (import.meta.client) {
     try {
       const api = await getPlayerApi();
+      playerApi = api;
       capabilities.value = api.capabilities;
+      removeMenuActionListener = api.onMenuAction(handleMenuAction);
       removeWindowFullscreenListener = api.onWindowFullscreenChanged((fullscreen) => {
         isFullscreen.value = fullscreen;
       });
       if (api.capabilities.updates) {
-        removeUpdateListener = api.onUpdateReady(announceUpdate);
-        void api.getReadyUpdate().then((version) => version && announceUpdate(version));
+        removeUpdateListener = api.onUpdateStatus(receiveUpdateStatus);
+        const eventCount = updateStatusEventCount;
+        const currentStatus = await api.getUpdateStatus();
+        if (updateStatusEventCount === eventCount) {
+          updateStatus.value = currentStatus;
+          considerUpdateDialog(currentStatus);
+        }
       }
     } catch {
       // The renderer stays usable if the platform API cannot initialize.
@@ -1513,6 +1622,8 @@ onUnmounted(() => {
   window.removeEventListener('beforeunload', saveBeforeLeaving);
   removeWindowFullscreenListener?.();
   removeWindowFullscreenListener = null;
+  removeMenuActionListener?.();
+  removeMenuActionListener = null;
   removeUpdateListener?.();
   removeUpdateListener = null;
   syncFullscreenDocumentClass(false);
