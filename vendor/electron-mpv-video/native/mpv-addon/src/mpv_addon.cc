@@ -24,6 +24,7 @@ void end_playback_activity(void* token);
 #include <algorithm>
 #include <atomic>
 #include <cstdlib>
+#include <cstdio>
 #include <cstring>
 #include <mutex>
 #include <sstream>
@@ -483,7 +484,17 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     };
 
     mpv_render_context_update(render_context_);
+    const bool diagnose = std::getenv("EVB_PLAYER_TEST_DIAGNOSTICS") != nullptr;
+    mpv_render_frame_info timing = {};
+    if (diagnose) mpv_render_context_get_info(render_context_, {MPV_RENDER_PARAM_NEXT_FRAME_INFO, &timing});
+    const int64_t began = diagnose ? mpv_get_time_us(handle_) : 0;
     int ret = mpv_render_context_render(render_context_, params);
+    if (diagnose && ++diagnostic_frames_ % 30 == 0 && timing.target_time > 0) {
+      const int64_t ended = mpv_get_time_us(handle_);
+      std::fprintf(stderr, "Native frame timing: lead=%.3fms render=%.3fms late=%.3fms\n",
+          (timing.target_time - began) / 1000.0, (ended - began) / 1000.0,
+          (ended - timing.target_time) / 1000.0);
+    }
     if (ret < 0) {
       throw_mpv_error(env, "mpv_render_context_render", ret);
       return env.Null();
@@ -1201,6 +1212,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   uint64_t next_observer_id_ = 1;
   std::string mode_ = "software";
   int64_t timestamp_us_ = 0;
+  uint64_t diagnostic_frames_ = 0;
 #ifdef __APPLE__
   void* playback_activity_ = nullptr;
   CGLContextObj gl_context_ = nullptr;

@@ -13,6 +13,9 @@ export function createMpvWorkerModule(addonPath: string): NativeModule {
     private updateCallback: (() => void) | undefined
     private eventCallback: (() => void) | undefined
     private updatePending = false
+    private latestFrame: NativeFrame | undefined
+    private requestedSize: [number, number] | undefined
+    private expectedSize: [number, number] | undefined
     private failure: Error | undefined
     private destroying = false
     private exited: Promise<void>
@@ -55,17 +58,21 @@ export function createMpvWorkerModule(addonPath: string): NativeModule {
           chunk.copy(payload, payloadBytes, offset, offset + count)
           payloadBytes += count; offset += count
           if (payloadBytes === payload.length) {
-            this.pending.get(frameId)?.resolve({width, height, rgba: payload})
-            this.pending.delete(frameId)
+            const frame = {width, height, rgba: payload}
+            if (frameId === 0 && !this.destroying && width === this.expectedSize?.[0] && height === this.expectedSize?.[1]) {
+              this.latestFrame = frame
+              this.updatePending = true
+              if (this.updateCallback) {this.updatePending = false; this.updateCallback()}
+            } else {
+              this.pending.get(frameId)?.resolve(frame)
+              this.pending.delete(frameId)
+            }
             payload = null; headerBytes = 0
           }
         }
       })
       this.child.on('message', (message: {type: string; id?: number; result?: unknown; error?: string; events?: NativeEvent[]}) => {
-        if (message.type === 'update') {
-          this.updatePending = true
-          if (this.updateCallback) { this.updatePending = false; this.updateCallback() }
-        } else if (message.type === 'events') {
+        if (message.type === 'events') {
           this.events.push(...message.events!)
           this.eventCallback?.()
         } else if (message.type === 'reply') {
@@ -77,6 +84,7 @@ export function createMpvWorkerModule(addonPath: string): NativeModule {
       })
       const fail = (error: Error) => {
         this.failure = error
+        this.latestFrame = undefined
         for (const request of this.pending.values()) request.reject(error)
         this.pending.clear()
         if (!this.destroying) { this.events.push({id: -1, type: 'worker-error', error: error.message}); this.eventCallback?.() }
@@ -90,7 +98,7 @@ export function createMpvWorkerModule(addonPath: string): NativeModule {
 
     private request(method: string, args: unknown[] = []): Promise<unknown> {
       if (this.failure) return Promise.reject(this.failure)
-      const id = this.nextId = (this.nextId + 1) >>> 0
+      const id = this.nextId = ((this.nextId + 1) >>> 0) || 1
       return new Promise((resolve, reject) => {
         this.pending.set(id, {resolve, reject})
         this.child.send({id, method, args}, error => {
@@ -115,12 +123,22 @@ export function createMpvWorkerModule(addonPath: string): NativeModule {
       if (callback && this.updatePending) { this.updatePending = false; callback() }
     }
     setEventCallback(callback?: () => void) { this.eventCallback = callback; if (this.events.length) callback?.() }
-    async renderFrame(width: number, height: number) { return await this.request('renderFrame', [width, height]) as NativeFrame }
+    async renderFrame(width: number, height: number) {
+      const unchanged = this.requestedSize?.[0] === width && this.requestedSize?.[1] === height
+      this.requestedSize = [width, height]
+      const scale = Math.min(1, 1920 / width, 1080 / height)
+      this.expectedSize = [Math.max(2, Math.trunc(width * scale)), Math.max(2, Math.trunc(height * scale))]
+      const frame = this.latestFrame
+      this.latestFrame = undefined
+      if (unchanged && frame) return frame
+      return await this.request('renderFrame', [width, height]) as NativeFrame
+    }
     renderSharedTexture(): never { throw new Error('This playback helper uses software frames') }
     pollEvents() { return this.events.splice(0) }
     async destroy() {
       if (!this.destroying) {
         this.destroying = true
+        this.latestFrame = undefined
         this.updateCallback = undefined
         this.eventCallback = undefined
         if (this.child.connected) this.child.send({id: ++this.nextId, method: 'destroy', args: []})

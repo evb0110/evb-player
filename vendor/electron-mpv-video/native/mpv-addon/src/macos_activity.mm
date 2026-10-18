@@ -3,7 +3,7 @@
 void* begin_playback_activity() {
   @autoreleasepool {
     id activity = [[NSProcessInfo processInfo]
-        beginActivityWithOptions:(NSActivityUserInitiatedAllowingIdleSystemSleep | NSActivityLatencyCritical)
+        beginActivityWithOptions:NSActivityUserInitiatedAllowingIdleSystemSleep
         reason:@"EVB Player playback"];
     return [activity retain];
   }
