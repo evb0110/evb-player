@@ -401,7 +401,7 @@ class PlayerSession {
         width: frame.width,
         height: frame.height,
         rgba,
-      }, [rgba])
+      })
     }
   }
 
