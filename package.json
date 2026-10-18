@@ -19,6 +19,8 @@
     "dev:web": "node scripts/dev-web.mjs",
     "build": "pnpm run build:desktop:renderer && pnpm run build:electron",
     "build:web": "node scripts/build-web.mjs",
+    "deploy:web": "node scripts/deploy-vercel.mjs web",
+    "deploy:landing": "node scripts/deploy-vercel.mjs landing",
     "build:desktop:renderer": "nuxi generate && node scripts/patch-static-output.mjs && node scripts/check-icons.mjs",
     "check:icons": "node scripts/check-icons.mjs",
     "build:electron": "tsc -p tsconfig.electron.json && node scripts/build-native.mjs",

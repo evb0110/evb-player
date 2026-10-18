@@ -14,6 +14,8 @@ The browser stores the Library and track progress in local storage under `evb-pl
 
 Run the browser version with `pnpm dev:web`. `pnpm build:web` creates a Nitro Vercel Build Output API build in `.vercel/output`; the server renders the HTML shell from those cookies. The desktop `pnpm build` remains a static renderer build for the Electron custom protocol.
 
+Vercel deployments are manual. Git pushes and pull requests deploy neither the browser app nor the landing. After signing in with `vercel login`, run `pnpm deploy:web` for the production browser app or `pnpm deploy:landing` for the production landing. These commands select the existing project and team explicitly and use a pinned Vercel CLI. Run the corresponding build and checks before deploying.
+
 ## Features
 
 - Folders are scanned recursively. Tracks are sorted by numeric filename prefixes such as `0001.` or `12 -`, and subfolders become playlist sections.

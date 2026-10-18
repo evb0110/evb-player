@@ -1,6 +1,15 @@
 import {spawnSync} from 'node:child_process';
 
 const webEnvironment = {...process.env, EVB_PLAYER_WEB: '1', NITRO_PRESET: 'vercel'};
+// Refresh the root tsconfig's .nuxt references before a production build moves
+// its generated files into node_modules/.cache. Vercel can restore older types.
+const preparation = spawnSync('nuxi', ['prepare'], {
+  env: webEnvironment,
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+});
+if (preparation.error) throw preparation.error;
+if (preparation.status !== 0) process.exit(preparation.status ?? 1);
 const result = spawnSync('nuxi', ['build'], {
   env: webEnvironment,
   stdio: 'inherit',
