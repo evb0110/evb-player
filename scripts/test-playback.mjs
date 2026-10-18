@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
 import {basename, join, resolve} from 'node:path';
 import {_electron} from 'playwright-core';
 import {prepareHiddenLaunch} from './hidden-launch.mjs';
 
 const root = resolve(import.meta.dirname, '..');
-const work = mkdtempSync(join(process.env.TMPDIR || join(root, '.devkit/'), 'playback-test-'));
+const work = realpathSync(mkdtempSync(join(process.env.TMPDIR || join(root, '.devkit/'), 'playback-test-')));
 const folder = join(work, 'media');
 const profile = join(work, 'profile');
 mkdirSync(folder, {recursive: true});
@@ -52,6 +52,7 @@ try {
   await page.evaluate(async () => {
     const media = document.createElement('evb-media');
     media.dataset.detachedTest = 'true';
+    media.setAttribute('render-mode', 'canvas2d');
     media.src = document.querySelector('evb-media').src;
     media.load();
     await Promise.resolve();
@@ -59,8 +60,14 @@ try {
     document.body.append(media);
   });
   await page.waitForFunction(() => document.querySelector('[data-detached-test]')?.readyState === 4);
+  await page.locator('[data-detached-test]').evaluate(media => media.play());
+  await page.waitForFunction(() => {
+    const media = document.querySelector('[data-detached-test]');
+    const canvas = [...media.shadowRoot.querySelectorAll('canvas')].find(canvas => !canvas.hidden);
+    return media.currentTime > 0.3 && canvas?.getContext('2d')?.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1).data[0] > 2;
+  });
   await page.locator('[data-detached-test]').evaluate(media => media.remove());
-  console.log('PASS load before DOM connection');
+  console.log('PASS load before DOM connection and software-rendered pixels');
   const motion = await page.evaluate(async engine => {
     let media = document.querySelector('evb-media');
     if (engine === 'chromium') {

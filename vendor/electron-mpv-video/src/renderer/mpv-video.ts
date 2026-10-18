@@ -630,6 +630,7 @@ export class MpvVideoElement extends HTMLElement {
   }
 
   private resolveRenderMode(mode: RenderMode): RenderMode {
+    if (mode === 'canvas2d') return 'canvas2d';
     if (mode === 'shared-texture' && this.sharedRenderer) return 'shared-texture';
     if (mode === 'webgl' && this.webglRenderer) return 'webgl';
     if (this.webglRenderer) return 'webgl';

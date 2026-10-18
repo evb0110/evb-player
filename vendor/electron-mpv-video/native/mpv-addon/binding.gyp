@@ -11,7 +11,7 @@
       "conditions": [
         ["OS=='linux'", {
           "include_dirs": ["<!(node -p \"process.env.MPV_INCLUDE_DIR || '/usr/include'\")"],
-          "libraries": ["-lmpv", "-Wl,-rpath,\\$$ORIGIN"]
+          "libraries": ["<!(node -p \"process.env.MPV_LIB || '-lmpv'\")", "-Wl,-rpath,\\$$ORIGIN"]
         }],
         ["OS=='mac' and target_arch=='arm64'", {
           "include_dirs": [

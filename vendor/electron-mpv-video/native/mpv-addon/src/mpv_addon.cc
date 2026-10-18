@@ -188,7 +188,6 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
 #endif
     set_option("sw-fast", "yes");
     set_option("vo", "libmpv");
-    set_mpv_wakeup_callback(handle_, on_mpv_wakeup, this);
 
     int ret = mpv_initialize(handle_);
     if (ret < 0) {
@@ -232,7 +231,6 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
         throw_mpv_error(env, "mpv_render_context_create(opengl)", ret);
         return;
       }
-      set_mpv_render_update_callback(render_context_, on_mpv_render_update, this);
 #elif defined(_WIN32)
       if (!init_gl()) {
         Napi::Error::New(env, "Failed to initialize WGL/D3D11 interop context").ThrowAsJavaScriptException();
@@ -254,7 +252,6 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
         throw_mpv_error(env, "mpv_render_context_create(opengl)", ret);
         return;
       }
-      set_mpv_render_update_callback(render_context_, on_mpv_render_update, this);
 #else
       Napi::Error::New(env, "shared-texture mode is only implemented on macOS and Windows").ThrowAsJavaScriptException();
       return;
@@ -271,7 +268,6 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
         throw_mpv_error(env, "mpv_render_context_create", ret);
         return;
       }
-      set_mpv_render_update_callback(render_context_, on_mpv_render_update, this);
     }
   }
 
@@ -306,6 +302,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   }
 
   static void call_js_no_args(Napi::Env env, Napi::Function callback) {
+    if (!env || !callback) return;
     callback.Call({});
   }
 
@@ -396,6 +393,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
 
   Napi::Value SetUpdateCallback(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
+    if (render_context_) set_mpv_render_update_callback(render_context_, nullptr, nullptr);
     if (update_callback_) {
       update_callback_.Release();
       update_callback_ = nullptr;
@@ -408,12 +406,14 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
         1,
         1
       );
+      set_mpv_render_update_callback(render_context_, on_mpv_render_update, this);
     }
     return env.Undefined();
   }
 
   Napi::Value SetEventCallback(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
+    if (handle_) set_mpv_wakeup_callback(handle_, nullptr, nullptr);
     if (event_callback_) {
       event_callback_.Release();
       event_callback_ = nullptr;
@@ -426,6 +426,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
         1,
         1
       );
+      set_mpv_wakeup_callback(handle_, on_mpv_wakeup, this);
     }
     return env.Undefined();
   }
@@ -452,7 +453,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
 
     std::vector<uint8_t> rgba(static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
     int size[2] = {width, height};
-    int stride = width * 4;
+    size_t stride = static_cast<size_t>(width) * 4;
     char format[] = "rgba";
 
     mpv_render_param params[] = {

@@ -13,4 +13,5 @@ Corresponding source and build instructions:
 - FFmpeg: <https://ffmpeg.org/download.html>, license <https://ffmpeg.org/legal.html>
 - macOS runtime and dependency sources: <https://github.com/iina/iina/releases/tag/v1.4.4>, <https://github.com/iina/iina/tree/v1.4.4/deps>
 - Windows runtime and build recipes: <https://github.com/zhongfly/mpv-winbuild>, <https://github.com/shinchiro/mpv-winbuild-cmake>
+- Windows Vulkan loader: <https://vulkan.lunarg.com/sdk/home/>, <https://github.com/KhronosGroup/Vulkan-Loader>, with its included runtime license
 - Ubuntu dependency sources: <https://packages.ubuntu.com/jammy/libmpv-dev>
