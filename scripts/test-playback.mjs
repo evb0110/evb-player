@@ -31,6 +31,7 @@ const require = createRequire(import.meta.url);
 const executablePath = process.env.EVB_PLAYER_TEST_EXECUTABLE || require('electron');
 const launch = prepareHiddenLaunch({executablePath, workDirectory: work});
 launch.env.EVB_PLAYER_TEST_AUDIO_OUTPUT = 'null';
+launch.env.EVB_PLAYER_TEST_DIAGNOSTICS = '1';
 if (process.platform === 'linux' && process.env.EVB_PLAYER_TEST_BACKTRACE) {
   const wrapper = join(work, 'electron-backtrace.sh');
   const shellQuote = value => `'${value.replaceAll("'", "'\"'\"'")}'`;

@@ -9,6 +9,8 @@
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl3.h>
 #include <dlfcn.h>
+void* begin_playback_activity();
+void end_playback_activity(void* token);
 #endif
 
 #ifdef _WIN32
@@ -183,10 +185,15 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     const char* test_audio = std::getenv("EVB_PLAYER_TEST_AUDIO_OUTPUT");
     if (test_audio && std::strcmp(test_audio, "null") == 0) set_option("ao", "null");
     set_option("pause", "yes");
-    // Shared textures render on Electron's main thread. Software rendering has
-    // its own helper thread and retains mpv's preparation window, so IPC and
-    // scheduling latency do not consume the next frame's entire deadline.
+    // Windows renders in Electron's main thread, including its software
+    // fallback. macOS/Linux software playback has a separate helper thread.
+#ifdef _WIN32
+    set_option("video-timing-offset", "0");
+#else
+    // Keep mpv's preparation window so IPC and scheduling latency do not
+    // consume the next frame's entire deadline.
     if (mode_ == "shared-texture") set_option("video-timing-offset", "0");
+#endif
     set_option("keep-open", "yes");
     const char* hwdec = std::getenv("MPV_HWDEC");
 #ifdef _WIN32
@@ -345,6 +352,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     int flag = 0;
     int ret = mpv_set_property_async(handle_, 0, "pause", MPV_FORMAT_FLAG, &flag);
     if (ret < 0) throw_mpv_error(env, "play", ret);
+    else set_playback_activity(true);
     return env.Undefined();
   }
 
@@ -353,6 +361,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     int flag = 1;
     int ret = mpv_set_property_async(handle_, 0, "pause", MPV_FORMAT_FLAG, &flag);
     if (ret < 0) throw_mpv_error(env, "pause", ret);
+    else set_playback_activity(false);
     return env.Undefined();
   }
 
@@ -360,6 +369,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     Napi::Env env = info.Env();
     int ret = command({"stop"});
     if (ret < 0) throw_mpv_error(env, "stop", ret);
+    else set_playback_activity(false);
     return env.Undefined();
   }
 
@@ -683,6 +693,8 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       }
       if (event->event_id == MPV_EVENT_END_FILE && event->data) {
         auto* end = static_cast<mpv_event_end_file*>(event->data);
+        if (end->reason == MPV_END_FILE_REASON_EOF || end->reason == MPV_END_FILE_REASON_ERROR)
+          set_playback_activity(false);
         if (end->reason == MPV_END_FILE_REASON_ERROR) item.Set("error", mpv_error_text(end->error));
       }
 
@@ -692,6 +704,8 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
         if (prop->data) {
           switch (prop->format) {
             case MPV_FORMAT_FLAG:
+              if (prop->name && std::strcmp(prop->name, "pause") == 0)
+                set_playback_activity(*static_cast<int*>(prop->data) == 0);
               item.Set("data", *static_cast<int*>(prop->data) != 0);
               break;
             case MPV_FORMAT_INT64:
@@ -726,6 +740,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   }
 
   void cleanup() {
+    set_playback_activity(false);
     alive_ = false;
     if (handle_) {
       set_mpv_wakeup_callback(handle_, nullptr, nullptr);
@@ -1168,6 +1183,16 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   }
 #endif
 
+  void set_playback_activity(bool playing) {
+#ifdef __APPLE__
+    if (playing && !playback_activity_) playback_activity_ = begin_playback_activity();
+    if (!playing && playback_activity_) {
+      end_playback_activity(playback_activity_);
+      playback_activity_ = nullptr;
+    }
+#endif
+  }
+
   mpv_handle* handle_ = nullptr;
   mpv_render_context* render_context_ = nullptr;
   std::atomic<bool> alive_ = true;
@@ -1177,6 +1202,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   std::string mode_ = "software";
   int64_t timestamp_us_ = 0;
 #ifdef __APPLE__
+  void* playback_activity_ = nullptr;
   CGLContextObj gl_context_ = nullptr;
   IOSurfaceRef surface_ = nullptr;
   GLuint texture_ = 0;

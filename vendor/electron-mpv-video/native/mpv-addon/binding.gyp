@@ -14,6 +14,7 @@
           "libraries": ["<!(node -p \"process.env.MPV_LIB || '-lmpv'\")", "-Wl,-rpath,\\$$ORIGIN"]
         }],
         ["OS=='mac' and target_arch=='arm64'", {
+          "sources": ["src/macos_activity.mm"],
           "include_dirs": [
             "<!(node -p \"process.env.MPV_INCLUDE_DIR || '/opt/homebrew/include'\")"
           ],
@@ -21,7 +22,8 @@
             "<!(node -p \"process.env.MPV_LIB || '/opt/homebrew/lib/libmpv.dylib'\")",
             "-framework OpenGL",
             "-framework IOSurface",
-            "-framework CoreFoundation"
+            "-framework CoreFoundation",
+            "-framework Foundation"
           ],
           "xcode_settings": {
             "MACOSX_DEPLOYMENT_TARGET": "12.0",
