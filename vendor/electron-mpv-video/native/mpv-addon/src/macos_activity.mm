@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <mutex>
 
 namespace {
@@ -67,6 +68,15 @@ void end_playback_policy() {
 
 int set_playback_thread_priority(bool rendering) {
   return pthread_set_qos_class_self_np(rendering ? QOS_CLASS_USER_INTERACTIVE : QOS_CLASS_USER_INITIATED, 0);
+}
+
+void initialize_playback_process() {
+  const char* background = std::getenv("EVB_PLAYER_TEST_BACKGROUND_DECODER");
+  if (background && std::strcmp(background, "1") == 0 && std::getenv("EVB_PLAYER_TEST_DIAGNOSTICS")) {
+    // Apply the same policy as taskpolicy -b before mpv creates its threads.
+    const int status = setpriority(PRIO_DARWIN_PROCESS, 0, PRIO_DARWIN_BG);
+    std::fprintf(stderr, "Injected decoder background policy: status=%d\n", status);
+  }
 }
 
 void* begin_playback_activity() {

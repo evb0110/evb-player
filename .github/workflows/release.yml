@@ -136,9 +136,11 @@ jobs:
       - name: Verify playback (Linux private display)
         if: matrix.platform == 'linux'
         run: scripts/with-nested-display.sh .devkit/release-playback pnpm test:playback
-      - name: Verify playback with inherited background scheduling (macOS)
+      - name: Verify decoder with inherited background scheduling (macOS)
         if: matrix.platform == 'mac'
-        run: taskpolicy -b pnpm test:playback
+        env:
+          EVB_PLAYER_TEST_BACKGROUND_DECODER: '1'
+        run: pnpm test:playback
       - name: Package
         if: github.event_name == 'push' || inputs.package
         shell: bash

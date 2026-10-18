@@ -37,6 +37,8 @@ IINA delegates decoding and synchronization to libmpv: [MPVController.swift](htt
 
 `scripts/test-playback.mjs` synthesizes H.264 with B-frames and deliberately broken `PTS=DTS`. Each decoded image has increasing luminance, allowing the test to detect backwards displayed images rather than merely checking that playback time advances. It also checks exact seeking, speed changes, common non-browser codecs, audio, the native source boundary, and the unchanged progress format.
 
+The macOS release lane repeats the suite with `EVB_PLAYER_TEST_BACKGROUND_DECODER=1`. This injects the same Darwin background policy as `taskpolicy -b` before mpv creates its threads, verifies that playback observes that suppression, and checks frame cadence and restoration of its idle OS policy. Electron and the test runner keep their ordinary scheduling so the injected fault targets the decoder.
+
 Automated fixtures use mpv's null audio output, while retaining audio decoding and clocking. They neither require a hosted sound device nor play test tones on the user's desktop; physical audio-output quality is not measured by this suite.
 
 Real user media remains outside the repository. All automation uses generated fixtures or explicitly supplied media read-only, task-owned profiles, and hidden app copies.

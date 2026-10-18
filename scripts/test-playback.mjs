@@ -296,6 +296,9 @@ try {
   if (qosStatuses.length || wakeDelays.length) console.log('Native scheduling diagnostics', {qosStatuses, maxWakeMs: Math.max(0, ...wakeDelays) / 1000});
   const restoredPolicies = [...nativeLogs.matchAll(/policy restored: expected-background=(\d+) background=(\d+) expected-role=(-?\d+) role=(-?\d+) status=(\d+)/gu)];
   if (process.platform === 'darwin') {
+    if (process.env.EVB_PLAYER_TEST_BACKGROUND_DECODER === '1') {
+      assert.match(nativeLogs, /Native playback policy: background=1/u, 'Decoder must inherit the injected background state');
+    }
     assert.ok(restoredPolicies.length > 0, 'Playback must restore its OS scheduling policy');
     for (const match of restoredPolicies) {
       assert.equal(match[2], match[1], 'Restore inherited background state');

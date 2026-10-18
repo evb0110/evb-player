@@ -12,6 +12,7 @@
 void* begin_playback_activity();
 void end_playback_activity(void* token);
 int set_playback_thread_priority(bool rendering);
+void initialize_playback_process();
 #endif
 
 #ifdef _WIN32
@@ -177,7 +178,10 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     }
 
 #ifdef __APPLE__
-    if (mode_ == "software") set_playback_thread_priority(true);
+    if (mode_ == "software") {
+      initialize_playback_process();
+      set_playback_thread_priority(true);
+    }
 #endif
     handle_ = mpv_create();
     if (!handle_) {
