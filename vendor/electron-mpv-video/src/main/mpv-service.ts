@@ -2,8 +2,7 @@ import * as electron from 'electron'
 import type { BrowserWindow, IpcMainInvokeEvent, WebContents } from 'electron'
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
-import { createRequire, Module } from 'node:module'
-import { constants } from 'node:os'
+import { createRequire } from 'node:module'
 import type { RenderPipeline } from '../shared/types.js'
 
 const CHANNEL_PREFIX = 'electron-mpv-video:v1'
@@ -517,16 +516,10 @@ class MpvMainService implements MpvMain {
   private getNativeModule() {
     if (!this.nativeModule) {
       const addonPath = this.options.addonPath ?? defaultAddonPath()
-      if (process.platform === 'linux') {
-        // Electron exports its own FFmpeg symbols. Resolve this module's private
-        // libmpv/FFmpeg dependency group first so incompatible versions cannot
-        // interpose on each other's codec structures and functions.
-        const binding = new Module(addonPath)
-        process.dlopen(binding, addonPath, constants.dlopen.RTLD_NOW | constants.dlopen.RTLD_DEEPBIND)
-        this.nativeModule = binding.exports as NativeModule
-      } else {
-        this.nativeModule = nativeRequire(addonPath) as NativeModule
-      }
+      // Use Node's normal loader so all dependencies share Electron's allocator.
+      // RTLD_DEEPBIND makes libnuma free libc getline storage with the wrong
+      // allocator and crashes inside its constructor before mpv can initialize.
+      this.nativeModule = nativeRequire(addonPath) as NativeModule
     }
     return this.nativeModule
   }
