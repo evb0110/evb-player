@@ -288,6 +288,9 @@ try {
   assert.ok(Object.keys(state.progress[folderId]).length > 0);
   assert.ok(state.recentFolders.some(folder => folder.id === folderId));
   console.log('PASS existing progress-file format');
+  const qosStatuses = [...new Set([...nativeLogs.matchAll(/producer QoS status=(\d+)/gu)].map(match => Number(match[1])))];
+  const wakeDelays = [...nativeLogs.matchAll(/max-wake-us=(\d+)/gu)].map(match => Number(match[1]));
+  if (qosStatuses.length || wakeDelays.length) console.log('Native scheduling diagnostics', {qosStatuses, maxWakeMs: Math.max(0, ...wakeDelays) / 1000});
 } catch (error) {
   console.error(nativeLogs);
   await nativeSample;

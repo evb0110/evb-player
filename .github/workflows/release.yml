@@ -14,6 +14,10 @@ on:
         type: choice
         default: all
         options: [all, mac, win, linux]
+      package:
+        description: Build and sign installers after playback checks
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -133,6 +137,7 @@ jobs:
         if: matrix.platform == 'linux'
         run: scripts/with-nested-display.sh .devkit/release-playback pnpm test:playback
       - name: Package
+        if: github.event_name == 'push' || inputs.package
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -141,14 +146,14 @@ jobs:
         run: pnpm exec electron-builder --${{ matrix.platform }} --publish "$PUBLISH"
 
       - name: Check the macOS signature and notarization
-        if: matrix.platform == 'mac'
+        if: matrix.platform == 'mac' && (github.event_name == 'push' || inputs.package)
         run: |
           app="release/mac-arm64/EVB Player.app"
           codesign --verify --deep --strict "$app"
           spctl --assess --type execute --verbose=2 "$app"
           xcrun stapler validate "$app"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: github.event_name != 'push'
+        if: github.event_name != 'push' && inputs.package
         with:
           name: evb-player-${{ matrix.platform }}
           path: |
