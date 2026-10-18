@@ -101,7 +101,13 @@ try {
     sample.width = 1; sample.height = 1;
     const context = sample.getContext('2d', {willReadFrequently: true});
     let active = true;
-    const sampleFrame = () => {
+    const sampleFrame = frame => {
+      // Software frames already contain the exact pixels passed to the canvas.
+      // Reading a GPU canvas back on every frame stalls virtual GPU runners.
+      if (frame?.rgba) {
+        values.push(new Uint8Array(frame.rgba)[(Math.floor(frame.height / 2) * frame.width + Math.floor(frame.width / 2)) * 4]);
+        return;
+      }
       const canvas = media.shadowRoot ? [...media.shadowRoot.querySelectorAll('canvas')].find(canvas => !canvas.hidden) : media;
       if (canvas) {
         context.drawImage(canvas, (canvas.videoWidth || canvas.width) / 2, (canvas.videoHeight || canvas.height) / 2, 1, 1, 0, 0, 1, 1);
@@ -119,11 +125,11 @@ try {
       const draw = renderer[method];
       renderer[method] = method === 'draw' ? function (...args) {
         const result = draw.apply(this, args);
-        sampleFrame();
+        sampleFrame(args[0]);
         return result;
       } : async function (...args) {
         await draw.apply(this, args);
-        sampleFrame();
+        sampleFrame(args[0]);
       };
       restore = () => {renderer[method] = draw;};
     }
@@ -142,7 +148,7 @@ try {
   const visible = motion.values.filter(value => value > 4);
   const backwards = visible.filter((value, index) => index && value + 1 < visible[index - 1]);
   const changes = visible.filter((value, index) => index && value !== visible[index - 1]);
-  console.log('Frame measurements', {backwards: backwards.length, changes: changes.length, samples: visible.length});
+  console.log('Frame measurements', {backwards: backwards.length, changes: changes.length, samples: visible.length, renderer: motion.renderer});
   assert.ok(visible.length > 40, 'Playback must paint frames');
   assert.equal(backwards.length, 0, `Images went backwards ${backwards.length} times`);
   assert.ok(changes.length >= 85, `Only ${changes.length} distinct frame transitions in 3.5 seconds of 30fps video`);
