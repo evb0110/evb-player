@@ -24,6 +24,7 @@ const folderId = createHash('sha256').update(folder).digest('hex').slice(0, 16);
 writeFileSync(join(profile, 'evb-player-state.json'), JSON.stringify({recentFolders: [{id: folderId, name: 'Playback fixtures', rootPath: folder, mediaCount: 7, lastOpenedAt: Date.now()}], progress: {}, lastFolderPath: folder}));
 const executablePath = process.env.EVB_PLAYER_TEST_EXECUTABLE || join(root, 'node_modules/electron/dist', process.platform === 'darwin' ? 'Electron.app/Contents/MacOS/Electron' : process.platform === 'win32' ? 'electron.exe' : 'electron');
 const launch = prepareHiddenLaunch({executablePath, workDirectory: work});
+launch.env.EVB_PLAYER_TEST_AUDIO_OUTPUT = 'null';
 let application;
 try {
   application = await _electron.launch({...launch, args: [...(process.env.EVB_PLAYER_TEST_EXECUTABLE ? [] : [root]), `--user-data-dir=${profile}`, ...(process.env.NESTED_RUN ? ['--ozone-platform=wayland'] : [])]});
@@ -116,6 +117,11 @@ try {
     try {await session.open('file:///etc/passwd'); return false;} catch {return true;} finally {await session.destroy();}
   });
   assert.equal(denied, true);
+  for (let reload = 0; reload < 5; reload += 1) {
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('evb-media')?.readyState === 4);
+  }
+  console.log('PASS native sessions are released across renderer reloads');
   assert.deepEqual(errors, []);
   console.log('PASS source authorization and renderer lifecycle');
   await application.close();

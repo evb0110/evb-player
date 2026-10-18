@@ -17,12 +17,15 @@ IINA delegates decoding and synchronization to libmpv: [MPVController.swift](htt
 - `app/plugins/native-media.client.ts` adapts native playback events and methods to the existing controls. libmpv owns the audio clock, frame scheduling, demuxing, decoding, and timing recovery.
 - macOS and Windows can transfer GPU surfaces through Electron's [sharedTexture API](https://www.electronjs.org/docs/latest/api/shared-texture). When unavailable, the bridge uses libmpv's software rendering API and a WebGL or Canvas surface. Linux currently uses that software rendering path.
 - A render context is destroyed with its own graphics context current, as required by [libmpv's rendering API](https://github.com/mpv-player/mpv/blob/master/libmpv/render.h). Window ownership is captured before destruction so closing the window cannot strand native sessions.
+- Main-frame navigation and renderer termination release that renderer's sessions. Repeated reloads must not retain audio players or exhaust the session limit.
 - Playback commands and property changes use libmpv's asynchronous APIs, which are explicitly safe on its render thread. Calling the synchronous APIs on Electron's rendering thread could stall initialization until mpv's internal deadlock timeout. `video-timing-offset=0` lets mpv schedule frame callbacks at presentation time without holding Electron's main thread ahead of the audio clock.
 - `scripts/build-native.mjs` compiles the bridge and stages its runtime dependencies outside the app archive. macOS library install names and Linux rpaths resolve to that private directory. Release CI signs and notarizes the complete macOS bundle.
 
 ## Regression evidence
 
 `scripts/test-playback.mjs` synthesizes H.264 with B-frames and deliberately broken `PTS=DTS`. Each decoded image has increasing luminance, allowing the test to detect backwards displayed images rather than merely checking that playback time advances. It also checks exact seeking, speed changes, common non-browser codecs, audio, the native source boundary, and the unchanged progress format.
+
+Automated fixtures use mpv's null audio output, while retaining audio decoding and clocking. They neither require a hosted sound device nor play test tones on the user's desktop; physical audio-output quality is not measured by this suite.
 
 Real user media remains outside the repository. All automation uses generated fixtures or explicitly supplied media read-only, task-owned profiles, and hidden app copies.
 

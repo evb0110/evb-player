@@ -63,6 +63,8 @@ type RenderSize = {
 type AttachedWindow = {
   window: BrowserWindow
   onClosed: () => void
+  onNavigate: (details: { isMainFrame: boolean; isSameDocument: boolean }) => void
+  onRendererGone: () => void
 }
 
 export type MpvMainOptions = {
@@ -464,11 +466,20 @@ class MpvMainService implements MpvMain {
     this.assertActive()
     const id = window.webContents.id
     if (this.windows.has(id)) return
+    const contents = window.webContents
+    const onNavigate = (details: { isMainFrame: boolean; isSameDocument: boolean }) => {
+      if (details.isMainFrame && !details.isSameDocument) void this.destroyWindowSessions(id)
+    }
+    const onRendererGone = () => { void this.destroyWindowSessions(id) }
     const onClosed = () => {
+      contents.off('did-start-navigation', onNavigate)
+      contents.off('render-process-gone', onRendererGone)
       this.windows.delete(id)
       void this.destroyWindowSessions(id)
     }
-    this.windows.set(id, { window, onClosed })
+    this.windows.set(id, { window, onClosed, onNavigate, onRendererGone })
+    contents.on('did-start-navigation', onNavigate)
+    contents.on('render-process-gone', onRendererGone)
     window.once('closed', onClosed)
   }
 
@@ -476,6 +487,8 @@ class MpvMainService implements MpvMain {
     const attached = this.windows.get(window.webContents.id)
     if (attached) {
       attached.window.off('closed', attached.onClosed)
+      attached.window.webContents.off('did-start-navigation', attached.onNavigate)
+      attached.window.webContents.off('render-process-gone', attached.onRendererGone)
       this.windows.delete(window.webContents.id)
     }
     await this.destroyWindowSessions(window.webContents.id)
@@ -487,6 +500,8 @@ class MpvMainService implements MpvMain {
 
     for (const attached of this.windows.values()) {
       attached.window.off('closed', attached.onClosed)
+      attached.window.webContents.off('did-start-navigation', attached.onNavigate)
+      attached.window.webContents.off('render-process-gone', attached.onRendererGone)
     }
     this.windows.clear()
     for (const name of IPC_CHANNELS) electron.ipcMain.removeHandler(channel(name))

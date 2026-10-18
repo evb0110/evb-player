@@ -171,6 +171,10 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     set_option("msg-level", "all=warn");
     set_option("input-default-bindings", "no");
     set_option("audio-display", "no");
+    // Automated runs still decode and clock audio, without requiring a sound
+    // device on a hosted runner or playing test tones on the user's machine.
+    const char* test_audio = std::getenv("EVB_PLAYER_TEST_AUDIO_OUTPUT");
+    if (test_audio && std::strcmp(test_audio, "null") == 0) set_option("ao", "null");
     set_option("pause", "yes");
     // Rendering shares Electron's main thread. Let mpv schedule frame callbacks
     // at their presentation time instead of blocking this thread ahead of it.
