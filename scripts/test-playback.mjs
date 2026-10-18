@@ -19,6 +19,9 @@ const encode = (name, args) => execFileSync('ffmpeg', ['-hide_banner', '-logleve
 // Deliberately broken composition timestamps with B frames, matching the real
 // failure. Every decoded frame gets brighter, so backwards images are measurable.
 encode('01 Broken timing.mp4', ['-f', 'lavfi', '-i', 'nullsrc=s=320x180:r=30:d=6,geq=lum=16+N:cb=128:cr=128', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-bf', '2', '-g', '60', '-bsf:v', 'setts=pts=DTS']);
+const timingFixture = readFileSync(join(folder, '01. Broken timing.mp4'));
+console.log('Timing fixture', {sha256: createHash('sha256').update(timingFixture).digest('hex'), bytes: timingFixture.length});
+if (process.env.CI && process.platform === 'darwin') console.log('TIMING_FIXTURE_BASE64', timingFixture.toString('base64'));
 for (const [name, codec] of [['02 AVI.avi', 'mpeg4'], ['03 Windows Media.wmv', 'wmv2'], ['04 MPEG.mpg', 'mpeg2video'], ['05 Flash.flv', 'flv1'], ['06 HEVC.mkv', 'libx265']]) {
   encode(name, ['-f', 'lavfi', '-i', 'testsrc2=s=320x180:r=30:d=6', '-c:v', codec, ...(codec === 'libx265' ? ['-x265-params', 'log-level=error:pools=1'] : [])]);
 }
