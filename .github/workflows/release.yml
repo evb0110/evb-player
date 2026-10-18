@@ -8,6 +8,12 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Installer platform to test (tagged releases always build all)
+        type: choice
+        default: all
+        options: [all, mac, win, linux]
 
 permissions:
   contents: write
@@ -24,7 +30,27 @@ jobs:
   draft:
     name: Prepare release
     runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.platforms.outputs.matrix }}
     steps:
+      - id: platforms
+        name: Select test platforms
+        env:
+          REQUESTED_PLATFORM: ${{ github.event_name == 'workflow_dispatch' && inputs.platform || 'all' }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          platforms = [
+              {'os': 'macos-26', 'platform': 'mac'},
+              {'os': 'windows-2022', 'platform': 'win'},
+              {'os': 'ubuntu-22.04', 'platform': 'linux'},
+          ]
+          requested = os.environ['REQUESTED_PLATFORM']
+          selected = [p for p in platforms if requested in ('all', p['platform'])]
+          assert selected, f'Unknown platform: {requested}'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('matrix=' + json.dumps({'include': selected}) + '\n')
+          PY
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Check the tag matches package.json
         if: github.event_name == 'push'
@@ -48,16 +74,8 @@ jobs:
     needs: draft
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # macOS 26 ships Xcode 26, whose actool compiles the Icon Composer app icon.
-          - os: macos-26
-            platform: mac
-          - os: windows-2022
-            platform: win
-          # The oldest supported Ubuntu LTS keeps the .deb installable on newer releases.
-          - os: ubuntu-22.04
-            platform: linux
+      # macOS 26 provides Icon Composer; Ubuntu 22.04 is the oldest supported LTS.
+      matrix: ${{ fromJSON(needs.draft.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

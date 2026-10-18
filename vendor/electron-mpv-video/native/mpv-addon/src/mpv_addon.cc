@@ -11,7 +11,7 @@
 #include <dlfcn.h>
 void* begin_playback_activity();
 void end_playback_activity(void* token);
-void set_playback_thread_priority(bool rendering);
+int set_playback_thread_priority(bool rendering);
 #endif
 
 #ifdef _WIN32
@@ -33,6 +33,17 @@ void set_playback_thread_priority(bool rendering);
 #include <vector>
 
 namespace {
+
+#ifdef __APPLE__
+void configure_playback_producer_thread() {
+  thread_local bool configured = false;
+  if (!configured) {
+    configured = true;
+    const int result = set_playback_thread_priority(true);
+    if (std::getenv("EVB_PLAYER_TEST_DIAGNOSTICS")) std::fprintf(stderr, "Native playback producer QoS status=%d\n", result);
+  }
+}
+#endif
 
 void fit_render_size(int& width, int& height, int max_width, int max_height) {
   const double scale = std::min({1.0, static_cast<double>(max_width) / width,
@@ -166,7 +177,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     }
 
 #ifdef __APPLE__
-    if (mode_ == "software") set_playback_thread_priority(false);
+    if (mode_ == "software") set_playback_thread_priority(true);
 #endif
     handle_ = mpv_create();
     if (!handle_) {
@@ -331,6 +342,13 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   static void on_mpv_render_update(void* ctx) {
     auto* self = static_cast<MpvPlayer*>(ctx);
     if (self && self->alive_ && self->update_callback_) {
+#ifdef __APPLE__
+      // This callback runs on mpv's producer threads, not Node's render thread.
+      // They also need interactive scheduling to meet video deadlines.
+      configure_playback_producer_thread();
+#endif
+      int64_t empty = 0;
+      self->render_wake_us_.compare_exchange_strong(empty, mpv_get_time_us(self->handle_));
       self->update_callback_.NonBlockingCall(call_js_no_args);
     }
   }
@@ -338,6 +356,9 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   static void on_mpv_wakeup(void* ctx) {
     auto* self = static_cast<MpvPlayer*>(ctx);
     if (self && self->alive_ && self->event_callback_) {
+#ifdef __APPLE__
+      configure_playback_producer_thread();
+#endif
       self->event_callback_.NonBlockingCall(call_js_no_args);
     }
   }
@@ -360,6 +381,8 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     int ret = mpv_set_property_async(handle_, 0, "pause", MPV_FORMAT_FLAG, &flag);
     if (ret < 0) throw_mpv_error(env, "play", ret);
     else set_playback_activity(true);
+    max_render_wake_us_ = 0;
+    render_wake_us_.store(0);
     return env.Undefined();
   }
 
@@ -496,12 +519,14 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     mpv_render_frame_info timing = {};
     mpv_render_context_get_info(render_context_, {MPV_RENDER_PARAM_NEXT_FRAME_INFO, &timing});
     const int64_t began = diagnose ? mpv_get_time_us(handle_) : 0;
+    const int64_t wake = render_wake_us_.exchange(0);
+    if (diagnose && wake > 0) max_render_wake_us_ = std::max(max_render_wake_us_, began - wake);
     int ret = mpv_render_context_render(render_context_, params);
     if (diagnose && ++diagnostic_frames_ % 30 == 0 && timing.target_time > 0) {
       const int64_t ended = mpv_get_time_us(handle_);
-      std::fprintf(stderr, "Native frame timing: target-raw=%lld clock-us=%lld render-us=%lld\n",
+      std::fprintf(stderr, "Native frame timing: target-raw=%lld clock-us=%lld render-us=%lld max-wake-us=%lld\n",
           static_cast<long long>(timing.target_time), static_cast<long long>(began),
-          static_cast<long long>(ended - began));
+          static_cast<long long>(ended - began), static_cast<long long>(max_render_wake_us_));
     }
     if (ret < 0) {
       throw_mpv_error(env, "mpv_render_context_render", ret);
@@ -1233,6 +1258,8 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   std::string mode_ = "software";
   int64_t timestamp_us_ = 0;
   uint64_t diagnostic_frames_ = 0;
+  std::atomic<int64_t> render_wake_us_ = 0;
+  int64_t max_render_wake_us_ = 0;
 #ifdef __APPLE__
   void* playback_activity_ = nullptr;
   CGLContextObj gl_context_ = nullptr;
