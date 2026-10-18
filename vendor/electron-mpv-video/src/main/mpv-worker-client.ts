@@ -21,9 +21,12 @@ export function createMpvWorkerModule(addonPath: string): NativeModule {
     private exited: Promise<void>
 
     constructor(options?: {mode?: string}) {
+      const node = path.join(path.dirname(addonPath), 'node')
       this.child = fork(path.join(path.dirname(addonPath), 'mpv-worker.js'), [addonPath, JSON.stringify(options ?? {})], {
-        execPath: path.join(path.dirname(addonPath), 'node'),
-        execArgv: [],
+        // Classify the decoder as application work so macOS honors its playback
+        // QoS. This sets process policy without registering or opening a UI.
+        execPath: process.platform === 'darwin' ? '/usr/sbin/taskpolicy' : node,
+        execArgv: process.platform === 'darwin' ? ['-a', node] : [],
         // Electron and the build's Node runtime can use different V8 wire
         // versions. Controls use JSON; raw frames use a fixed byte format.
         serialization: 'json',
