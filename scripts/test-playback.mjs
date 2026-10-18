@@ -40,7 +40,9 @@ let application;
 let nativeLogs = '';
 try {
   application = await _electron.launch({...launch, args: [...(process.env.EVB_PLAYER_TEST_EXECUTABLE ? [] : [root]), `--user-data-dir=${profile}`, ...(process.env.NESTED_RUN ? ['--ozone-platform=wayland'] : [])]});
-  application.process().stderr.on('data', chunk => {nativeLogs = (nativeLogs + chunk.toString()).slice(-32_768);});
+  for (const stream of [application.process().stdout, application.process().stderr]) {
+    stream.on('data', chunk => {nativeLogs = (nativeLogs + chunk.toString()).slice(-65_536);});
+  }
   application.process().on('exit', (code, signal) => {if (signal || code) console.error('Electron exited', {code, signal});});
   const isolation = await application.evaluate(({app, BrowserWindow}) => ({profile: app.getPath('userData'), visible: BrowserWindow.getAllWindows().some(window => window.isVisible())}));
   assert.equal(isolation.profile, profile);
