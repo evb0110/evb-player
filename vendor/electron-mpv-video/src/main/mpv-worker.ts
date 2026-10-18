@@ -2,6 +2,7 @@
 import {createRequire} from 'node:module'
 import {createWriteStream} from 'node:fs'
 import {once} from 'node:events'
+import {setTimeout as waitForPresentation} from 'node:timers/promises'
 import type {NativeFrame, NativeModule} from './mpv-service'
 
 const native = createRequire(__filename)(process.argv[2]!) as NativeModule
@@ -41,6 +42,9 @@ function queueFrame() {
         renderMs += elapsed; maxRenderMs = Math.max(maxRenderMs, elapsed)
         // Zero denotes a pushed frame; nonzero ids answer viewport requests.
         answering = frameRequests.splice(0)
+        // libmpv supplies this frame's presentation deadline. Waiting here
+        // preserves A/V timing without blocking native callbacks in Node.
+        if (frame.delayMs && frame.delayMs > 0) await waitForPresentation(frame.delayMs)
         for (const id of answering.length ? answering : [0]) await writeFrame(id, frame)
         answering = []
         if (++renders % 30 === 0 && process.env.EVB_PLAYER_TEST_DIAGNOSTICS === '1') console.error('Playback helper metrics', {updates, renders, renderMs: renderMs / renders, maxRenderMs, pipeMs: pipeMs / renders})

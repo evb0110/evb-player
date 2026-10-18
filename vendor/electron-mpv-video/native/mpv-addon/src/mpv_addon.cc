@@ -190,9 +190,14 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     const char* test_audio = std::getenv("EVB_PLAYER_TEST_AUDIO_OUTPUT");
     if (test_audio && std::strcmp(test_audio, "null") == 0) set_option("ao", "null");
     set_option("pause", "yes");
-    // Frame notifications own scheduling. Never hold the JavaScript event
-    // loop waiting for a future presentation deadline.
+    // macOS needs rendering headroom before the presentation deadline. The
+    // helper waits asynchronously after copying the image, leaving callbacks
+    // free to acknowledge the next frame. Other paths retain immediate timing.
+#ifdef __APPLE__
+    set_option("video-timing-offset", mode_ == "software" ? "0.05" : "0");
+#else
     set_option("video-timing-offset", "0");
+#endif
     set_option("keep-open", "yes");
     const char* hwdec = std::getenv("MPV_HWDEC");
 #ifdef _WIN32
@@ -489,7 +494,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     mpv_render_context_update(render_context_);
     const bool diagnose = std::getenv("EVB_PLAYER_TEST_DIAGNOSTICS") != nullptr;
     mpv_render_frame_info timing = {};
-    if (diagnose) mpv_render_context_get_info(render_context_, {MPV_RENDER_PARAM_NEXT_FRAME_INFO, &timing});
+    mpv_render_context_get_info(render_context_, {MPV_RENDER_PARAM_NEXT_FRAME_INFO, &timing});
     const int64_t began = diagnose ? mpv_get_time_us(handle_) : 0;
     int ret = mpv_render_context_render(render_context_, params);
     if (diagnose && ++diagnostic_frames_ % 30 == 0 && timing.target_time > 0) {
@@ -507,6 +512,18 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     frame.Set("width", width);
     frame.Set("height", height);
     frame.Set("rgba", Napi::Buffer<uint8_t>::Copy(env, rgba.data(), rgba.size()));
+#ifdef __APPLE__
+    if (timing.target_time > 0) {
+      // mpv 0.37 changed its internal render timestamps to nanoseconds along
+      // with API 2.2. Older SDKs used microseconds. Use the matching clock.
+#if MPV_CLIENT_API_VERSION >= MPV_MAKE_VERSION(2, 2)
+      double remaining_ms = (timing.target_time - mpv_get_time_ns(handle_)) / 1000000.0;
+#else
+      double remaining_ms = (timing.target_time - mpv_get_time_us(handle_)) / 1000.0;
+#endif
+      frame.Set("delayMs", std::max(0.0, remaining_ms));
+    }
+#endif
     return frame;
   }
 

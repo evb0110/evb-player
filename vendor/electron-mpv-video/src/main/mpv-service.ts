@@ -24,6 +24,7 @@ const IPC_CHANNELS = [
 ] as const
 
 export type NativeFrame = {
+  delayMs?: number
   width: number
   height: number
   rgba: Buffer
