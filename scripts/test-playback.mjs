@@ -178,13 +178,33 @@ try {
   if (process.platform === 'darwin') {
     const mainPid = application.process().pid;
     const ownsDisplayWake = () => execFileSync('pmset', ['-g', 'assertions'], {encoding: 'utf8'}).split('\n').some(line => line.includes(`pid ${mainPid}(`) && /PreventUserIdleDisplaySleep|NoDisplaySleepAssertion/u.test(line));
+    await page.exposeFunction('playbackOwnsDisplayWake', ownsDisplayWake);
     const start = await page.locator('evb-media').evaluate(media => media.currentTime);
     await page.locator('evb-media').evaluate(media => media.play());
     await page.waitForFunction(start => document.querySelector('evb-media').currentTime > start + 0.1, start);
-    assert.ok(ownsDisplayWake(), 'Playing video must prevent display sleep');
+    await page.waitForFunction(async () => await window.playbackOwnsDisplayWake(), null, {polling: 100});
     await page.locator('evb-media').evaluate(media => media.pause());
-    assert.equal(ownsDisplayWake(), false, 'Pausing must release the playback power assertion');
+    await page.waitForFunction(async () => !await window.playbackOwnsDisplayWake(), null, {polling: 100});
     console.log('PASS active playback power assertion and pause cleanup');
+    await application.evaluate(({powerSaveBlocker}) => {
+      globalThis.restorePlaybackPower = powerSaveBlocker.start;
+      globalThis.playbackPowerAttempts = 0;
+      powerSaveBlocker.start = () => {globalThis.playbackPowerAttempts++; throw new Error('Injected unavailable power management');};
+    });
+    try {
+      const start = await page.locator('evb-media').evaluate(media => media.currentTime);
+      await page.locator('evb-media').evaluate(media => media.play());
+      await page.waitForFunction(start => document.querySelector('evb-media').currentTime > start + 0.1, start);
+      assert.equal(await application.evaluate(() => globalThis.playbackPowerAttempts), 1, 'An unavailable assertion must not be requested on every frame');
+      await page.locator('evb-media').evaluate(media => media.pause());
+      console.log('PASS playback survives unavailable OS power management');
+    } finally {
+      await application.evaluate(({powerSaveBlocker}) => {
+        powerSaveBlocker.start = globalThis.restorePlaybackPower;
+        delete globalThis.restorePlaybackPower;
+        delete globalThis.playbackPowerAttempts;
+      });
+    }
   }
 
   const combinedSeek = await page.locator('evb-media').evaluate(media => {

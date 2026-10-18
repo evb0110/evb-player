@@ -190,15 +190,9 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     const char* test_audio = std::getenv("EVB_PLAYER_TEST_AUDIO_OUTPUT");
     if (test_audio && std::strcmp(test_audio, "null") == 0) set_option("ao", "null");
     set_option("pause", "yes");
-    // Windows renders in Electron's main thread, including its software
-    // fallback. macOS/Linux software playback has a separate helper thread.
-#ifdef _WIN32
+    // Frame notifications own scheduling. Never hold the JavaScript event
+    // loop waiting for a future presentation deadline.
     set_option("video-timing-offset", "0");
-#else
-    // Keep mpv's preparation window so IPC and scheduling latency do not
-    // consume the next frame's entire deadline.
-    if (mode_ == "shared-texture") set_option("video-timing-offset", "0");
-#endif
     set_option("keep-open", "yes");
     const char* hwdec = std::getenv("MPV_HWDEC");
 #ifdef _WIN32
@@ -482,11 +476,13 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     size_t stride = static_cast<size_t>(width) * 4;
     char format[] = "rgba";
 
+    int block_for_target_time = 0;
     mpv_render_param params[] = {
       {MPV_RENDER_PARAM_SW_SIZE, size},
       {MPV_RENDER_PARAM_SW_FORMAT, format},
       {MPV_RENDER_PARAM_SW_STRIDE, &stride},
       {MPV_RENDER_PARAM_SW_POINTER, rgba.data()},
+      {MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block_for_target_time},
       {MPV_RENDER_PARAM_INVALID, nullptr},
     };
 

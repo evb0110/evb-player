@@ -54,6 +54,9 @@ type NativePlayer = {
   destroy(): void | Promise<void>
 }
 
+type TPowerBlockerType = 'prevent-app-suspension' | 'prevent-display-sleep'
+interface IPlaybackPowerBlocker {id: number; type: TPowerBlockerType}
+
 export type NativeModule = {
   MpvPlayer: new (options?: { mode?: RenderPipeline }) => NativePlayer
 }
@@ -156,7 +159,8 @@ class PlayerSession {
   private stopped = true
   private started = false
   private hasVideo = false
-  private powerBlocker: {id: number; type: 'prevent-app-suspension' | 'prevent-display-sleep'} | undefined
+  private powerBlocker: IPlaybackPowerBlocker | undefined
+  private powerTarget: TPowerBlockerType | undefined
 
   constructor(
     private readonly window: BrowserWindow,
@@ -352,9 +356,19 @@ class PlayerSession {
     const type = !this.destroyed && !this.paused && !this.stopped
       ? this.hasVideo ? 'prevent-display-sleep' : 'prevent-app-suspension'
       : undefined
-    if (this.powerBlocker?.type === type) return
+    if (this.powerTarget === type) return
+    this.powerTarget = type
     const previous = this.powerBlocker
-    this.powerBlocker = type ? {id: electron.powerSaveBlocker.start(type), type} : undefined
+    let next: IPlaybackPowerBlocker | undefined
+    try {
+      next = type ? {id: electron.powerSaveBlocker.start(type), type} : undefined
+    } catch (error) {
+      // Optional OS power management must not turn valid media into an error.
+      // Keep any previous assertion and try again only after a state change.
+      console.warn('Playback power assertion unavailable', error)
+      return
+    }
+    this.powerBlocker = next
     if (previous) electron.powerSaveBlocker.stop(previous.id)
   }
 

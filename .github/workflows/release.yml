@@ -114,11 +114,6 @@ jobs:
       - name: Verify playback (Linux private display)
         if: matrix.platform == 'linux'
         run: scripts/with-nested-display.sh .devkit/release-playback pnpm test:playback
-      - name: Diagnose macOS software presentation
-        if: failure() && matrix.platform == 'mac'
-        env:
-          EVB_PLAYER_TEST_RENDER_MODE: canvas2d
-        run: pnpm test:playback
       - name: Package
         shell: bash
         env:
