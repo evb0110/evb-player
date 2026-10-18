@@ -49,7 +49,7 @@ type NativePlayer = {
   setRate(value: number): void
   setUpdateCallback(callback?: () => void): void
   setEventCallback(callback?: () => void): void
-  renderFrame(width: number, height: number): NativeFrame | Promise<NativeFrame>
+  renderFrame(width: number, height: number): NativeFrame | null | Promise<NativeFrame | null>
   renderSharedTexture(width: number, height: number): Electron.SharedTextureImportTextureInfo
   pollEvents(): NativeEvent[]
   destroy(): void | Promise<void>
@@ -184,6 +184,8 @@ class PlayerSession {
     this.started = true
     this.startCallbacks()
   }
+  get isClosing() { return this.destroyed }
+
   belongsTo(sender: WebContents | number) {
     return this.ownerWebContentsId === (typeof sender === 'number' ? sender : sender.id)
   }
@@ -431,6 +433,7 @@ class PlayerSession {
       }
     } else {
       const frame = await this.player.renderFrame(this.renderSize.width, this.renderSize.height)
+      if (!frame) return
       const rgba = frame.rgba.buffer.slice(
         frame.rgba.byteOffset,
         frame.rgba.byteOffset + frame.rgba.byteLength,
@@ -614,7 +617,14 @@ class MpvMainService implements MpvMain {
     electron.ipcMain.handle(channel('player:start'), (event, id) => this.getOwnedSession(event, id).start())
     electron.ipcMain.handle(channel('player:create'), async (event, value?: unknown) => {
       const owner = this.resolveOwner(event)
-      if (Array.from(this.sessions.values()).filter(session => session.belongsTo(event.sender)).length >= 4) throw new Error('Too many playback sessions')
+      const owned = () => Array.from(this.sessions.values()).filter(session => session.belongsTo(event.sender))
+      if (owned().length >= 4) {
+        // Closing helpers still consume resources until their shutdown joins.
+        // Await that work before admitting replacements, keeping the same cap.
+        await Promise.all(owned().filter(session => session.isClosing).map(session => session.destroy()))
+        this.resolveOwner(event)
+        if (owned().length >= 4) throw new Error('Too many playback sessions')
+      }
       const options = value && typeof value === 'object'
         ? value as { pipeline?: unknown; renderSize?: unknown }
         : {}

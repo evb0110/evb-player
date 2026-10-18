@@ -3,7 +3,7 @@ import {execFileSync, spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
-import {basename, join, resolve} from 'node:path';
+import {basename, dirname, join, resolve} from 'node:path';
 import {_electron} from 'playwright-core';
 import {prepareHiddenLaunch} from './hidden-launch.mjs';
 
@@ -26,8 +26,9 @@ for (const [name, codec] of [['02 AVI.avi', 'mpeg4'], ['03 Windows Media.wmv', '
   encode(name, ['-f', 'lavfi', '-i', 'testsrc2=s=320x180:r=30:d=6', '-c:v', codec, ...(codec === 'libx265' ? ['-x265-params', 'log-level=error:pools=1'] : [])]);
 }
 encode('07 Audio.flac', ['-f', 'lavfi', '-i', 'sine=frequency=440:duration=6', '-c:a', 'flac']);
+encode('08 Sync check.mp4', ['-f', 'lavfi', '-i', 'testsrc2=s=320x180:r=30:d=6', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=6', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-bf', '2', '-c:a', 'aac', '-shortest']);
 const folderId = createHash('sha256').update(folder).digest('hex').slice(0, 16);
-writeFileSync(join(profile, 'evb-player-state.json'), JSON.stringify({recentFolders: [{id: folderId, name: 'Playback fixtures', rootPath: folder, mediaCount: 7, lastOpenedAt: Date.now()}], progress: {}, lastFolderPath: folder}));
+writeFileSync(join(profile, 'evb-player-state.json'), JSON.stringify({recentFolders: [{id: folderId, name: 'Playback fixtures', rootPath: folder, mediaCount: 8, lastOpenedAt: Date.now()}], progress: {}, lastFolderPath: folder}));
 // Electron 44 lazily installs its executable when this package API is loaded.
 // A guessed dist path bypasses that installer on fresh CI machines.
 const require = createRequire(import.meta.url);
@@ -291,6 +292,16 @@ try {
   assert.ok(Object.keys(state.progress[folderId]).length > 0);
   assert.ok(state.recentFolders.some(folder => folder.id === folderId));
   console.log('PASS existing progress-file format');
+  const runtime = process.env.EVB_PLAYER_TEST_EXECUTABLE
+    ? resolve(dirname(launch.executablePath), ...(process.platform === 'darwin' ? ['..', 'Resources'] : ['resources']), 'dist-native/mpv')
+    : resolve(root, 'dist-native/mpv');
+  const clockNode = process.platform === 'win32' ? process.execPath : join(runtime, 'node');
+  const clockArgs = [join(root, 'scripts/test-playback-clock.mjs'), join(runtime, 'mpv_addon.node'), join(folder, '08. Sync check.mp4')];
+  const clockResult = execFileSync(process.platform === 'darwin' ? '/usr/sbin/taskpolicy' : clockNode,
+    process.platform === 'darwin' ? ['-a', clockNode, ...clockArgs] : clockArgs,
+    {encoding: 'utf8', timeout: 15000, stdio: ['ignore', 'pipe', 'inherit'], env: {...process.env, ELECTRON_RUN_AS_NODE: undefined, EVB_PLAYER_TEST_AUDIO_OUTPUT: 'null', EVB_PLAYER_TEST_DIAGNOSTICS: '1', EVB_PLAYER_TEST_RENDER_DELAY_MS: '70'}});
+  console.log(clockResult.trim());
+
   const qosStatuses = [...new Set([...nativeLogs.matchAll(/producer QoS status=(\d+)/gu)].map(match => Number(match[1])))];
   const wakeDelays = [...nativeLogs.matchAll(/max-wake-us=(\d+)/gu)].map(match => Number(match[1]));
   if (qosStatuses.length || wakeDelays.length) console.log('Native scheduling diagnostics', {qosStatuses, maxWakeMs: Math.max(0, ...wakeDelays) / 1000});

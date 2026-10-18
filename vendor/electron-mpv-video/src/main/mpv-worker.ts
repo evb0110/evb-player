@@ -71,9 +71,10 @@ function queueFrame() {
       while (framePending && !closing) {
         framePending = false
         const start = performance.now()
-        const frame = player.renderFrame(...size!) as NativeFrame
+        const frame = player.renderFrame(...size!) as NativeFrame | null
         const elapsed = performance.now() - start
         renderMs += elapsed; maxRenderMs = Math.max(maxRenderMs, elapsed)
+        if (!frame) continue
         // Capture immediately, independently of presentation waits and pipe
         // backpressure, so libmpv can acknowledge and queue its next frame.
         answering = frameRequests.splice(0)

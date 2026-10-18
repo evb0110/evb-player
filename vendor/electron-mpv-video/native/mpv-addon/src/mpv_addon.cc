@@ -25,6 +25,9 @@ void initialize_playback_process();
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
+#include <cmath>
+#include <thread>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -208,7 +211,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     // The asynchronous software client owns presentation and bounded frame
     // discard. mpv's VO deadline discard can lose an image before the client
     // sees it, especially with zero-duration frames from malformed timestamps.
-    set_option("framedrop", mode_ == "software" ? "no" : "vo");
+    set_option("framedrop", mode_ == "shared-texture" ? "vo" : "no");
     // macOS needs rendering headroom before the presentation deadline. The
     // helper waits asynchronously after copying the image, leaving callbacks
     // free to acknowledge the next frame. Other paths retain immediate timing.
@@ -245,6 +248,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     observe("estimated-vf-fps", MPV_FORMAT_DOUBLE);
     observe("decoder-frame-drop-count", MPV_FORMAT_INT64);
     observe("frame-drop-count", MPV_FORMAT_INT64);
+    if (std::getenv("EVB_PLAYER_TEST_DIAGNOSTICS")) observe("avsync", MPV_FORMAT_DOUBLE);
 
     if (mode_ == "shared-texture") {
 #if defined(__APPLE__)
@@ -376,6 +380,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       Napi::TypeError::New(env, "open(path) requires a string path").ThrowAsJavaScriptException();
       return env.Undefined();
     }
+    playing_ = false;
     std::string path = info[0].As<Napi::String>().Utf8Value();
     int ret = command({"loadfile", path, "replace"});
     if (ret < 0) throw_mpv_error(env, "loadfile", ret);
@@ -387,7 +392,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     int flag = 0;
     int ret = mpv_set_property_async(handle_, 0, "pause", MPV_FORMAT_FLAG, &flag);
     if (ret < 0) throw_mpv_error(env, "play", ret);
-    else set_playback_activity(true);
+    else {playing_ = true; set_playback_activity(true);}
     max_render_wake_us_ = 0;
     render_wake_us_.store(0);
     return env.Undefined();
@@ -398,7 +403,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     int flag = 1;
     int ret = mpv_set_property_async(handle_, 0, "pause", MPV_FORMAT_FLAG, &flag);
     if (ret < 0) throw_mpv_error(env, "pause", ret);
-    else set_playback_activity(false);
+    else {playing_ = false; set_playback_activity(false);}
     return env.Undefined();
   }
 
@@ -406,7 +411,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     Napi::Env env = info.Env();
     int ret = command({"stop"});
     if (ret < 0) throw_mpv_error(env, "stop", ret);
-    else set_playback_activity(false);
+    else {playing_ = false; set_playback_activity(false);}
     return env.Undefined();
   }
 
@@ -506,6 +511,43 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     }
     fit_render_size(width, height, 1920, 1080);
 
+    mpv_render_context_update(render_context_);
+    const bool diagnose = std::getenv("EVB_PLAYER_TEST_DIAGNOSTICS") != nullptr;
+    mpv_render_frame_info timing = {};
+    mpv_render_context_get_info(render_context_, {MPV_RENDER_PARAM_NEXT_FRAME_INFO, &timing});
+    const int64_t began = diagnose ? mpv_get_time_us(handle_) : 0;
+    const int64_t wake = render_wake_us_.exchange(0);
+    if (diagnose && wake > 0) max_render_wake_us_ = std::max(max_render_wake_us_, began - wake);
+    double remaining_ms = 0;
+    if (timing.target_time > 0) {
+#if MPV_CLIENT_API_VERSION >= MPV_MAKE_VERSION(2, 2)
+      remaining_ms = (timing.target_time - mpv_get_time_ns(handle_)) / 1000000.0;
+#else
+      remaining_ms = (timing.target_time - mpv_get_time_us(handle_)) / 1000.0;
+#endif
+    }
+    // Discard an expired image before expensive conversion. Use a nominal
+    // source-frame interval, rather than mpv's potentially zero duration after
+    // malformed timestamps or late wakes. Paused and redraw frames are kept.
+    if (playing_ && frame_duration_ms_ > 0 && timing.target_time > 0 &&
+        (timing.flags & MPV_RENDER_FRAME_INFO_PRESENT) &&
+        !(timing.flags & MPV_RENDER_FRAME_INFO_REDRAW) && remaining_ms < -frame_duration_ms_) {
+      int skip = 1, block = 0;
+      mpv_render_param skipped[] = {
+        {MPV_RENDER_PARAM_SKIP_RENDERING, &skip},
+        {MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block},
+        {MPV_RENDER_PARAM_INVALID, nullptr},
+      };
+      const int result = mpv_render_context_render(render_context_, skipped);
+      if (result < 0) throw_mpv_error(env, "skip expired frame", result);
+      return env.Null();
+    }
+    // Regression fault: emulate expensive rendering while retaining real mpv
+    // audio clocking. This is unavailable outside diagnostic test runs.
+    const char* slow = diagnose ? std::getenv("EVB_PLAYER_TEST_RENDER_DELAY_MS") : nullptr;
+    const double delay = slow ? std::atof(slow) : 0;
+    if (playing_ && std::isfinite(delay) && delay > 0 && delay <= 1000)
+      std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(delay));
     std::vector<uint8_t> rgba(static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
     int size[2] = {width, height};
     size_t stride = static_cast<size_t>(width) * 4;
@@ -521,13 +563,6 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       {MPV_RENDER_PARAM_INVALID, nullptr},
     };
 
-    mpv_render_context_update(render_context_);
-    const bool diagnose = std::getenv("EVB_PLAYER_TEST_DIAGNOSTICS") != nullptr;
-    mpv_render_frame_info timing = {};
-    mpv_render_context_get_info(render_context_, {MPV_RENDER_PARAM_NEXT_FRAME_INFO, &timing});
-    const int64_t began = diagnose ? mpv_get_time_us(handle_) : 0;
-    const int64_t wake = render_wake_us_.exchange(0);
-    if (diagnose && wake > 0) max_render_wake_us_ = std::max(max_render_wake_us_, began - wake);
     int ret = mpv_render_context_render(render_context_, params);
     if (diagnose && ++diagnostic_frames_ % 30 == 0 && timing.target_time > 0) {
       const int64_t ended = mpv_get_time_us(handle_);
@@ -775,6 +810,11 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
               item.Set("data", static_cast<double>(*static_cast<int64_t*>(prop->data)));
               break;
             case MPV_FORMAT_DOUBLE:
+              if (prop->name && std::strcmp(prop->name, "container-fps") == 0) {
+                const double fps = *static_cast<double*>(prop->data);
+                const double period = 1000.0 / fps;
+                frame_duration_ms_ = std::isfinite(period) && period > 0 ? period : 0;
+              }
               item.Set("data", *static_cast<double*>(prop->data));
               break;
             case MPV_FORMAT_STRING: {
@@ -1263,6 +1303,8 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   Napi::ThreadSafeFunction event_callback_;
   uint64_t next_observer_id_ = 1;
   std::string mode_ = "software";
+  bool playing_ = false;
+  double frame_duration_ms_ = 0;
   int64_t timestamp_us_ = 0;
   uint64_t diagnostic_frames_ = 0;
   std::atomic<int64_t> render_wake_us_ = 0;
