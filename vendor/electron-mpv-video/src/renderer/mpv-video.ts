@@ -559,7 +559,9 @@ export class MpvVideoElement extends HTMLElement {
       this.player = await createPlayer();
     } catch (error) {
       if (this.renderMode !== 'shared-texture') throw error;
-      this.renderMode = this.webglRenderer ? 'webgl' : 'canvas2d';
+      // If native GPU context creation failed, avoid uploading every software
+      // frame through a second, potentially emulated graphics stack.
+      this.renderMode = 'canvas2d';
       this.player = await createPlayer();
     }
     if (!this.isConnected) {

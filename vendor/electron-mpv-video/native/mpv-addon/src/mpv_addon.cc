@@ -27,6 +27,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "isolated_mpv.h"
 
 namespace {
 
@@ -1210,6 +1211,13 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
 };
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
+#ifdef __linux__
+  const auto error = load_isolated_mpv();
+  if (!error.empty()) {
+    Napi::Error::New(env, error).ThrowAsJavaScriptException();
+    return exports;
+  }
+#endif
   return MpvPlayer::Init(env, exports);
 }
 

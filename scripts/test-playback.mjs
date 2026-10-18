@@ -141,13 +141,14 @@ try {
     } finally {
       restore();
     }
-    return {values, errors, time: media.currentTime, duration: media.duration, renderer: media.rendererName};
+    return {values, errors, time: media.currentTime, duration: media.duration, renderer: media.rendererName, state: media.state, size: {width: media.activeRenderer?.canvas.width, height: media.activeRenderer?.canvas.height}};
   }, process.env.EVB_PLAYER_TEST_ENGINE);
   assert.deepEqual(motion.errors, []);
   assert.ok(motion.time > 3 && motion.time < 4.5, JSON.stringify(motion));
   const visible = motion.values.filter(value => value > 4);
   const backwards = visible.filter((value, index) => index && value + 1 < visible[index - 1]);
   const changes = visible.filter((value, index) => index && value !== visible[index - 1]);
+  console.log('Playback diagnostics', {time: motion.time, duration: motion.duration, state: motion.state, size: motion.size});
   console.log('Frame measurements', {backwards: backwards.length, changes: changes.length, samples: visible.length, renderer: motion.renderer});
   assert.ok(visible.length > 40, 'Playback must paint frames');
   assert.equal(backwards.length, 0, `Images went backwards ${backwards.length} times`);

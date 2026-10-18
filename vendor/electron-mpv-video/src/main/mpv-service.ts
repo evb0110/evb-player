@@ -516,9 +516,8 @@ class MpvMainService implements MpvMain {
   private getNativeModule() {
     if (!this.nativeModule) {
       const addonPath = this.options.addonPath ?? defaultAddonPath()
-      // Use Node's normal loader so all dependencies share Electron's allocator.
-      // RTLD_DEEPBIND makes libnuma free libc getline storage with the wrong
-      // allocator and crashes inside its constructor before mpv can initialize.
+      // The addon stays in Node's namespace. On Linux it loads the complete
+      // libmpv dependency group separately, avoiding FFmpeg ABI interposition.
       this.nativeModule = nativeRequire(addonPath) as NativeModule
     }
     return this.nativeModule

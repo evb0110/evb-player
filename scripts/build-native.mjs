@@ -68,6 +68,15 @@ if (process.platform === 'darwin') {
       run('patchelf', ['--set-rpath', '$ORIGIN', target]);
     }
   };
+  // The addon resolves libmpv in an isolated ELF namespace, so it deliberately
+  // has no DT_NEEDED entry for libmpv. Stage that explicit runtime root too.
+  const linuxLibrary = library || join(capture('pkg-config', ['--variable=libdir', 'mpv']), 'libmpv.so');
+  const soname = /\(SONAME\).*\[([^\]]+)\]/u.exec(capture('readelf', ['-d', linuxLibrary]))?.[1];
+  if (!soname || !/^libmpv\.so\.[12]$/u.test(soname)) throw new Error(`Unsupported libmpv soname: ${soname}`);
+  const runtime = join(output, soname);
+  copyFileSync(linuxLibrary, runtime);
+  stage(linuxLibrary);
+  run('patchelf', ['--set-rpath', '$ORIGIN', runtime]);
   stage(addon);
   run('patchelf', ['--set-rpath', '$ORIGIN', addon]);
 }
