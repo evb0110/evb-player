@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
@@ -41,6 +41,8 @@ if (process.platform === 'linux' && process.env.EVB_PLAYER_TEST_BACKTRACE) {
 }
 let application;
 let nativeLogs = '';
+let nativeSample;
+const nativeSamplePath = join(work, 'native-playback-sample.txt');
 try {
   application = await _electron.launch({...launch, args: [...(process.env.EVB_PLAYER_TEST_EXECUTABLE ? [] : [root]), `--user-data-dir=${profile}`, ...(process.env.NESTED_RUN ? ['--ozone-platform=wayland'] : [])]});
   for (const stream of [application.process().stdout, application.process().stderr]) {
@@ -92,6 +94,14 @@ try {
   // Keep the diagnostic surface at the fixture's native size. Measuring native
   // paint callbacks avoids hidden/virtual desktop requestAnimationFrame limits.
   await page.locator('evb-media').evaluate(media => {media.style.width = '320px'; media.style.height = '180px';});
+  if (process.platform === 'darwin' && process.env.CI) {
+    const mainPid = application.process().pid;
+    const worker = execFileSync('ps', ['-axo', 'pid=,ppid=,args='], {encoding: 'utf8'}).split('\n').map(line => /^\s*(\d+)\s+(\d+)\s+(.+)$/u.exec(line)).find(match => match && Number(match[2]) === mainPid && match[3].includes('/dist-native/mpv/node') && match[3].includes('mpv-worker.js'));
+    if (worker) {
+      const sampler = spawn('sample', [worker[1], '3', '10', '-file', nativeSamplePath], {stdio: 'ignore'});
+      nativeSample = new Promise(resolve => {sampler.once('error', resolve); sampler.once('close', resolve);});
+    }
+  }
   const motion = await page.evaluate(async engine => {
     let media = document.querySelector('evb-media');
     if (engine === 'chromium') {
@@ -280,8 +290,11 @@ try {
   console.log('PASS existing progress-file format');
 } catch (error) {
   console.error(nativeLogs);
+  await nativeSample;
+  try {console.error(readFileSync(nativeSamplePath, 'utf8'));} catch {}
   throw error;
 } finally {
+  await nativeSample;
   if (application) await application.close().catch(() => undefined);
   rmSync(work, {recursive: true, force: true});
 }
