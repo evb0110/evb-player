@@ -241,6 +241,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     observe("width", MPV_FORMAT_INT64);
     observe("height", MPV_FORMAT_INT64);
     observe("video-codec", MPV_FORMAT_STRING);
+    observe("audio-codec", MPV_FORMAT_STRING);
     observe("container-fps", MPV_FORMAT_DOUBLE);
     observe("seeking", MPV_FORMAT_FLAG);
     observe("paused-for-cache", MPV_FORMAT_FLAG);
@@ -528,7 +529,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     // Discard an expired image before expensive conversion. Use a nominal
     // source-frame interval, rather than mpv's potentially zero duration after
     // malformed timestamps or late wakes. Paused and redraw frames are kept.
-    if (unpaused_ && frame_duration_ms_ > 0 && timing.target_time > 0 &&
+    if (unpaused_ && has_audio_ && frame_duration_ms_ > 0 && timing.target_time > 0 &&
         (timing.flags & MPV_RENDER_FRAME_INFO_PRESENT) &&
         !(timing.flags & MPV_RENDER_FRAME_INFO_REDRAW) && remaining_ms < -frame_duration_ms_ &&
         last_render_finished_us_ > 0 && began - last_render_finished_us_ < 100000) {
@@ -826,6 +827,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
               break;
             case MPV_FORMAT_STRING: {
               char* value = *static_cast<char**>(prop->data);
+              if (prop->name && std::strcmp(prop->name, "audio-codec") == 0) has_audio_ = value && value[0];
               item.Set("data", value ? value : "");
               break;
             }
@@ -834,6 +836,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
               break;
           }
         } else {
+          if (prop->name && std::strcmp(prop->name, "audio-codec") == 0) has_audio_ = false;
           item.Set("data", env.Null());
         }
       }
@@ -1311,6 +1314,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   uint64_t next_observer_id_ = 1;
   std::string mode_ = "software";
   bool unpaused_ = false;
+  bool has_audio_ = false;
   double frame_duration_ms_ = 0;
   int64_t last_render_finished_us_ = 0;
   int64_t timestamp_us_ = 0;
