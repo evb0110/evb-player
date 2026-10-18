@@ -10,6 +10,7 @@ const CHANNEL_PREFIX = 'electron-mpv-video:v1'
 const channel = (name: string) => `${CHANNEL_PREFIX}:${name}`
 const IPC_CHANNELS = [
   'player:create',
+  'player:start',
   'player:open',
   'player:play',
   'player:pause',
@@ -149,8 +150,10 @@ class PlayerSession {
   private source: string | null = null
   private currentTime = 0
   private volume = 100
+  private rate = 1
   private paused = true
   private stopped = true
+  private started = false
 
   constructor(
     private readonly window: BrowserWindow,
@@ -165,6 +168,12 @@ class PlayerSession {
     }
     this.renderSize = options.renderSize
     this.player = new this.nativeModule.MpvPlayer({ mode: this.pipeline })
+  }
+
+  start() {
+    this.assertAlive()
+    if (this.started) return
+    this.started = true
     this.startCallbacks()
   }
 
@@ -218,7 +227,8 @@ class PlayerSession {
 
   setRate(value: number) {
     this.assertAlive()
-    this.player.setRate(Math.max(0.25, Math.min(4, value)))
+    this.rate = Math.max(0.25, Math.min(4, value))
+    this.player.setRate(this.rate)
   }
 
   setRenderSize(size: RenderSize) {
@@ -244,6 +254,7 @@ class PlayerSession {
     try {
       replacement = new this.nativeModule.MpvPlayer({ mode: nextPipeline })
       replacement.setVolume(this.volume)
+      replacement.setRate(this.rate)
       if (this.source && !this.stopped) {
         replacement.open(this.source)
         restoredEvents = await this.waitForFileLoaded(replacement)
@@ -276,8 +287,10 @@ class PlayerSession {
     this.stopCallbacks()
     this.destroyPromise = (async () => {
       try {
+        // A separate process can stop even if its renderer is unresponsive.
+        if (process.platform === 'linux') await this.player.destroy()
         await this.waitForFramePump()
-        await this.player.destroy()
+        if (process.platform !== 'linux') await this.player.destroy()
       } finally {
         this.onDestroyed(this.id)
       }
@@ -425,7 +438,7 @@ class PlayerSession {
     this.eventPumpPending = true
     if (this.eventPumpRunning || this.destroyed) return
     this.eventPumpRunning = true
-    queueMicrotask(() => {
+    setImmediate(() => {
       try {
         while (this.eventPumpPending && !this.destroyed && !this.window.isDestroyed()) {
           this.eventPumpPending = false
@@ -445,8 +458,11 @@ class PlayerSession {
   }
 
   private startCallbacks() {
-    this.player.setUpdateCallback(() => this.queueFrame())
-    this.player.setEventCallback(() => this.queueEvents())
+    // Native callbacks may run from Electron's Cocoa message pump outside a
+    // Node tick. Enter libuv before scheduling promise/microtask work, otherwise
+    // it can remain queued until unrelated IPC activity wakes Node again.
+    this.player.setUpdateCallback(() => setImmediate(() => this.queueFrame()))
+    this.player.setEventCallback(() => setImmediate(() => this.queueEvents()))
     this.queueFrame()
     this.queueEvents()
   }
@@ -562,6 +578,7 @@ class MpvMainService implements MpvMain {
   }
 
   private registerIpc() {
+    electron.ipcMain.handle(channel('player:start'), (event, id) => this.getOwnedSession(event, id).start())
     electron.ipcMain.handle(channel('player:create'), async (event, value?: unknown) => {
       const owner = this.resolveOwner(event)
       if (Array.from(this.sessions.values()).filter(session => session.belongsTo(event.sender)).length >= 4) throw new Error('Too many playback sessions')

@@ -8,7 +8,9 @@ import {_electron} from 'playwright-core';
 import {prepareHiddenLaunch} from './hidden-launch.mjs';
 
 const root = resolve(import.meta.dirname, '..');
-const work = realpathSync(mkdtempSync(join(process.env.TMPDIR || join(root, '.devkit/'), 'playback-test-')));
+const temporary = process.env.TMPDIR || join(root, '.devkit');
+mkdirSync(temporary, {recursive: true});
+const work = realpathSync(mkdtempSync(join(temporary, 'playback-test-')));
 const folder = join(work, 'media');
 const profile = join(work, 'profile');
 mkdirSync(folder, {recursive: true});
@@ -56,6 +58,7 @@ try {
     console.error(await page.evaluate(() => ({text: document.body.innerText, media: [...document.querySelectorAll('evb-media')].map(v => ({src: v.src, ready: v.readyState, duration: v.duration, player: v.playerId, renderer: v.rendererName, loads: v.loadGeneration, opened: v.openedSource, status: v.status, connected: v.isConnected, state: v.state}))})));
     throw error;
   });
+  if (process.env.EVB_PLAYER_TEST_RENDER_MODE) await page.locator('evb-media').evaluate((media, mode) => media.setRenderMode(mode), process.env.EVB_PLAYER_TEST_RENDER_MODE);
   // Vue can call the ref's load method while its suspense fragment is still
   // detached. Loading must survive the later connection to the document.
   await page.evaluate(async () => {
@@ -176,6 +179,17 @@ try {
   await page.locator('evb-media').evaluate(async media => {media.playbackRate = 2; await media.play();});
   await page.waitForFunction(() => document.querySelector('evb-media').currentTime > 2.4);
   await page.locator('evb-media').evaluate(media => media.pause());
+  await page.locator('evb-media').evaluate(async media => {
+    await media.setRenderMode('canvas2d');
+    await media.play();
+  });
+  const speedAfterSwitch = await page.locator('evb-media').evaluate(async media => {
+    const start = media.currentTime;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await media.pause();
+    return media.currentTime - start;
+  });
+  assert.ok(speedAfterSwitch > 0.75 && speedAfterSwitch < 1.25, `Pipeline switch lost 2x speed: ${speedAfterSwitch}`);
   console.log('PASS exact seek and playback speed');
 
   for (const title of ['AVI', 'Windows Media', 'MPEG', 'Flash', 'HEVC', 'Audio']) {
@@ -207,8 +221,19 @@ try {
   console.log('PASS native sessions are released across renderer reloads');
   assert.deepEqual(errors, []);
   console.log('PASS source authorization and renderer lifecycle');
+  const helperPids = [];
+  if (process.platform === 'linux') {
+    const mainPid = await application.evaluate(() => process.pid);
+    const children = execFileSync('ps', ['-o', 'pid=,comm=', '--ppid', String(mainPid)], {encoding: 'utf8'});
+    for (const line of children.split('\n')) {
+      const match = /^\s*(\d+)\s+node$/u.exec(line);
+      if (match) helperPids.push(Number(match[1]));
+    }
+    assert.ok(helperPids.length > 0, 'Linux playback must run in its bundled helper');
+  }
   await application.close();
   application = null;
+  for (const pid of helperPids) assert.throws(() => process.kill(pid, 0), {code: 'ESRCH'});
   const state = JSON.parse(readFileSync(join(profile, 'evb-player-state.json'), 'utf8'));
   assert.ok(Object.keys(state.progress[folderId]).length > 0);
   assert.ok(state.recentFolders.some(folder => folder.id === folderId));

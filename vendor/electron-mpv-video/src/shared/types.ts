@@ -26,6 +26,7 @@ export type Dispose = () => void
 
 export type MpvPlayerSession = {
   readonly id: string
+  start(): Promise<void>
   open(source: string): Promise<void>
   play(): Promise<void>
   pause(): Promise<void>

@@ -583,6 +583,9 @@ export class MpvVideoElement extends HTMLElement {
       }));
     }
     this.disposers.push(this.player.onEvent((event) => this.handlePlayerEvent(event)));
+    // Native property notifications can be emitted as soon as a session is
+    // created. Start delivery only after every receiving listener exists.
+    await this.player.start();
 
     this.resizeObserver = new ResizeObserver(() => this.updateRenderSize());
     this.resizeObserver.observe(this);
@@ -648,8 +651,11 @@ export class MpvVideoElement extends HTMLElement {
   private updateRenderSize() {
     const rect = this.getBoundingClientRect();
     const ratio = window.devicePixelRatio || 1;
-    const width = Math.max(160, Math.floor(rect.width * ratio));
-    const height = Math.max(90, Math.floor(rect.height * ratio));
+    const rawWidth = Math.max(160, Math.floor(rect.width * ratio));
+    const rawHeight = Math.max(90, Math.floor(rect.height * ratio));
+    const scale = Math.min(1, 3840 / rawWidth, 2160 / rawHeight);
+    const width = Math.max(2, Math.floor(rawWidth * scale));
+    const height = Math.max(2, Math.floor(rawHeight * scale));
     this.canvasRenderer?.resize(width, height);
     this.webglRenderer?.resize(width, height);
     this.sharedRenderer?.resize(width, height);
