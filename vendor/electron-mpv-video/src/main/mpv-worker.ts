@@ -12,8 +12,12 @@ const send = (message: unknown) => { if (process.connected) process.send?.(messa
 let size: [number, number] | undefined
 let framePending = false, closing = false
 let framePump: Promise<void> | undefined
+let presentationPump: Promise<void> | undefined
 let shutdownPromise: Promise<void> | undefined
 const frameRequests: number[] = []
+interface IPresentation {frame: NativeFrame; requests: number[]; at: number; generation: number}
+const presentations: IPresentation[] = []
+let generation = 0
 let updates = 0, renders = 0, renderMs = 0, maxRenderMs = 0, pipeMs = 0
 
 async function writeFrame(id: number, frame: NativeFrame) {
@@ -28,6 +32,36 @@ async function writeFrame(id: number, frame: NativeFrame) {
   pipeMs += performance.now() - start
 }
 
+function queuePresentation() {
+  if (presentationPump || closing) return
+  presentationPump = Promise.resolve().then(async () => {
+    let active: IPresentation | undefined
+    try {
+      while (presentations.length && !closing) {
+        active = presentations.shift()!
+        const remaining = active.at - performance.now()
+        if (remaining > 0) await waitForPresentation(remaining)
+        if (closing) break
+        // A seek or source change invalidates unsolicited images, but pending
+        // viewport requests must still receive their matching-sized response.
+        if (active.generation === generation || active.requests.length) {
+          for (const id of active.requests.length ? active.requests : [0]) await writeFrame(id, active.frame)
+        }
+        active = undefined
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      for (const item of [...(active ? [active] : []), ...presentations.splice(0)]) {
+        for (const id of item.requests) send({type: 'reply', id, error: message})
+      }
+      if (!closing) send({type: 'events', events: [{id: -1, type: 'render-error', error: message}]})
+    } finally {
+      presentationPump = undefined
+      if (presentations.length && !closing) queuePresentation()
+    }
+  })
+}
+
 function queueFrame() {
   framePending = true
   if (framePump || !size || closing) return
@@ -40,13 +74,17 @@ function queueFrame() {
         const frame = player.renderFrame(...size!) as NativeFrame
         const elapsed = performance.now() - start
         renderMs += elapsed; maxRenderMs = Math.max(maxRenderMs, elapsed)
-        // Zero denotes a pushed frame; nonzero ids answer viewport requests.
+        // Capture immediately, independently of presentation waits and pipe
+        // backpressure, so libmpv can acknowledge and queue its next frame.
         answering = frameRequests.splice(0)
-        // libmpv supplies this frame's presentation deadline. Waiting here
-        // preserves A/V timing without blocking native callbacks in Node.
-        if (frame.delayMs && frame.delayMs > 0) await waitForPresentation(frame.delayMs)
-        for (const id of answering.length ? answering : [0]) await writeFrame(id, frame)
+        if (presentations.length >= 8) {
+          const discard = presentations.findIndex(item => !item.requests.length)
+          if (discard < 0) throw new Error('Too many pending playback viewport requests')
+          presentations.splice(discard, 1)
+        }
+        presentations.push({frame, requests: answering, at: performance.now() + (frame.delayMs || 0), generation})
         answering = []
+        queuePresentation()
         if (++renders % 30 === 0 && process.env.EVB_PLAYER_TEST_DIAGNOSTICS === '1') console.error('Playback helper metrics', {updates, renders, renderMs: renderMs / renders, maxRenderMs, pipeMs: pipeMs / renders})
       }
     } catch (error) {
@@ -64,6 +102,8 @@ function shutdown() {
   closing = true
   return shutdownPromise ??= (async () => {
     await framePump
+    await presentationPump
+    presentations.length = 0
     await player.destroy()
   })()
 }
@@ -88,6 +128,12 @@ process.on('message', async (message: {id: number; method: string; args: unknown
     }
     const methods = new Set(['open', 'play', 'pause', 'stop', 'seek', 'setVolume', 'setRate'])
     if (!methods.has(method)) throw new Error(`Unknown native playback method: ${method}`)
+    if (['open', 'pause', 'stop', 'seek', 'setRate'].includes(method)) {
+      generation++
+      for (let index = presentations.length - 1; index >= 0; index--) {
+        if (!presentations[index]!.requests.length) presentations.splice(index, 1)
+      }
+    }
     const result = (player[method as keyof typeof player] as (...args: unknown[]) => unknown).apply(player, args)
     send({type: 'reply', id, result})
   } catch (error) {

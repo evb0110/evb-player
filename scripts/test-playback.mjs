@@ -94,7 +94,7 @@ try {
   // Keep the diagnostic surface at the fixture's native size. Measuring native
   // paint callbacks avoids hidden/virtual desktop requestAnimationFrame limits.
   await page.locator('evb-media').evaluate(media => {media.style.width = '320px'; media.style.height = '180px';});
-  if (process.platform === 'darwin' && process.env.CI) {
+  if (process.platform === 'darwin' && process.env.EVB_PLAYER_TEST_SAMPLE === '1') {
     const mainPid = application.process().pid;
     const worker = execFileSync('ps', ['-axo', 'pid=,ppid=,args='], {encoding: 'utf8'}).split('\n').map(line => /^\s*(\d+)\s+(\d+)\s+(.+)$/u.exec(line)).find(match => match && Number(match[2]) === mainPid && match[3].includes('/dist-native/mpv/node') && match[3].includes('mpv-worker.js'));
     if (worker) {
