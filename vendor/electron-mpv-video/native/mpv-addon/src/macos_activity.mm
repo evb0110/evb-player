@@ -85,7 +85,7 @@ void* begin_playback_activity() {
     std::lock_guard<std::mutex> lock(policy_mutex);
     begin_playback_policy();
     id activity = [[NSProcessInfo processInfo]
-        beginActivityWithOptions:NSActivityUserInitiatedAllowingIdleSystemSleep
+        beginActivityWithOptions:(NSActivityUserInitiatedAllowingIdleSystemSleep | NSActivityLatencyCritical)
         reason:@"EVB Player playback"];
     result->token = [activity retain];
     return result;
