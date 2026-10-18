@@ -46,6 +46,7 @@ try {
       player.open(process.argv[3]);
     });
     const maximumAvDrift = Math.max(0, ...avsync.map(Math.abs));
+    console.log('Audio/video clock measurements', {phase, paints, skipped, position, maximumAvDrift});
     assert.ok(paints > 20, `Render under injected load: ${paints}`);
     assert.ok(skipped > 0, 'The client must discard expired frames under load');
     assert.ok(avsync.length > 10, 'Measure real decoded audio/video synchronization');

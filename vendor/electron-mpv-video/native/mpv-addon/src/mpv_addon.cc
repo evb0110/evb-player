@@ -27,7 +27,6 @@ void initialize_playback_process();
 #include <atomic>
 #include <chrono>
 #include <cmath>
-#include <thread>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -532,7 +531,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     if (unpaused_ && frame_duration_ms_ > 0 && timing.target_time > 0 &&
         (timing.flags & MPV_RENDER_FRAME_INFO_PRESENT) &&
         !(timing.flags & MPV_RENDER_FRAME_INFO_REDRAW) && remaining_ms < -frame_duration_ms_ &&
-        last_render_started_us_ > 0 && began - last_render_started_us_ < 100000) {
+        last_render_finished_us_ > 0 && began - last_render_finished_us_ < 100000) {
       int skip = 1, block = 0;
       mpv_render_param skipped[] = {
         {MPV_RENDER_PARAM_SKIP_RENDERING, &skip},
@@ -543,15 +542,16 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       if (result < 0) throw_mpv_error(env, "skip expired frame", result);
       return env.Null();
     }
-    // As in mpv's VO, attempt a picture at least every 100 ms when hopelessly
-    // late, rather than starving video indefinitely. Include conversion cost.
-    last_render_started_us_ = began;
+    // As in mpv's VO, attempt a picture after 100 ms without a completed
+    // rendering, rather than starving video indefinitely.
     // Regression fault: emulate expensive rendering while retaining real mpv
     // audio clocking. This is unavailable outside diagnostic test runs.
     const char* slow = diagnose ? std::getenv("EVB_PLAYER_TEST_RENDER_DELAY_MS") : nullptr;
     const double delay = slow ? std::atof(slow) : 0;
-    if (unpaused_ && std::isfinite(delay) && delay > 0 && delay <= 1000)
-      std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(delay));
+    if (unpaused_ && std::isfinite(delay) && delay > 0 && delay <= 1000) {
+      const auto until = std::chrono::steady_clock::now() + std::chrono::duration<double, std::milli>(delay);
+      while (std::chrono::steady_clock::now() < until) std::atomic_signal_fence(std::memory_order_seq_cst);
+    }
     std::vector<uint8_t> rgba(static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
     int size[2] = {width, height};
     size_t stride = static_cast<size_t>(width) * 4;
@@ -595,6 +595,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       frame.Set("delayMs", std::max(0.0, remaining_ms));
     }
 #endif
+    last_render_finished_us_ = mpv_get_time_us(handle_);
     return frame;
   }
 
@@ -1311,7 +1312,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   std::string mode_ = "software";
   bool unpaused_ = false;
   double frame_duration_ms_ = 0;
-  int64_t last_render_started_us_ = 0;
+  int64_t last_render_finished_us_ = 0;
   int64_t timestamp_us_ = 0;
   uint64_t diagnostic_frames_ = 0;
   std::atomic<int64_t> render_wake_us_ = 0;

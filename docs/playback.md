@@ -42,7 +42,7 @@ IINA delegates decoding and synchronization to libmpv: [MPVController.swift](htt
 
 The macOS release lane repeats the suite with `EVB_PLAYER_TEST_BACKGROUND_DECODER=1`. This injects the same Darwin background policy as `taskpolicy -b` before mpv creates its threads, verifies that playback observes that suppression, and checks frame cadence and restoration of its idle OS policy. Electron and the test runner keep their ordinary scheduling so the injected fault targets the decoder.
 
-A separate native audio/video regression injects 70 ms of rendering cost per image. It requires expired-frame discard and less than 200 ms of measured A/V drift over each 3.5-second phase, including replacement of a playing source without another play command. The controlled baseline accumulated 1.79 seconds of drift with the same generated input.
+A separate native audio/video regression injects 70 ms of CPU rendering cost per image. It requires expired-frame discard and less than 200 ms of measured A/V drift over each 3.5-second phase, including replacement of a playing source without another play command. The controlled baseline accumulated 1.79 seconds of drift with the same generated input.
 
 Automated fixtures use mpv's null audio output, while retaining audio decoding and clocking. They neither require a hosted sound device nor play test tones on the user's desktop; physical audio-output quality is not measured by this suite.
 
