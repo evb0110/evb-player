@@ -11,6 +11,7 @@
 #include <dlfcn.h>
 void* begin_playback_activity();
 void end_playback_activity(void* token);
+void set_playback_thread_priority(bool rendering);
 #endif
 
 #ifdef _WIN32
@@ -164,6 +165,9 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       }
     }
 
+#ifdef __APPLE__
+    if (mode_ == "software") set_playback_thread_priority(false);
+#endif
     handle_ = mpv_create();
     if (!handle_) {
       Napi::Error::New(env, "mpv_create failed").ThrowAsJavaScriptException();
@@ -285,6 +289,9 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
         return;
       }
     }
+#ifdef __APPLE__
+    if (mode_ == "software") set_playback_thread_priority(true);
+#endif
   }
 
   ~MpvPlayer() override {
@@ -491,9 +498,9 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     int ret = mpv_render_context_render(render_context_, params);
     if (diagnose && ++diagnostic_frames_ % 30 == 0 && timing.target_time > 0) {
       const int64_t ended = mpv_get_time_us(handle_);
-      std::fprintf(stderr, "Native frame timing: lead=%.3fms render=%.3fms late=%.3fms\n",
-          (timing.target_time - began) / 1000.0, (ended - began) / 1000.0,
-          (ended - timing.target_time) / 1000.0);
+      std::fprintf(stderr, "Native frame timing: target-raw=%lld clock-us=%lld render-us=%lld\n",
+          static_cast<long long>(timing.target_time), static_cast<long long>(began),
+          static_cast<long long>(ended - began));
     }
     if (ret < 0) {
       throw_mpv_error(env, "mpv_render_context_render", ret);

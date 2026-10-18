@@ -155,6 +155,8 @@ class PlayerSession {
   private paused = true
   private stopped = true
   private started = false
+  private hasVideo = false
+  private powerBlocker: {id: number; type: 'prevent-app-suspension' | 'prevent-display-sleep'} | undefined
 
   constructor(
     private readonly window: BrowserWindow,
@@ -187,6 +189,7 @@ class PlayerSession {
     this.source = source
     this.currentTime = 0
     this.stopped = false
+    this.updatePowerState()
     this.queueFrame()
     this.queueEvents()
   }
@@ -195,12 +198,14 @@ class PlayerSession {
     this.assertAlive()
     this.player.play()
     this.paused = false
+    this.updatePowerState()
   }
 
   pause() {
     this.assertAlive()
     this.player.pause()
     this.paused = true
+    this.updatePowerState()
   }
 
   stop() {
@@ -209,6 +214,7 @@ class PlayerSession {
     this.currentTime = 0
     this.paused = true
     this.stopped = true
+    this.updatePowerState()
   }
 
   seek(seconds: number) {
@@ -284,6 +290,7 @@ class PlayerSession {
   destroy(): Promise<void> {
     if (this.destroyPromise) return this.destroyPromise
     this.destroyed = true
+    this.updatePowerState()
     this.stopCallbacks()
     this.destroyPromise = (async () => {
       try {
@@ -324,6 +331,10 @@ class PlayerSession {
   }
 
   private trackEvent(event: NativeEvent) {
+    if (event.error && ['end-file', 'worker-error'].includes(event.type)) {
+      this.paused = true
+      this.updatePowerState()
+    }
     if (event.type !== 'property-change') return
     if (event.name === 'time-pos' && typeof event.data === 'number') {
       this.currentTime = event.data
@@ -331,7 +342,20 @@ class PlayerSession {
       this.paused = event.data
     } else if (event.name === 'eof-reached' && event.data === true) {
       this.paused = true
+    } else if (event.name === 'width') {
+      this.hasVideo = typeof event.data === 'number' && event.data > 0
     }
+    this.updatePowerState()
+  }
+
+  private updatePowerState() {
+    const type = !this.destroyed && !this.paused && !this.stopped
+      ? this.hasVideo ? 'prevent-display-sleep' : 'prevent-app-suspension'
+      : undefined
+    if (this.powerBlocker?.type === type) return
+    const previous = this.powerBlocker
+    this.powerBlocker = type ? {id: electron.powerSaveBlocker.start(type), type} : undefined
+    if (previous) electron.powerSaveBlocker.stop(previous.id)
   }
 
   private sendEvent(event: NativeEvent) {

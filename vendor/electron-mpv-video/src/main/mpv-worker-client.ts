@@ -124,6 +124,8 @@ export function createMpvWorkerModule(addonPath: string): NativeModule {
     }
     setEventCallback(callback?: () => void) { this.eventCallback = callback; if (this.events.length) callback?.() }
     async renderFrame(width: number, height: number) {
+      width = Math.max(2, width | 0)
+      height = Math.max(2, height | 0)
       const unchanged = this.requestedSize?.[0] === width && this.requestedSize?.[1] === height
       this.requestedSize = [width, height]
       const scale = Math.min(1, 1920 / width, 1080 / height)

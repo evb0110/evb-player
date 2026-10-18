@@ -158,20 +158,34 @@ try {
     } finally {
       restore();
     }
-    return {values, errors, timing, time: media.currentTime, duration: media.duration, renderer: media.rendererName, state: media.state, size: {width: media.activeRenderer?.canvas.width, height: media.activeRenderer?.canvas.height}};
+    const gl = media.activeRenderer?.gl;
+    const gpuInfo = gl?.getExtension('WEBGL_debug_renderer_info');
+    const gpu = gpuInfo ? gl.getParameter(gpuInfo.UNMASKED_RENDERER_WEBGL) : undefined;
+    return {values, errors, timing, gpu, time: media.currentTime, duration: media.duration, renderer: media.rendererName, state: media.state, size: {width: media.activeRenderer?.canvas.width, height: media.activeRenderer?.canvas.height}};
   }, process.env.EVB_PLAYER_TEST_ENGINE);
   assert.deepEqual(motion.errors, []);
   assert.ok(motion.time > 3 && motion.time < 4.5, JSON.stringify(motion));
   const visible = motion.values.filter(value => value > 4);
   const backwards = visible.filter((value, index) => index && value + 1 < visible[index - 1]);
   const changes = visible.filter((value, index) => index && value !== visible[index - 1]);
-  console.log('Playback diagnostics', {time: motion.time, duration: motion.duration, state: motion.state, size: motion.size, timing: motion.timing});
+  console.log('Playback diagnostics', {time: motion.time, duration: motion.duration, state: motion.state, size: motion.size, timing: motion.timing, gpu: motion.gpu});
   console.log('Frame measurements', {backwards: backwards.length, changes: changes.length, samples: visible.length, renderer: motion.renderer});
   assert.ok(visible.length > 40, 'Playback must paint frames');
   assert.equal(backwards.length, 0, `Images went backwards ${backwards.length} times`);
   assert.ok(changes.length >= 85, `Only ${changes.length} distinct frame transitions in 3.5 seconds of 30fps video`);
   assert.ok(visible.at(-1) - visible[0] > 75, 'The video must advance through its images');
   console.log('PASS broken B-frame timestamps: images stay in display order', {samples: visible.length, renderer: motion.renderer});
+  if (process.platform === 'darwin') {
+    const mainPid = application.process().pid;
+    const ownsDisplayWake = () => execFileSync('pmset', ['-g', 'assertions'], {encoding: 'utf8'}).split('\n').some(line => line.includes(`pid ${mainPid}(`) && /PreventUserIdleDisplaySleep|NoDisplaySleepAssertion/u.test(line));
+    const start = await page.locator('evb-media').evaluate(media => media.currentTime);
+    await page.locator('evb-media').evaluate(media => media.play());
+    await page.waitForFunction(start => document.querySelector('evb-media').currentTime > start + 0.1, start);
+    assert.ok(ownsDisplayWake(), 'Playing video must prevent display sleep');
+    await page.locator('evb-media').evaluate(media => media.pause());
+    assert.equal(ownsDisplayWake(), false, 'Pausing must release the playback power assertion');
+    console.log('PASS active playback power assertion and pause cleanup');
+  }
 
   const combinedSeek = await page.locator('evb-media').evaluate(media => {
     media.currentTime = 0.25;
