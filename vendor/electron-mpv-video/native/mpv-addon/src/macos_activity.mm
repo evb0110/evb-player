@@ -8,7 +8,7 @@ int set_playback_thread_priority(bool rendering) {
 void* begin_playback_activity() {
   @autoreleasepool {
     id activity = [[NSProcessInfo processInfo]
-        beginActivityWithOptions:NSActivityUserInitiatedAllowingIdleSystemSleep
+        beginActivityWithOptions:(NSActivityUserInitiatedAllowingIdleSystemSleep | NSActivityLatencyCritical)
         reason:@"EVB Player playback"];
     return [activity retain];
   }

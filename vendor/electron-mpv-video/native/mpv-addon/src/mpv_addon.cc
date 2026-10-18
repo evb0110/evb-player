@@ -216,7 +216,6 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
 #else
     set_option("hwdec", hwdec && hwdec[0] ? hwdec : (mode_ == "shared-texture" ? "auto-safe" : "no"));
 #endif
-    set_option("sw-fast", "yes");
     set_option("vo", "libmpv");
 
     int ret = mpv_initialize(handle_);
