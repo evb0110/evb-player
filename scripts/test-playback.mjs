@@ -294,6 +294,16 @@ try {
   const qosStatuses = [...new Set([...nativeLogs.matchAll(/producer QoS status=(\d+)/gu)].map(match => Number(match[1])))];
   const wakeDelays = [...nativeLogs.matchAll(/max-wake-us=(\d+)/gu)].map(match => Number(match[1]));
   if (qosStatuses.length || wakeDelays.length) console.log('Native scheduling diagnostics', {qosStatuses, maxWakeMs: Math.max(0, ...wakeDelays) / 1000});
+  const restoredPolicies = [...nativeLogs.matchAll(/policy restored: expected-background=(\d+) background=(\d+) expected-role=(-?\d+) role=(-?\d+) status=(\d+)/gu)];
+  if (process.platform === 'darwin') {
+    assert.ok(restoredPolicies.length > 0, 'Playback must restore its OS scheduling policy');
+    for (const match of restoredPolicies) {
+      assert.equal(match[2], match[1], 'Restore inherited background state');
+      assert.equal(match[4], match[3], 'Restore previous task role');
+      assert.equal(match[5], '0', 'OS scheduling policy must remain readable');
+    }
+    console.log('PASS restored OS scheduling policy', {restorations: restoredPolicies.length});
+  }
 } catch (error) {
   console.error(nativeLogs);
   await nativeSample;
