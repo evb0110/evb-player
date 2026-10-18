@@ -380,10 +380,10 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       Napi::TypeError::New(env, "open(path) requires a string path").ThrowAsJavaScriptException();
       return env.Undefined();
     }
-    playing_ = false;
     std::string path = info[0].As<Napi::String>().Utf8Value();
     int ret = command({"loadfile", path, "replace"});
     if (ret < 0) throw_mpv_error(env, "loadfile", ret);
+    else if (unpaused_) set_playback_activity(true);
     return env.Undefined();
   }
 
@@ -392,7 +392,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     int flag = 0;
     int ret = mpv_set_property_async(handle_, 0, "pause", MPV_FORMAT_FLAG, &flag);
     if (ret < 0) throw_mpv_error(env, "play", ret);
-    else {playing_ = true; set_playback_activity(true);}
+    else {unpaused_ = true; set_playback_activity(true);}
     max_render_wake_us_ = 0;
     render_wake_us_.store(0);
     return env.Undefined();
@@ -403,7 +403,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     int flag = 1;
     int ret = mpv_set_property_async(handle_, 0, "pause", MPV_FORMAT_FLAG, &flag);
     if (ret < 0) throw_mpv_error(env, "pause", ret);
-    else {playing_ = false; set_playback_activity(false);}
+    else {unpaused_ = false; set_playback_activity(false);}
     return env.Undefined();
   }
 
@@ -411,7 +411,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     Napi::Env env = info.Env();
     int ret = command({"stop"});
     if (ret < 0) throw_mpv_error(env, "stop", ret);
-    else {playing_ = false; set_playback_activity(false);}
+    else set_playback_activity(false); // stop retains mpv's user pause setting
     return env.Undefined();
   }
 
@@ -515,7 +515,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     const bool diagnose = std::getenv("EVB_PLAYER_TEST_DIAGNOSTICS") != nullptr;
     mpv_render_frame_info timing = {};
     mpv_render_context_get_info(render_context_, {MPV_RENDER_PARAM_NEXT_FRAME_INFO, &timing});
-    const int64_t began = diagnose ? mpv_get_time_us(handle_) : 0;
+    const int64_t began = mpv_get_time_us(handle_);
     const int64_t wake = render_wake_us_.exchange(0);
     if (diagnose && wake > 0) max_render_wake_us_ = std::max(max_render_wake_us_, began - wake);
     double remaining_ms = 0;
@@ -529,9 +529,10 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     // Discard an expired image before expensive conversion. Use a nominal
     // source-frame interval, rather than mpv's potentially zero duration after
     // malformed timestamps or late wakes. Paused and redraw frames are kept.
-    if (playing_ && frame_duration_ms_ > 0 && timing.target_time > 0 &&
+    if (unpaused_ && frame_duration_ms_ > 0 && timing.target_time > 0 &&
         (timing.flags & MPV_RENDER_FRAME_INFO_PRESENT) &&
-        !(timing.flags & MPV_RENDER_FRAME_INFO_REDRAW) && remaining_ms < -frame_duration_ms_) {
+        !(timing.flags & MPV_RENDER_FRAME_INFO_REDRAW) && remaining_ms < -frame_duration_ms_ &&
+        last_render_started_us_ > 0 && began - last_render_started_us_ < 100000) {
       int skip = 1, block = 0;
       mpv_render_param skipped[] = {
         {MPV_RENDER_PARAM_SKIP_RENDERING, &skip},
@@ -542,11 +543,14 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       if (result < 0) throw_mpv_error(env, "skip expired frame", result);
       return env.Null();
     }
+    // As in mpv's VO, attempt a picture at least every 100 ms when hopelessly
+    // late, rather than starving video indefinitely. Include conversion cost.
+    last_render_started_us_ = began;
     // Regression fault: emulate expensive rendering while retaining real mpv
     // audio clocking. This is unavailable outside diagnostic test runs.
     const char* slow = diagnose ? std::getenv("EVB_PLAYER_TEST_RENDER_DELAY_MS") : nullptr;
     const double delay = slow ? std::atof(slow) : 0;
-    if (playing_ && std::isfinite(delay) && delay > 0 && delay <= 1000)
+    if (unpaused_ && std::isfinite(delay) && delay > 0 && delay <= 1000)
       std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(delay));
     std::vector<uint8_t> rgba(static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
     int size[2] = {width, height};
@@ -802,18 +806,20 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
         if (prop->data) {
           switch (prop->format) {
             case MPV_FORMAT_FLAG:
-              if (prop->name && std::strcmp(prop->name, "pause") == 0)
-                set_playback_activity(*static_cast<int*>(prop->data) == 0);
+              if (prop->name && std::strcmp(prop->name, "eof-reached") == 0 && *static_cast<int*>(prop->data)) {
+                unpaused_ = false;
+                set_playback_activity(false);
+              }
               item.Set("data", *static_cast<int*>(prop->data) != 0);
               break;
             case MPV_FORMAT_INT64:
               item.Set("data", static_cast<double>(*static_cast<int64_t*>(prop->data)));
               break;
             case MPV_FORMAT_DOUBLE:
-              if (prop->name && std::strcmp(prop->name, "container-fps") == 0) {
-                const double fps = *static_cast<double*>(prop->data);
-                const double period = 1000.0 / fps;
-                frame_duration_ms_ = std::isfinite(period) && period > 0 ? period : 0;
+              if (prop->name && (std::strcmp(prop->name, "container-fps") == 0 ||
+                                 std::strcmp(prop->name, "estimated-vf-fps") == 0)) {
+                const double period = 1000.0 / *static_cast<double*>(prop->data);
+                if (std::isfinite(period) && period > 0) frame_duration_ms_ = period;
               }
               item.Set("data", *static_cast<double*>(prop->data));
               break;
@@ -1303,8 +1309,9 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
   Napi::ThreadSafeFunction event_callback_;
   uint64_t next_observer_id_ = 1;
   std::string mode_ = "software";
-  bool playing_ = false;
+  bool unpaused_ = false;
   double frame_duration_ms_ = 0;
+  int64_t last_render_started_us_ = 0;
   int64_t timestamp_us_ = 0;
   uint64_t diagnostic_frames_ = 0;
   std::atomic<int64_t> render_wake_us_ = 0;
