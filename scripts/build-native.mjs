@@ -47,7 +47,17 @@ if (process.platform === 'darwin') {
   const stagedLibrary = stage(library);
   const installName = capture('otool', ['-D', library]).split('\n')[1].trim();
   run('install_name_tool', ['-change', installName, `@loader_path/${basename(stagedLibrary)}`, addon]);
-  for (const file of [...staged.values(), addon]) run('codesign', ['--force', '--sign', '-', file]);
+  for (const file of [...staged.values(), addon]) {
+    run('codesign', ['--force', '--sign', '-', file]);
+    run('codesign', ['--verify', '--strict', file]);
+  }
+  // macOS playback gets its own Node event loop and rendering
+  // thread, keeping CPU frame conversion outside Electron's UI process.
+  for (const dependency of capture('otool', ['-L', process.execPath]).split('\n').slice(1).map(line => line.trim().split(' (')[0])) {
+    if (!dependency.startsWith('/usr/lib/') && !dependency.startsWith('/System/')) throw new Error(`Use the official Node runtime for packaging; unexpected dependency: ${dependency}`);
+  }
+  copyFileSync(process.execPath, join(output, 'node'));
+  copyFileSync(join(root, 'dist-electron/vendor/electron-mpv-video/src/main/mpv-worker.js'), join(output, 'mpv-worker.js'));
   writeFileSync(join(output, 'runtime.json'), JSON.stringify({platform: process.platform, files: [...staged.keys()]}, null, 2));
 } else if (process.platform === 'win32') {
   const sdk = process.env.MPV_RUNTIME_DIR || join(root, '.devkit/mpv-sdk');
@@ -78,6 +88,11 @@ if (process.platform === 'darwin') {
   copyFileSync(join(root, 'dist-electron/vendor/electron-mpv-video/src/main/mpv-worker.js'), join(output, 'mpv-worker.js'));
   stage(process.execPath);
   run('patchelf', ['--set-rpath', '$ORIGIN', node]);
+}
+if (process.platform !== 'win32') {
+  // Validate the complete relocated dependency graph in the exact executable
+  // that will load it. Signature checks alone do not exercise dyld/ld.so.
+  run(join(output, 'node'), ['-e', "if (typeof require(process.argv[1]).MpvPlayer !== 'function') throw new Error('Invalid playback addon')", addon]);
 }
 copyFileSync(join(root, 'THIRD_PARTY_NOTICES.md'), join(output, 'THIRD_PARTY_NOTICES.md'));
 await build({entryPoints: [join(root, 'electron/preload.ts')], outfile: join(root, 'dist-electron/electron/preload.js'), platform: 'node', format: 'cjs', bundle: true, external: ['electron']});

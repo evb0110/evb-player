@@ -15,4 +15,4 @@ Corresponding source and build instructions:
 - Windows runtime and build recipes: <https://github.com/zhongfly/mpv-winbuild>, <https://github.com/shinchiro/mpv-winbuild-cmake>
 - Windows Vulkan loader: <https://vulkan.lunarg.com/sdk/home/>, <https://github.com/KhronosGroup/Vulkan-Loader>, with its included runtime license
 - Ubuntu dependency sources: <https://packages.ubuntu.com/jammy/libmpv-dev>
-- Linux playback helper runtime: <https://github.com/nodejs/node/tree/v24.11.1>, with its complete Node.js and dependency license notice included
+- Playback helper runtime: <https://github.com/nodejs/node/tree/v24.11.1>, with its complete Node.js and dependency license notice included

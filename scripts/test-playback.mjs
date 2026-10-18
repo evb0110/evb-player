@@ -222,14 +222,14 @@ try {
   assert.deepEqual(errors, []);
   console.log('PASS source authorization and renderer lifecycle');
   const helperPids = [];
-  if (process.platform === 'linux') {
+  if (process.platform === 'linux' || process.platform === 'darwin') {
     const mainPid = await application.evaluate(() => process.pid);
-    const children = execFileSync('ps', ['-o', 'pid=,comm=', '--ppid', String(mainPid)], {encoding: 'utf8'});
+    const children = execFileSync('ps', ['-axo', 'pid=,ppid=,args='], {encoding: 'utf8'});
     for (const line of children.split('\n')) {
-      const match = /^\s*(\d+)\s+node$/u.exec(line);
-      if (match) helperPids.push(Number(match[1]));
+      const match = /^\s*(\d+)\s+(\d+)\s+(.+)$/u.exec(line);
+      if (match && Number(match[2]) === mainPid && match[3].includes('/dist-native/mpv/node') && match[3].includes('mpv-worker.js')) helperPids.push(Number(match[1]));
     }
-    assert.ok(helperPids.length > 0, 'Linux playback must run in its bundled helper');
+    assert.ok(helperPids.length > 0, 'Playback must run in its bundled helper');
   }
   await application.close();
   application = null;

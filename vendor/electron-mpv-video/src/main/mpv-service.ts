@@ -38,6 +38,7 @@ export type NativeEvent = {
 }
 
 type NativePlayer = {
+  readonly outOfProcess?: boolean
   open(source: string): void
   play(): void
   pause(): void
@@ -85,7 +86,7 @@ const nativeRequire = createRequire(__filename)
 let activeService: MpvMainService | null = null
 
 function supportsSharedTexturePipeline() {
-  return (process.platform === 'darwin' || process.platform === 'win32') && Boolean(electron.sharedTexture)
+  return process.platform === 'win32' && Boolean(electron.sharedTexture)
 }
 
 function defaultAddonPath() {
@@ -176,7 +177,6 @@ class PlayerSession {
     this.started = true
     this.startCallbacks()
   }
-
   belongsTo(sender: WebContents | number) {
     return this.ownerWebContentsId === (typeof sender === 'number' ? sender : sender.id)
   }
@@ -288,9 +288,9 @@ class PlayerSession {
     this.destroyPromise = (async () => {
       try {
         // A separate process can stop even if its renderer is unresponsive.
-        if (process.platform === 'linux') await this.player.destroy()
+        if (this.player.outOfProcess) await this.player.destroy()
         await this.waitForFramePump()
-        if (process.platform !== 'linux') await this.player.destroy()
+        if (!this.player.outOfProcess) await this.player.destroy()
       } finally {
         this.onDestroyed(this.id)
       }
@@ -438,31 +438,25 @@ class PlayerSession {
     this.eventPumpPending = true
     if (this.eventPumpRunning || this.destroyed) return
     this.eventPumpRunning = true
-    setImmediate(() => {
-      try {
-        while (this.eventPumpPending && !this.destroyed && !this.window.isDestroyed()) {
-          this.eventPumpPending = false
-          try {
-            for (const event of this.player.pollEvents()) this.sendEvent(event)
-          } catch (error) {
-            this.sendError('event-error', error)
-          }
-        }
-      } finally {
-        this.eventPumpRunning = false
-        if (this.eventPumpPending && !this.destroyed && !this.window.isDestroyed()) {
-          this.queueEvents()
+    try {
+      while (this.eventPumpPending && !this.destroyed && !this.window.isDestroyed()) {
+        this.eventPumpPending = false
+        try {
+          for (const event of this.player.pollEvents()) this.sendEvent(event)
+        } catch (error) {
+          this.sendError('event-error', error)
         }
       }
-    })
+    } finally {
+      this.eventPumpRunning = false
+    }
   }
 
   private startCallbacks() {
-    // Native callbacks may run from Electron's Cocoa message pump outside a
-    // Node tick. Enter libuv before scheduling promise/microtask work, otherwise
-    // it can remain queued until unrelated IPC activity wakes Node again.
-    this.player.setUpdateCallback(() => setImmediate(() => this.queueFrame()))
-    this.player.setEventCallback(() => setImmediate(() => this.queueEvents()))
+    // Native TSFN and helper IPC callbacks already arrive on the JS thread.
+    // Drain their work directly rather than depending on another Node tick.
+    this.player.setUpdateCallback(() => this.queueFrame())
+    this.player.setEventCallback(() => this.queueEvents())
     this.queueFrame()
     this.queueEvents()
   }
@@ -543,7 +537,7 @@ class MpvMainService implements MpvMain {
   private getNativeModule() {
     if (!this.nativeModule) {
       const addonPath = this.options.addonPath ?? defaultAddonPath()
-      this.nativeModule = process.platform === 'linux'
+      this.nativeModule = process.platform === 'linux' || process.platform === 'darwin'
         ? createMpvWorkerModule(addonPath)
         : nativeRequire(addonPath) as NativeModule
     }

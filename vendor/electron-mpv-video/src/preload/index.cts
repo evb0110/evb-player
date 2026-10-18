@@ -16,7 +16,7 @@ type SharedTextureCallback = (frame: VideoFrame) => Promise<void> | void
 
 const sharedTextureCallbacks = new Map<string, Set<SharedTextureCallback>>()
 const supportsSharedTexture =
-  (process.platform === 'darwin' || process.platform === 'win32') && Boolean(electron.sharedTexture)
+  process.platform === 'win32' && Boolean(electron.sharedTexture)
 let sharedTextureReceiverRegistered = false
 let apiExposed = false
 

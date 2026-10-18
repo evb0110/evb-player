@@ -5,6 +5,7 @@ import type {NativeEvent, NativeFrame, NativeModule} from './mpv-service'
 
 export function createMpvWorkerModule(addonPath: string): NativeModule {
   return {MpvPlayer: class {
+    readonly outOfProcess = true
     private child
     private nextId = 0
     private pending = new Map<number, {resolve(value: unknown): void; reject(error: Error): void}>()
@@ -115,7 +116,7 @@ export function createMpvWorkerModule(addonPath: string): NativeModule {
     }
     setEventCallback(callback?: () => void) { this.eventCallback = callback; if (this.events.length) callback?.() }
     async renderFrame(width: number, height: number) { return await this.request('renderFrame', [width, height]) as NativeFrame }
-    renderSharedTexture(): never { throw new Error('Linux uses software frames') }
+    renderSharedTexture(): never { throw new Error('This playback helper uses software frames') }
     pollEvents() { return this.events.splice(0) }
     async destroy() {
       if (!this.destroying) {

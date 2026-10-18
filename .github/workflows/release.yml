@@ -80,7 +80,7 @@ jobs:
           choco install ffmpeg --no-progress -y
       - name: Install libmpv development runtime (Linux)
         if: matrix.platform == 'linux'
-        run: sudo apt-get update && sudo apt-get install -y libmpv-dev patchelf ffmpeg kwin-wayland kwin-wayland-backend-virtual dbus-x11 gdb
+        run: sudo apt-get update && sudo apt-get install -y libmpv-dev patchelf ffmpeg kwin-wayland kwin-wayland-backend-virtual dbus-x11
 
       - name: Import the Developer ID certificate
         if: matrix.platform == 'mac'
@@ -113,7 +113,7 @@ jobs:
         run: pnpm test:playback
       - name: Verify playback (Linux private display)
         if: matrix.platform == 'linux'
-        run: EVB_PLAYER_TEST_BACKTRACE=1 scripts/with-nested-display.sh .devkit/release-playback pnpm test:playback
+        run: scripts/with-nested-display.sh .devkit/release-playback pnpm test:playback
       - name: Package
         shell: bash
         env:
