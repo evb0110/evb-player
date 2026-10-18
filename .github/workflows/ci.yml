@@ -27,11 +27,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: sudo apt-get update && sudo apt-get install -y libmpv-dev patchelf ffmpeg kwin-wayland dbus-x11
+      - run: sudo apt-get update && sudo apt-get install -y libmpv-dev patchelf ffmpeg kwin-wayland kwin-wayland-backend-virtual dbus-x11 gdb
       - run: pnpm typecheck
       # Builds the renderer and main process; the icon check runs as part of build:web.
       - run: pnpm build
-      - run: scripts/with-nested-display.sh .devkit/ci-playback pnpm test:playback
+      - run: EVB_PLAYER_TEST_BACKTRACE=1 scripts/with-nested-display.sh .devkit/ci-playback pnpm test:playback
 
   landing:
     name: Landing typecheck and build

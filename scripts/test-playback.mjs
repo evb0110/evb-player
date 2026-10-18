@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
-import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
+import {chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
 import {basename, join, resolve} from 'node:path';
 import {_electron} from 'playwright-core';
 import {prepareHiddenLaunch} from './hidden-launch.mjs';
@@ -29,6 +29,13 @@ const require = createRequire(import.meta.url);
 const executablePath = process.env.EVB_PLAYER_TEST_EXECUTABLE || require('electron');
 const launch = prepareHiddenLaunch({executablePath, workDirectory: work});
 launch.env.EVB_PLAYER_TEST_AUDIO_OUTPUT = 'null';
+if (process.platform === 'linux' && process.env.EVB_PLAYER_TEST_BACKTRACE) {
+  const wrapper = join(work, 'electron-backtrace.sh');
+  const shellQuote = value => `'${value.replaceAll("'", "'\"'\"'")}'`;
+  writeFileSync(wrapper, `#!/bin/sh\nexec gdb --batch -ex run -ex 'thread apply all bt 12' --args ${shellQuote(launch.executablePath)} "$@"\n`);
+  chmodSync(wrapper, 0o700);
+  launch.executablePath = wrapper;
+}
 let application;
 let nativeLogs = '';
 try {
@@ -68,6 +75,9 @@ try {
   });
   await page.locator('[data-detached-test]').evaluate(media => media.remove());
   console.log('PASS load before DOM connection and software-rendered pixels');
+  // Keep the diagnostic surface at the fixture's native size. Measuring native
+  // paint callbacks avoids hidden/virtual desktop requestAnimationFrame limits.
+  await page.locator('evb-media').evaluate(media => {media.style.width = '320px'; media.style.height = '180px';});
   const motion = await page.evaluate(async engine => {
     let media = document.querySelector('evb-media');
     if (engine === 'chromium') {
@@ -89,19 +99,40 @@ try {
     sample.width = 1; sample.height = 1;
     const context = sample.getContext('2d', {willReadFrequently: true});
     let active = true;
-    const frame = () => {
+    const sampleFrame = () => {
       const canvas = media.shadowRoot ? [...media.shadowRoot.querySelectorAll('canvas')].find(canvas => !canvas.hidden) : media;
       if (canvas) {
         context.drawImage(canvas, (canvas.videoWidth || canvas.width) / 2, (canvas.videoHeight || canvas.height) / 2, 1, 1, 0, 0, 1, 1);
         values.push(context.getImageData(0, 0, 1, 1).data[0]);
       }
-      if (active) requestAnimationFrame(frame);
     };
-    await media.play();
-    requestAnimationFrame(frame);
-    await new Promise(resolve => setTimeout(resolve, 3500));
-    active = false;
-    await media.pause();
+    let restore;
+    if (engine === 'chromium') {
+      const frame = () => {sampleFrame(); if (active) media.requestVideoFrameCallback(frame);};
+      media.requestVideoFrameCallback(frame);
+      restore = () => {};
+    } else {
+      const renderer = media.activeSharedRenderer || media.activeRenderer;
+      const method = media.activeSharedRenderer ? 'drawVideoFrame' : 'draw';
+      const draw = renderer[method];
+      renderer[method] = method === 'draw' ? function (...args) {
+        const result = draw.apply(this, args);
+        sampleFrame();
+        return result;
+      } : async function (...args) {
+        await draw.apply(this, args);
+        sampleFrame();
+      };
+      restore = () => {renderer[method] = draw;};
+    }
+    try {
+      await media.play();
+      await new Promise(resolve => setTimeout(resolve, 3500));
+      active = false;
+      await media.pause();
+    } finally {
+      restore();
+    }
     return {values, errors, time: media.currentTime, duration: media.duration, renderer: media.rendererName};
   }, process.env.EVB_PLAYER_TEST_ENGINE);
   assert.deepEqual(motion.errors, []);
