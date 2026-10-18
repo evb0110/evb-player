@@ -183,9 +183,10 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     const char* test_audio = std::getenv("EVB_PLAYER_TEST_AUDIO_OUTPUT");
     if (test_audio && std::strcmp(test_audio, "null") == 0) set_option("ao", "null");
     set_option("pause", "yes");
-    // Rendering shares Electron's main thread. Let mpv schedule frame callbacks
-    // at their presentation time instead of blocking this thread ahead of it.
-    set_option("video-timing-offset", "0");
+    // Shared textures render on Electron's main thread. Software rendering has
+    // its own helper thread and retains mpv's preparation window, so IPC and
+    // scheduling latency do not consume the next frame's entire deadline.
+    if (mode_ == "shared-texture") set_option("video-timing-offset", "0");
     set_option("keep-open", "yes");
     const char* hwdec = std::getenv("MPV_HWDEC");
 #ifdef _WIN32
