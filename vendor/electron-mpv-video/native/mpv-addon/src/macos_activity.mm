@@ -31,6 +31,7 @@ void begin_playback_policy() {
   const kern_return_t restorable = task_policy_set(mach_task_self(), TASK_CATEGORY_POLICY,
       reinterpret_cast<task_policy_t>(&previous_role), TASK_CATEGORY_POLICY_COUNT);
   if (restorable != KERN_SUCCESS) {
+    if (previous_role.role != TASK_UNSPECIFIED) {policy_saved = false; return;}
     previous_role.role = TASK_BACKGROUND_APPLICATION;
     const kern_return_t idle = task_policy_set(mach_task_self(), TASK_CATEGORY_POLICY,
         reinterpret_cast<task_policy_t>(&previous_role), TASK_CATEGORY_POLICY_COUNT);
