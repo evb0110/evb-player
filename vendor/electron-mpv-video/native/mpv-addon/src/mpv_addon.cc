@@ -27,9 +27,15 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "isolated_mpv.h"
 
 namespace {
+
+void fit_render_size(int& width, int& height, int max_width, int max_height) {
+  const double scale = std::min({1.0, static_cast<double>(max_width) / width,
+                                static_cast<double>(max_height) / height});
+  width = std::max(2, static_cast<int>(width * scale));
+  height = std::max(2, static_cast<int>(height * scale));
+}
 
 #ifdef _WIN32
 #ifndef GL_FRAMEBUFFER
@@ -185,7 +191,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
 #ifdef _WIN32
     set_option("hwdec", hwdec && hwdec[0] ? hwdec : "no");
 #else
-    set_option("hwdec", hwdec && hwdec[0] ? hwdec : "auto-safe");
+    set_option("hwdec", hwdec && hwdec[0] ? hwdec : (mode_ == "shared-texture" ? "auto-safe" : "no"));
 #endif
     set_option("sw-fast", "yes");
     set_option("vo", "libmpv");
@@ -399,12 +405,13 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       update_callback_.Release();
       update_callback_ = nullptr;
     }
+    // JavaScript coalesces frame work; never drop the wakeup at the N-API boundary.
     if (info.Length() >= 1 && info[0].IsFunction()) {
       update_callback_ = Napi::ThreadSafeFunction::New(
         env,
         info[0].As<Napi::Function>(),
         "mpv-render-update",
-        1,
+        0,
         1
       );
       set_mpv_render_update_callback(render_context_, on_mpv_render_update, this);
@@ -424,7 +431,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
         env,
         info[0].As<Napi::Function>(),
         "mpv-event-wakeup",
-        1,
+        0,
         1
       );
       set_mpv_wakeup_callback(handle_, on_mpv_wakeup, this);
@@ -449,8 +456,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       width = std::max(2, info[0].As<Napi::Number>().Int32Value());
       height = std::max(2, info[1].As<Napi::Number>().Int32Value());
     }
-    width = std::min(width, 1920);
-    height = std::min(height, 1080);
+    fit_render_size(width, height, 1920, 1080);
 
     std::vector<uint8_t> rgba(static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
     int size[2] = {width, height};
@@ -496,8 +502,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       width = std::max(2, info[0].As<Napi::Number>().Int32Value());
       height = std::max(2, info[1].As<Napi::Number>().Int32Value());
     }
-    width = std::min(width, 3840);
-    height = std::min(height, 2160);
+    fit_render_size(width, height, 3840, 2160);
 
     if (!ensure_iosurface_target(width, height)) {
       Napi::Error::New(env, "Failed to create IOSurface render target").ThrowAsJavaScriptException();
@@ -568,8 +573,7 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
       width = std::max(2, info[0].As<Napi::Number>().Int32Value());
       height = std::max(2, info[1].As<Napi::Number>().Int32Value());
     }
-    width = std::min(width, 3840);
-    height = std::min(height, 2160);
+    fit_render_size(width, height, 3840, 2160);
 
     if (!ensure_dx_shared_target(width, height)) {
       Napi::Error::New(env, dx_error_.empty() ? "Failed to create WGL/D3D11 shared texture target" : dx_error_).ThrowAsJavaScriptException();
@@ -1211,13 +1215,6 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
 };
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
-#ifdef __linux__
-  const auto error = load_isolated_mpv();
-  if (!error.empty()) {
-    Napi::Error::New(env, error).ThrowAsJavaScriptException();
-    return exports;
-  }
-#endif
   return MpvPlayer::Init(env, exports);
 }
 

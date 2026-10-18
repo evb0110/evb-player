@@ -26,8 +26,18 @@ try {
 } finally {
   execFileSync('hdiutil', ['detach', mount], {stdio: 'inherit'});
 }
-for (const name of ['client.h', 'render.h', 'render_gl.h']) {
-  execFileSync('curl', ['-fsSL', `https://raw.githubusercontent.com/iina/iina/v1.4.4/deps/include/mpv/${name}`, '-o', join(headers, name)], {stdio: 'inherit'});
+const headerCommit = 'c111221ea027466b79b40bfca054772d4851e06f';
+const headerChecksums = {
+  'client.h': 'c34c436b54201ba84655dcbb6226f937b53d04fa0abcceaa08886565a569bd88',
+  'render.h': 'f00a31d46896c691922196c932c94140d206cb4c16cfa4bb6bdf3a9d0d3d4a29',
+  'render_gl.h': '48662c0ed9872a14dd9e1684105c97f69f94a0414709c254c5d372adc41d2e69',
+};
+for (const [name, checksum] of Object.entries(headerChecksums)) {
+  const target = join(headers, name);
+  execFileSync('curl', ['-fsSL', `https://raw.githubusercontent.com/iina/iina/${headerCommit}/deps/include/mpv/${name}`, '-o', target], {stdio: 'inherit'});
+  const hash = createHash('sha256');
+  for await (const chunk of createReadStream(target)) hash.update(chunk);
+  if (hash.digest('hex') !== checksum) throw new Error(`libmpv header checksum mismatch: ${name}`);
 }
 await writeFile(join(sdk, 'runtime.json'), JSON.stringify({url, sha256: checksum, version: 'IINA 1.4.4'}, null, 2));
 const settings = `MPV_LIB=${join(runtime, 'libmpv.2.dylib')}\nMPV_INCLUDE_DIR=${join(sdk, 'include')}\n`;

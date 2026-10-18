@@ -61,6 +61,8 @@ try {
   await page.evaluate(async () => {
     const media = document.createElement('evb-media');
     media.dataset.detachedTest = 'true';
+    media.style.width = '4000px';
+    media.style.height = '1000px';
     media.setAttribute('render-mode', 'canvas2d');
     media.src = document.querySelector('evb-media').src;
     media.load();
@@ -75,6 +77,12 @@ try {
     const canvas = [...media.shadowRoot.querySelectorAll('canvas')].find(canvas => !canvas.hidden);
     return media.currentTime > 0.3 && canvas?.getContext('2d')?.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1).data[0] > 2;
   });
+  const softwareSize = await page.locator('[data-detached-test]').evaluate(media => {
+    const canvas = [...media.shadowRoot.querySelectorAll('canvas')].find(canvas => !canvas.hidden);
+    return {width: canvas.width, height: canvas.height};
+  });
+  assert.equal(softwareSize.width / softwareSize.height, 4, 'Rendering caps must preserve the viewport aspect ratio');
+  assert.ok(softwareSize.width <= 1920 && softwareSize.height <= 1080);
   await page.locator('[data-detached-test]').evaluate(media => media.remove());
   console.log('PASS load before DOM connection and software-rendered pixels');
   // Keep the diagnostic surface at the fixture's native size. Measuring native
@@ -155,6 +163,13 @@ try {
   assert.ok(changes.length >= 85, `Only ${changes.length} distinct frame transitions in 3.5 seconds of 30fps video`);
   assert.ok(visible.at(-1) - visible[0] > 75, 'The video must advance through its images');
   console.log('PASS broken B-frame timestamps: images stay in display order', {samples: visible.length, renderer: motion.renderer});
+
+  const combinedSeek = await page.locator('evb-media').evaluate(media => {
+    media.currentTime = 0.25;
+    media.currentTime += 0.5;
+    return media.currentTime;
+  });
+  assert.equal(combinedSeek, 0.75, 'Consecutive seeks must build on the most recent target');
 
   await page.locator('evb-media').evaluate(media => {media.currentTime = 1.25;});
   await page.waitForFunction(() => Math.abs(document.querySelector('evb-media').currentTime - 1.25) < 0.15);

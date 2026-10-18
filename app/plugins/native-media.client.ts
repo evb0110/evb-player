@@ -10,6 +10,8 @@ class NativeMediaElement extends MpvVideoElement {
   private mediaPaused = true;
   private loadGeneration = 0;
   private currentLoad: Promise<void> = Promise.resolve();
+  private pendingSeek: number | null = null;
+  private seekStarted = false;
   readyState = 0;
 
   constructor() {
@@ -18,9 +20,14 @@ class NativeMediaElement extends MpvVideoElement {
     this.addEventListener('mpv-event', event => this.onMediaEvent((event as CustomEvent<PlayerEvent>).detail));
   }
 
-  override get currentTime() { return super.currentTime; }
+  override get currentTime() { return this.pendingSeek ?? super.currentTime; }
   override set currentTime(value: number) {
-    void this.seek(value).catch(() => this.dispatchEvent(new Event('error')));
+    this.pendingSeek = value;
+    this.seekStarted = false;
+    void this.seek(value).catch(() => {
+      if (this.pendingSeek === value) this.pendingSeek = null;
+      this.dispatchEvent(new Event('error'));
+    });
   }
   get paused() { return this.mediaPaused; }
   override get volume() { return this.mediaVolume; }
@@ -39,6 +46,7 @@ class NativeMediaElement extends MpvVideoElement {
   load() {
     const generation = ++this.loadGeneration;
     this.readyState = 0;
+    this.pendingSeek = null;
     this.mediaPaused = true;
     this.currentLoad = this.open(this.src).then(() => {
       if (generation !== this.loadGeneration || !this.isConnected) return;
@@ -77,9 +85,16 @@ class NativeMediaElement extends MpvVideoElement {
     }
     if (event.name === 'duration') this.dispatchEvent(new Event('durationchange'));
     if (event.name === 'pause' && typeof event.data === 'boolean') this.mediaPaused = event.data;
-    if (event.name === 'time-pos') this.dispatchEvent(new Event('timeupdate'));
+    if (event.name === 'time-pos') {
+      if (this.pendingSeek !== null && typeof event.data === 'number' && Math.abs(event.data - this.pendingSeek) < 0.15) this.pendingSeek = null;
+      this.dispatchEvent(new Event('timeupdate'));
+    }
     if (event.name === 'eof-reached' && event.data === true) this.dispatchEvent(new Event('ended'));
-    if (event.name === 'seeking') this.dispatchEvent(new Event(event.data ? 'seeking' : 'seeked'));
+    if (event.name === 'seeking') {
+      if (event.data) this.seekStarted = true;
+      else if (this.seekStarted) { this.pendingSeek = null; this.seekStarted = false; }
+      this.dispatchEvent(new Event(event.data ? 'seeking' : 'seeked'));
+    }
     if (event.name === 'paused-for-cache') this.dispatchEvent(new Event(event.data ? 'waiting' : 'playing'));
   }
 }

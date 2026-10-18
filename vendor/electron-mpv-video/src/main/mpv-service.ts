@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 import type { RenderPipeline } from '../shared/types.js'
+import {createMpvWorkerModule} from './mpv-worker-client'
 
 const CHANNEL_PREFIX = 'electron-mpv-video:v1'
 const channel = (name: string) => `${CHANNEL_PREFIX}:${name}`
@@ -21,13 +22,13 @@ const IPC_CHANNELS = [
   'player:destroy',
 ] as const
 
-type NativeFrame = {
+export type NativeFrame = {
   width: number
   height: number
   rgba: Buffer
 }
 
-type NativeEvent = {
+export type NativeEvent = {
   id: number
   type: string
   name?: string
@@ -45,13 +46,13 @@ type NativePlayer = {
   setRate(value: number): void
   setUpdateCallback(callback?: () => void): void
   setEventCallback(callback?: () => void): void
-  renderFrame(width: number, height: number): NativeFrame
+  renderFrame(width: number, height: number): NativeFrame | Promise<NativeFrame>
   renderSharedTexture(width: number, height: number): Electron.SharedTextureImportTextureInfo
   pollEvents(): NativeEvent[]
-  destroy(): void
+  destroy(): void | Promise<void>
 }
 
-type NativeModule = {
+export type NativeModule = {
   MpvPlayer: new (options?: { mode?: RenderPipeline }) => NativePlayer
 }
 
@@ -102,9 +103,12 @@ function normalizeRenderSize(value: unknown): RenderSize {
     throw new TypeError('renderSize must be an object')
   }
   const size = value as Partial<RenderSize>
+  const width = Math.max(2, Math.floor(finiteNumber(size.width, 'renderSize.width')))
+  const height = Math.max(2, Math.floor(finiteNumber(size.height, 'renderSize.height')))
+  const scale = Math.min(1, 3840 / width, 2160 / height)
   return {
-    width: Math.max(2, Math.min(3840, Math.floor(finiteNumber(size.width, 'renderSize.width')))),
-    height: Math.max(2, Math.min(2160, Math.floor(finiteNumber(size.height, 'renderSize.height')))),
+    width: Math.max(2, Math.floor(width * scale)),
+    height: Math.max(2, Math.floor(height * scale)),
   }
 }
 
@@ -141,6 +145,7 @@ class PlayerSession {
   private eventPumpRunning = false
   private eventPumpPending = false
   private destroyed = false
+  private destroyPromise: Promise<void> | null = null
   private source: string | null = null
   private currentTime = 0
   private volume = 100
@@ -256,22 +261,28 @@ class PlayerSession {
       }
       this.startCallbacks()
     } catch (error) {
-      replacement?.destroy()
+      await replacement?.destroy()
       this.player = previousPlayer
       this.pipeline = previousPipeline
       this.startCallbacks()
       throw error
     }
-    previousPlayer.destroy()
+    await previousPlayer.destroy()
   }
 
-  async destroy() {
-    if (this.destroyed) return
+  destroy(): Promise<void> {
+    if (this.destroyPromise) return this.destroyPromise
     this.destroyed = true
-    this.onDestroyed(this.id)
     this.stopCallbacks()
-    await this.waitForFramePump()
-    this.player.destroy()
+    this.destroyPromise = (async () => {
+      try {
+        await this.waitForFramePump()
+        await this.player.destroy()
+      } finally {
+        this.onDestroyed(this.id)
+      }
+    })()
+    return this.destroyPromise
   }
 
 
@@ -367,7 +378,7 @@ class PlayerSession {
         throw error
       }
     } else {
-      const frame = this.player.renderFrame(this.renderSize.width, this.renderSize.height)
+      const frame = await this.player.renderFrame(this.renderSize.width, this.renderSize.height)
       const rgba = frame.rgba.buffer.slice(
         frame.rgba.byteOffset,
         frame.rgba.byteOffset + frame.rgba.byteLength,
@@ -516,9 +527,9 @@ class MpvMainService implements MpvMain {
   private getNativeModule() {
     if (!this.nativeModule) {
       const addonPath = this.options.addonPath ?? defaultAddonPath()
-      // The addon stays in Node's namespace. On Linux it loads the complete
-      // libmpv dependency group separately, avoiding FFmpeg ABI interposition.
-      this.nativeModule = nativeRequire(addonPath) as NativeModule
+      this.nativeModule = process.platform === 'linux'
+        ? createMpvWorkerModule(addonPath)
+        : nativeRequire(addonPath) as NativeModule
     }
     return this.nativeModule
   }

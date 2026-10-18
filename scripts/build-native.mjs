@@ -68,17 +68,16 @@ if (process.platform === 'darwin') {
       run('patchelf', ['--set-rpath', '$ORIGIN', target]);
     }
   };
-  // The addon resolves libmpv in an isolated ELF namespace, so it deliberately
-  // has no DT_NEEDED entry for libmpv. Stage that explicit runtime root too.
-  const linuxLibrary = library || join(capture('pkg-config', ['--variable=libdir', 'mpv']), 'libmpv.so');
-  const soname = /\(SONAME\).*\[([^\]]+)\]/u.exec(capture('readelf', ['-d', linuxLibrary]))?.[1];
-  if (!soname || !/^libmpv\.so\.[12]$/u.test(soname)) throw new Error(`Unsupported libmpv soname: ${soname}`);
-  const runtime = join(output, soname);
-  copyFileSync(linuxLibrary, runtime);
-  stage(linuxLibrary);
-  run('patchelf', ['--set-rpath', '$ORIGIN', runtime]);
   stage(addon);
   run('patchelf', ['--set-rpath', '$ORIGIN', addon]);
+  // The ordinary Node helper isolates FFmpeg and its allocator from Electron.
+  // Release CI's pinned setup-node runtime is self-contained and supports the
+  // same Ubuntu baseline on which its native dependency closure is built.
+  const node = join(output, 'node');
+  copyFileSync(process.execPath, node);
+  copyFileSync(join(root, 'dist-electron/vendor/electron-mpv-video/src/main/mpv-worker.js'), join(output, 'mpv-worker.js'));
+  stage(process.execPath);
+  run('patchelf', ['--set-rpath', '$ORIGIN', node]);
 }
 copyFileSync(join(root, 'THIRD_PARTY_NOTICES.md'), join(output, 'THIRD_PARTY_NOTICES.md'));
 await build({entryPoints: [join(root, 'electron/preload.ts')], outfile: join(root, 'dist-electron/electron/preload.js'), platform: 'node', format: 'cjs', bundle: true, external: ['electron']});
