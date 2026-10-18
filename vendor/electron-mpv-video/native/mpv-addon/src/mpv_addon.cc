@@ -205,6 +205,10 @@ class MpvPlayer : public Napi::ObjectWrap<MpvPlayer> {
     const char* test_audio = std::getenv("EVB_PLAYER_TEST_AUDIO_OUTPUT");
     if (test_audio && std::strcmp(test_audio, "null") == 0) set_option("ao", "null");
     set_option("pause", "yes");
+    // The asynchronous software client owns presentation and bounded frame
+    // discard. mpv's VO deadline discard can lose an image before the client
+    // sees it, especially with zero-duration frames from malformed timestamps.
+    set_option("framedrop", mode_ == "software" ? "no" : "vo");
     // macOS needs rendering headroom before the presentation deadline. The
     // helper waits asynchronously after copying the image, leaving callbacks
     // free to acknowledge the next frame. Other paths retain immediate timing.
