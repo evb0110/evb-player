@@ -19,7 +19,9 @@ function plist(args) {
 }
 
 export function prepareHiddenLaunch({executablePath, workDirectory, env = process.env, platform = process.platform}) {
-  const launchEnv = {...env, EVB_PLAYER_HIDE_WINDOW: '1'};
+  // Wayland only paints shown windows. NESTED_RUN is set by our private KWin
+  // wrapper; that window remains isolated from the user's desktop.
+  const launchEnv = {...env, EVB_PLAYER_HIDE_WINDOW: platform === 'linux' && env.NESTED_RUN ? '0' : '1'};
   delete launchEnv.ELECTRON_RUN_AS_NODE;
   const executable = resolve(executablePath);
   if (platform !== 'darwin') {

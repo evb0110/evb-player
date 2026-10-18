@@ -1,4 +1,5 @@
 import {contextBridge, ipcRenderer} from 'electron';
+import {exposeMpvApi} from '../vendor/electron-mpv-video/src/preload/index.cjs';
 import type {
   IFolder,
   IMediaTrack,
@@ -60,5 +61,6 @@ const api: IPlayerApi = {
   skipUpdate: (version: string) => ipcRenderer.invoke('update:skip', version) as Promise<void>,
 };
 
+exposeMpvApi();
 contextBridge.exposeInMainWorld('evbPlayer', api);
 contextBridge.exposeInMainWorld('evbPlayerInitialTheme', ipcRenderer.sendSync('settings:initial-theme') as TTheme);

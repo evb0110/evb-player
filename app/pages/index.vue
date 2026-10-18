@@ -241,7 +241,8 @@
                 @pointerdown="handlePlayerPointerDown"
                 @pointerup="handlePlayerPointerUp"
               >
-                <video
+                <component
+                  :is="nativePlayback ? 'evb-media' : 'video'"
                   v-if="currentTrack?.kind === 'video'"
                   ref="mediaRef"
                   :key="currentTrack.id"
@@ -269,7 +270,8 @@
                     <span>{{ t('library.audioTrack') }}</span>
                     <strong>{{ currentTrack?.title }}</strong>
                   </div>
-                  <audio
+                  <component
+                    :is="nativePlayback ? 'evb-media' : 'audio'"
                     ref="mediaRef"
                     :key="currentTrack?.id"
                     preload="metadata"
@@ -591,6 +593,7 @@ import ThemeToggle from '../../shared/ui/ThemeToggle.vue';
 import {useLibrary} from '../composables/useLibrary';
 import {useActiveTheme} from '../composables/useActiveTheme';
 import {getPlayerApi} from '../utils/playerApi';
+import type {IPlaybackMedia} from '../../shared/playback';
 
 type TProgressResetRequest = {
   scope: 'track' | 'folder';
@@ -608,7 +611,7 @@ interface IFolderLibraryTableRow extends IRecentFolderSummary {
 interface IPlaybackSession {
   folderId: string;
   trackId: string;
-  media: HTMLMediaElement;
+  media: IPlaybackMedia;
   ready: boolean;
 }
 
@@ -648,7 +651,8 @@ const libraryView = useStorage<TLibraryView>('evb-player-library-view', 'cards')
 if (libraryView.value !== 'cards' && libraryView.value !== 'table') {
   libraryView.value = 'cards';
 }
-const mediaRef = ref<HTMLVideoElement | HTMLAudioElement | null>(null);
+const nativePlayback = typeof window !== 'undefined' && Boolean(window._electronMpvVideo);
+const mediaRef = ref<IPlaybackMedia | null>(null);
 const playerStageRef = ref<HTMLElement | null>(null);
 const playlistRef = ref<HTMLElement | null>(null);
 const isPlaying = ref(false);
@@ -1417,7 +1421,7 @@ async function confirmProgressReset() {
   }
 }
 
-function playMedia(media: HTMLMediaElement) {
+function playMedia(media: IPlaybackMedia) {
   playbackError.value = '';
   void media.play().catch((cause: unknown) => {
     if (mediaRef.value === media) {

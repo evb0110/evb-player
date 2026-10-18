@@ -33,6 +33,7 @@ import {createPlaylistStore} from './playlists';
 import {playlistTracks, sanitizePlaylist} from '../shared/playlist';
 import {setApplicationMenu} from './menu';
 import {startUpdater} from './updater';
+import {createMpvMain, type MpvMain} from '../vendor/electron-mpv-video/src/main/mpv-service';
 
 const MEDIA_SCHEME = 'evb-media';
 const RENDERER_SCHEME = 'evb-player';
@@ -65,6 +66,7 @@ let pendingWriteCount = 0;
 let writeSequence = 0;
 let quitFlushStarted = false;
 let mainWindow: BrowserWindow | null = null;
+let mpv: MpvMain | null = null;
 let storedSettings: IPlayerSettings | null = null;
 let settingsLoadPromise: Promise<IPlayerSettings> | null = null;
 let settingsMutationQueue = Promise.resolve();
@@ -802,6 +804,7 @@ function createWindow() {
     },
   });
   mainWindow = window;
+  mpv?.attachWindow(window);
   window.setFullScreenable(true);
 
   const sendFullscreenState = (fullscreen: boolean) => {
@@ -1137,6 +1140,16 @@ app.whenReady().then(() => {
       getSkippedVersion: async () => (await ensureSettings()).skippedUpdateVersion,
       setSkippedVersion: async (version) => {
         await updateSettings((current) => ({...current, skippedUpdateVersion: version}));
+      },
+    });
+    mpv = createMpvMain({
+      addonPath: join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'dist-native', 'mpv', 'mpv_addon.node'),
+      isTrustedSender: isTrustedRenderer,
+      resolveSource: async (_sender, source) => {
+        const requestedPath = mediaPathFromUrl(source);
+        const filePath = requestedPath && await isAllowedMediaPath(requestedPath);
+        if (!filePath) throw new Error('Media path is not available.');
+        return filePath;
       },
     });
     createWindow();

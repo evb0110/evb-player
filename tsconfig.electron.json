@@ -16,7 +16,10 @@
   },
   "include": [
     "electron/**/*.ts",
-    "shared/**/*.ts"
+    "shared/**/*.ts",
+    "vendor/electron-mpv-video/src/main/**/*.ts",
+    "vendor/electron-mpv-video/src/shared/**/*.ts",
+    "vendor/electron-mpv-video/src/preload/**/*.cts"
   ],
   "exclude": ["node_modules", "dist-electron", ".output"]
 }

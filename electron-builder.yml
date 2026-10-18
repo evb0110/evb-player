@@ -10,6 +10,11 @@ files:
   - resources/icon.png
 directories:
   output: release
+extraResources:
+  - from: dist-native
+    to: dist-native
+  - from: resources/licenses
+    to: licenses
 publish:
   provider: github
   owner: evb0110

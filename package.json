@@ -1,7 +1,7 @@
 {
   "name": "evb-player",
   "productName": "EVB Player",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "description": "An offline player for folders of video and audio files, for macOS, Windows, and Linux.",
   "author": {
     "name": "Eugene Barsky",
@@ -21,10 +21,11 @@
     "build:web": "node scripts/build-web.mjs",
     "build:desktop:renderer": "nuxi generate && node scripts/patch-static-output.mjs && node scripts/check-icons.mjs",
     "check:icons": "node scripts/check-icons.mjs",
-    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:electron": "tsc -p tsconfig.electron.json && node scripts/build-native.mjs",
     "start": "pnpm run build && electron .",
     "package:mac": "pnpm run build && electron-builder --mac --publish never",
     "typecheck": "nuxi typecheck && tsc -p tsconfig.electron.json --noEmit",
+    "test:playback": "node scripts/test-playback.mjs",
     "package:win": "pnpm run build && electron-builder --win --publish never",
     "package:linux": "pnpm run build && electron-builder --linux --publish never"
   },
@@ -42,7 +43,11 @@
     "electron": "^44.3.0",
     "electron-builder": "^26.15.3",
     "es-toolkit": "^1.52.0",
+    "esbuild": "0.27.4",
+    "node-addon-api": "8.3.1",
+    "node-gyp": "11.5.0",
     "nuxt": "4.5.2",
+    "playwright-core": "1.60.0",
     "tailwindcss": "4.3.3",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",

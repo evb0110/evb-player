@@ -3,6 +3,8 @@ node_modules/
 .output/
 .vercel/
 dist-electron/
+dist-native/
+vendor/electron-mpv-video/native/mpv-addon/build/
 dist
 release/
 .devkit/

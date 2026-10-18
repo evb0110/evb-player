@@ -18,7 +18,7 @@ Run the browser version with `pnpm dev:web`. `pnpm build:web` creates a Nitro Ve
 
 - Folders are scanned recursively. Tracks are sorted by numeric filename prefixes such as `0001.` or `12 -`, and subfolders become playlist sections.
 - Durations are read from the files' own headers when a folder is opened, so a folder's total length is known before anything is played.
-- Video and audio play in the app: MP4, M4V, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg and Opus. Files the built-in player can't decode, such as AVI or WMV, open in the system's default media app.
+- Desktop video and audio play through libmpv, the engine used by IINA. Supported inputs include MP4, MOV, MKV, WebM, AVI, WMV, FLV, MPEG, TS, VOB, MP3, M4A, AAC, FLAC, WAV, Ogg, Opus and other formats supported by the bundled FFmpeg build. Playback includes timestamp recovery for files that stutter in browser or system media engines. Media files are never converted or rewritten.
 - The player has play/pause, ten-second skip, seeking, volume, playback speed, theater mode, full window and fullscreen. Volume and speed are remembered.
 - Playback position is saved as you watch. Ended tracks are marked complete and the next one starts.
 - Mark any track complete without watching it by clicking its number in the playlist; click the check again to undo. Tracks with saved progress show a reset button, and the folder menu resets the whole folder.
@@ -58,6 +58,8 @@ Media files are never modified. If the progress file can't be read, for example 
 
 ```bash
 pnpm install
+# macOS: install the libmpv development library once
+brew install mpv
 pnpm dev
 ```
 
@@ -68,6 +70,10 @@ pnpm dev
 Icons are bundled into the app, so the interface is complete offline. `pnpm build` runs `pnpm check:icons`, which fails when an icon name is assembled at runtime, does not exist in the installed icon set, or is missing from the bundle; write every icon name as a full literal such as `'i-lucide-play'`.
 
 The main process owns the local media protocol and the progress file. The renderer never receives Node.js access or arbitrary filesystem APIs.
+
+Desktop builds require libmpv headers and runtime libraries. On macOS, install `mpv` with Homebrew. On Ubuntu, install `libmpv-dev` and `patchelf`. On Windows, run `scripts/prepare-mpv-windows.ps1` with Visual Studio C++ build tools installed; it downloads a pinned, checksum-verified SDK. `MPV_INCLUDE_DIR`, `MPV_LIB`, and `MPV_RUNTIME_DIR` can override SDK locations. The build compiles a Node-API bridge and bundles its runtime dependencies, so users do not need to install mpv. The browser build continues to use the browser's media engine. See [playback notes](docs/playback.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
+
+`pnpm test:playback` generates its own media with ffmpeg and checks image ordering with broken H.264 timestamps, seeking, playback speed, AVI/WMV/MPEG/FLV/HEVC/audio support, source authorization, and saved progress in an isolated hidden app. On a Linux workstation, run it through `scripts/with-nested-display.sh` in a task-owned directory.
 
 ## Landing page
 
