@@ -331,6 +331,7 @@ export class MpvVideoElement extends HTMLElement {
   private disposers: Array<() => void> = [];
   private ready: Promise<void> | null = null;
   private destroying: Promise<void> | null = null;
+  private readonly connectionWaiters = new Set<() => void>();
   private renderMode: RenderMode = 'shared-texture';
   private status = 'Idle';
   private openedSource = '';
@@ -409,6 +410,8 @@ export class MpvVideoElement extends HTMLElement {
     } else if (!this.ready) {
       this.startInitialize();
     }
+    for (const resolve of this.connectionWaiters) resolve();
+    this.connectionWaiters.clear();
   }
 
   disconnectedCallback() {
@@ -614,10 +617,14 @@ export class MpvVideoElement extends HTMLElement {
     this.surfaceRoot.append(style, this.canvas2d, this.webglCanvas, this.sharedCanvas);
   }
 
-  private async ensureReady() {
-    if (!this.isConnected) return;
+  private async ensureReady(): Promise<void> {
+    // A Vue ref may receive load() before its suspense fragment is connected.
+    // Keep that request pending until the element can own a native session.
+    if (!this.isConnected) await new Promise<void>(resolve => this.connectionWaiters.add(resolve));
+    if (this.destroying) await this.destroying;
+    if (!this.isConnected) return this.ensureReady();
     if (!this.ready) {
-      this.ready = this.initialize();
+      this.startInitialize();
     }
     await this.ready;
   }

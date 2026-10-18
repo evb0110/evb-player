@@ -73,6 +73,8 @@ The main process owns the local media protocol and the progress file. The render
 
 Desktop builds require libmpv headers and runtime libraries. On macOS, install `mpv` with Homebrew. On Ubuntu, install `libmpv-dev` and `patchelf`. On Windows, run `scripts/prepare-mpv-windows.ps1` with Visual Studio C++ build tools installed; it downloads a pinned, checksum-verified SDK. `MPV_INCLUDE_DIR`, `MPV_LIB`, and `MPV_RUNTIME_DIR` can override SDK locations. The build compiles a Node-API bridge and bundles its runtime dependencies, so users do not need to install mpv. The browser build continues to use the browser's media engine. See [playback notes](docs/playback.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
 
+Release CI uses `scripts/prepare-mpv-macos.mjs` to stage IINA's published playback libraries and headers, preserving compatibility with older macOS versions. A Homebrew development build can require the macOS version its bottles were built for.
+
 `pnpm test:playback` generates its own media with ffmpeg and checks image ordering with broken H.264 timestamps, seeking, playback speed, AVI/WMV/MPEG/FLV/HEVC/audio support, source authorization, and saved progress in an isolated hidden app. On a Linux workstation, run it through `scripts/with-nested-display.sh` in a task-owned directory.
 
 ## Landing page

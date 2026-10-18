@@ -70,7 +70,9 @@ jobs:
 
       - name: Install libmpv development runtime (macOS)
         if: matrix.platform == 'mac'
-        run: brew install mpv ffmpeg
+        run: |
+          node scripts/prepare-mpv-macos.mjs
+          brew install ffmpeg
       - name: Install libmpv development runtime (Windows)
         if: matrix.platform == 'win'
         run: |

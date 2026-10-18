@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
 import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {basename, join, resolve} from 'node:path';
 import {_electron} from 'playwright-core';
@@ -22,7 +23,10 @@ for (const [name, codec] of [['02 AVI.avi', 'mpeg4'], ['03 Windows Media.wmv', '
 encode('07 Audio.flac', ['-f', 'lavfi', '-i', 'sine=frequency=440:duration=6', '-c:a', 'flac']);
 const folderId = createHash('sha256').update(folder).digest('hex').slice(0, 16);
 writeFileSync(join(profile, 'evb-player-state.json'), JSON.stringify({recentFolders: [{id: folderId, name: 'Playback fixtures', rootPath: folder, mediaCount: 7, lastOpenedAt: Date.now()}], progress: {}, lastFolderPath: folder}));
-const executablePath = process.env.EVB_PLAYER_TEST_EXECUTABLE || join(root, 'node_modules/electron/dist', process.platform === 'darwin' ? 'Electron.app/Contents/MacOS/Electron' : process.platform === 'win32' ? 'electron.exe' : 'electron');
+// Electron 44 lazily installs its executable when this package API is loaded.
+// A guessed dist path bypasses that installer on fresh CI machines.
+const require = createRequire(import.meta.url);
+const executablePath = process.env.EVB_PLAYER_TEST_EXECUTABLE || require('electron');
 const launch = prepareHiddenLaunch({executablePath, workDirectory: work});
 launch.env.EVB_PLAYER_TEST_AUDIO_OUTPUT = 'null';
 let application;
@@ -37,9 +41,23 @@ try {
   page.on('pageerror', error => {errors.push(error.message); console.error(error.message);});
   page.on('console', message => {if (message.type() === 'error') console.error(message.text());});
   await page.waitForFunction(() => document.querySelector('evb-media')?.readyState === 4).catch(async error => {
-    console.error(await page.evaluate(() => ({text: document.body.innerText, media: [...document.querySelectorAll('evb-media')].map(v => ({src: v.src, ready: v.readyState, duration: v.duration, player: v.playerId, renderer: v.rendererName}))})));
+    console.error(await page.evaluate(() => ({text: document.body.innerText, media: [...document.querySelectorAll('evb-media')].map(v => ({src: v.src, ready: v.readyState, duration: v.duration, player: v.playerId, renderer: v.rendererName, loads: v.loadGeneration, opened: v.openedSource, status: v.status, connected: v.isConnected, state: v.state}))})));
     throw error;
   });
+  // Vue can call the ref's load method while its suspense fragment is still
+  // detached. Loading must survive the later connection to the document.
+  await page.evaluate(async () => {
+    const media = document.createElement('evb-media');
+    media.dataset.detachedTest = 'true';
+    media.src = document.querySelector('evb-media').src;
+    media.load();
+    await Promise.resolve();
+    await Promise.resolve();
+    document.body.append(media);
+  });
+  await page.waitForFunction(() => document.querySelector('[data-detached-test]')?.readyState === 4);
+  await page.locator('[data-detached-test]').evaluate(media => media.remove());
+  console.log('PASS load before DOM connection');
   const motion = await page.evaluate(async engine => {
     let media = document.querySelector('evb-media');
     if (engine === 'chromium') {

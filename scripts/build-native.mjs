@@ -28,7 +28,9 @@ if (process.platform === 'darwin') {
     const target = join(output, basename(source));
     if (staged.has(source)) return target;
     staged.set(source, target);
-    copyFileSync(source, target);
+    const architecture = process.arch === 'arm64' ? 'arm64' : 'x86_64';
+    if (capture('lipo', ['-archs', source]).split(/\s+/u).length > 1) run('lipo', [source, '-thin', architecture, '-output', target]);
+    else copyFileSync(source, target);
     const dependencies = capture('otool', ['-L', source]).split('\n').slice(1).map(line => line.trim().split(' (')[0]);
     const id = capture('otool', ['-D', source]).split('\n')[1]?.trim();
     for (const dependency of dependencies) {

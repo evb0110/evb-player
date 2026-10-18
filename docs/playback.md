@@ -18,8 +18,10 @@ IINA delegates decoding and synchronization to libmpv: [MPVController.swift](htt
 - macOS and Windows can transfer GPU surfaces through Electron's [sharedTexture API](https://www.electronjs.org/docs/latest/api/shared-texture). When unavailable, the bridge uses libmpv's software rendering API and a WebGL or Canvas surface. Linux currently uses that software rendering path.
 - A render context is destroyed with its own graphics context current, as required by [libmpv's rendering API](https://github.com/mpv-player/mpv/blob/master/libmpv/render.h). Window ownership is captured before destruction so closing the window cannot strand native sessions.
 - Main-frame navigation and renderer termination release that renderer's sessions. Repeated reloads must not retain audio players or exhaust the session limit.
+- A media load requested while Vue's DOM fragment is detached waits for the element's connection event. It must not be silently dropped before the native session exists. The regression suite explicitly loads a detached element before connecting it.
 - Playback commands and property changes use libmpv's asynchronous APIs, which are explicitly safe on its render thread. Calling the synchronous APIs on Electron's rendering thread could stall initialization until mpv's internal deadlock timeout. `video-timing-offset=0` lets mpv schedule frame callbacks at presentation time without holding Electron's main thread ahead of the audio clock.
 - `scripts/build-native.mjs` compiles the bridge and stages its runtime dependencies outside the app archive. macOS library install names and Linux rpaths resolve to that private directory. Release CI signs and notarizes the complete macOS bundle.
+- macOS releases use the pinned, checksum-verified IINA 1.4.4 playback runtime. Its Apple Silicon libraries target macOS 12 rather than inheriting the Homebrew build host's macOS version; the app retains Electron's own minimum macOS requirement. Universal libraries are reduced to the packaged architecture.
 
 ## Regression evidence
 
