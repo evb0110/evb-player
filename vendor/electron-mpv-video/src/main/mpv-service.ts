@@ -2,7 +2,8 @@ import * as electron from 'electron'
 import type { BrowserWindow, IpcMainInvokeEvent, WebContents } from 'electron'
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
-import { createRequire } from 'node:module'
+import { createRequire, Module } from 'node:module'
+import { constants } from 'node:os'
 import type { RenderPipeline } from '../shared/types.js'
 
 const CHANNEL_PREFIX = 'electron-mpv-video:v1'
@@ -515,7 +516,17 @@ class MpvMainService implements MpvMain {
 
   private getNativeModule() {
     if (!this.nativeModule) {
-      this.nativeModule = nativeRequire(this.options.addonPath ?? defaultAddonPath()) as NativeModule
+      const addonPath = this.options.addonPath ?? defaultAddonPath()
+      if (process.platform === 'linux') {
+        // Electron exports its own FFmpeg symbols. Resolve this module's private
+        // libmpv/FFmpeg dependency group first so incompatible versions cannot
+        // interpose on each other's codec structures and functions.
+        const binding = new Module(addonPath)
+        process.dlopen(binding, addonPath, constants.dlopen.RTLD_NOW | constants.dlopen.RTLD_DEEPBIND)
+        this.nativeModule = binding.exports as NativeModule
+      } else {
+        this.nativeModule = nativeRequire(addonPath) as NativeModule
+      }
     }
     return this.nativeModule
   }

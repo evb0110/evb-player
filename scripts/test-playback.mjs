@@ -30,8 +30,11 @@ const executablePath = process.env.EVB_PLAYER_TEST_EXECUTABLE || require('electr
 const launch = prepareHiddenLaunch({executablePath, workDirectory: work});
 launch.env.EVB_PLAYER_TEST_AUDIO_OUTPUT = 'null';
 let application;
+let nativeLogs = '';
 try {
   application = await _electron.launch({...launch, args: [...(process.env.EVB_PLAYER_TEST_EXECUTABLE ? [] : [root]), `--user-data-dir=${profile}`, ...(process.env.NESTED_RUN ? ['--ozone-platform=wayland'] : [])]});
+  application.process().stderr.on('data', chunk => {nativeLogs = (nativeLogs + chunk.toString()).slice(-32_768);});
+  application.process().on('exit', (code, signal) => {if (signal || code) console.error('Electron exited', {code, signal});});
   const isolation = await application.evaluate(({app, BrowserWindow}) => ({profile: app.getPath('userData'), visible: BrowserWindow.getAllWindows().some(window => window.isVisible())}));
   assert.equal(isolation.profile, profile);
   assert.equal(isolation.visible, process.platform === 'linux' && Boolean(process.env.NESTED_RUN));
@@ -148,7 +151,10 @@ try {
   assert.ok(Object.keys(state.progress[folderId]).length > 0);
   assert.ok(state.recentFolders.some(folder => folder.id === folderId));
   console.log('PASS existing progress-file format');
+} catch (error) {
+  console.error(nativeLogs);
+  throw error;
 } finally {
-  if (application) await application.close();
+  if (application) await application.close().catch(() => undefined);
   rmSync(work, {recursive: true, force: true});
 }

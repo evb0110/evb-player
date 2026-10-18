@@ -27,7 +27,13 @@ set -euo pipefail
 KWIN_SCREENSHOT_NO_PERMISSION_CHECKS=1 kwin_wayland --virtual --no-lockscreen --socket evb-player-nested --width 3840 --height 2400 >"$NESTED_RUN/kwin.log" 2>&1 &
 kwin=$!
 trap "kill $kwin 2>/dev/null || true; wait $kwin 2>/dev/null || true" EXIT
-for _ in $(seq 100); do [[ -S $XDG_RUNTIME_DIR/evb-player-nested ]] && break; sleep 0.1; done
+for _ in $(seq 100); do
+  [[ -S $XDG_RUNTIME_DIR/evb-player-nested ]] && break
+  if ! kill -0 "$kwin" 2>/dev/null; then cat "$NESTED_RUN/kwin.log"; exit 1; fi
+  sleep 0.1
+done
+if [[ ! -S $XDG_RUNTIME_DIR/evb-player-nested ]]; then cat "$NESTED_RUN/kwin.log"; exit 1; fi
 export WAYLAND_DISPLAY=evb-player-nested
+dbus-update-activation-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP
 "$@"
 ' nested-display "$@"
