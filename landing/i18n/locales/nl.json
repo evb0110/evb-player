@@ -23,7 +23,7 @@
     "version": "Versie {version}", "installed": "Geïnstalleerde apps werken zichzelf bij", "allReleases": "Alle versies", "web": "Of open EVB Player in je browser, zonder iets te installeren",
     "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
     "options": {
-      "mac": { "title": "Apple Silicon", "detail": "Voor Macs met M-seriechips", "format": "DMG-installatieprogramma", "note": "Ondertekend en door Apple notarieel bekrachtigd. Open de DMG en sleep EVB Player naar Programma's." },
+      "mac": { "title": "Apple Silicon", "detail": "macOS 13.5 of nieuwer", "format": "DMG-installatieprogramma", "note": "Ondertekend en door Apple notarieel bekrachtigd. Open de DMG en sleep EVB Player naar Programma's." },
       "win": { "title": "Windows 10 en 11", "detail": "Voor 64-bits pc's (x64)", "format": "Installatieprogramma", "note": "Het installatieprogramma is nog niet digitaal ondertekend. Windows SmartScreen kan om bevestiging vragen: kies 'Meer informatie' en daarna 'Toch uitvoeren'." },
       "linux": { "title": "Ubuntu en Debian", "detail": "Voor 64-bits pc's (x64)", "format": ".deb-pakket", "note": "Installeer met sudo apt install ./ gevolgd door de bestandsnaam. Voor updates wordt om je wachtwoord gevraagd." }
     }
@@ -91,7 +91,7 @@
     "items": {
       "free": {
         "question": "Is het gratis?",
-        "answer": "Ja. EVB Player is gratis en open source onder de MIT-licentie, zonder advertenties, accounts of abonnementen."
+        "answer": "Ja. EVB Player is gratis en open source, zonder advertenties, accounts of abonnementen."
       },
       "files": {
         "question": "Worden mijn bestanden ergens geüpload?",
@@ -103,7 +103,7 @@
       },
       "formats": {
         "question": "Welke formaten speelt het af?",
-        "answer": "Speelt MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg en Opus af. Bestanden die de ingebouwde speler niet kan decoderen, zoals AVI, worden in je gebruikelijke mediaspeler geopend."
+        "answer": "De desktopapp speelt MP4, MOV, MKV, WebM, AVI, WMV, MPEG, FLV, MP3, M4A, AAC, FLAC, WAV, Ogg, Opus en veel andere formaten af. Afspelen in de browser hangt af van de formaten en codecs die je browser ondersteunt."
       },
       "windows": {
         "question": "Windows zegt: ‘Windows heeft uw pc beschermd’. Is het veilig?",
@@ -130,5 +130,5 @@
     "questions": "Vragen? {issue}.",
     "issueLink": "Stel je vraag op GitHub"
   },
-  "footer": { "copyright": "Copyright © 2026 {name}", "license": "MIT-licentie", "privacy": "Privacy", "source": "Broncode op GitHub", "viewer": "EVB Viewer" }
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licenties", "privacy": "Privacy", "source": "Broncode op GitHub", "viewer": "EVB Viewer" }
 }

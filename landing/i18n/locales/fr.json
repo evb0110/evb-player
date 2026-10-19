@@ -23,7 +23,7 @@
     "version": "Version {version}", "installed": "Les applications installées se mettent à jour automatiquement", "allReleases": "Toutes les versions", "web": "Ou ouvrez EVB Player dans votre navigateur, sans rien installer",
     "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
     "options": {
-      "mac": { "title": "Apple Silicon", "detail": "Pour les Mac avec puce de la série M", "format": "Installateur DMG", "note": "Signé et notarié par Apple. Ouvrez le DMG et faites glisser EVB Player dans Applications." },
+      "mac": { "title": "Apple Silicon", "detail": "macOS 13.5 ou version ultérieure", "format": "Installateur DMG", "note": "Signé et notarié par Apple. Ouvrez le DMG et faites glisser EVB Player dans Applications." },
       "win": { "title": "Windows 10 et 11", "detail": "Pour les PC 64 bits (x64)", "format": "Installateur", "note": "L'installateur n'est pas encore signé numériquement. Windows SmartScreen peut demander une confirmation : choisissez « Informations complémentaires », puis « Exécuter quand même »." },
       "linux": { "title": "Ubuntu et Debian", "detail": "Pour les PC 64 bits (x64)", "format": "Paquet .deb", "note": "Installez avec sudo apt install ./ suivi du nom du fichier. Votre mot de passe sera demandé avant l'installation des mises à jour." }
     }
@@ -91,7 +91,7 @@
     "items": {
       "free": {
         "question": "Est-ce gratuit ?",
-        "answer": "Oui. EVB Player est gratuit et open source sous licence MIT, sans publicité, compte ni abonnement."
+        "answer": "Oui. EVB Player est gratuit et open source, sans publicité, compte ni abonnement."
       },
       "files": {
         "question": "Mes fichiers sont-ils envoyés quelque part ?",
@@ -103,7 +103,7 @@
       },
       "formats": {
         "question": "Quels formats lit-il ?",
-        "answer": "Lit les formats MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg et Opus. Les fichiers que le lecteur intégré ne peut pas décoder, comme AVI, s'ouvrent dans votre lecteur multimédia habituel."
+        "answer": "L’application de bureau lit les formats MP4, MOV, MKV, WebM, AVI, WMV, MPEG, FLV, MP3, M4A, AAC, FLAC, WAV, Ogg, Opus et bien d’autres. La lecture dans le navigateur dépend des formats et codecs pris en charge par celui-ci."
       },
       "windows": {
         "question": "Windows affiche « Windows a protégé votre PC ». Est-ce sûr ?",
@@ -130,5 +130,5 @@
     "questions": "Des questions ? {issue}.",
     "issueLink": "Ouvrez un ticket sur GitHub"
   },
-  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licence MIT", "privacy": "Confidentialité", "source": "Code source sur GitHub", "viewer": "EVB Viewer" }
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Licences", "privacy": "Confidentialité", "source": "Code source sur GitHub", "viewer": "EVB Viewer" }
 }

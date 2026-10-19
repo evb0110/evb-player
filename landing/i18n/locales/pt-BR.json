@@ -23,7 +23,7 @@
     "version": "Versão {version}", "installed": "Os aplicativos instalados se atualizam automaticamente", "allReleases": "Todas as versões", "web": "Ou abra o EVB Player no navegador, sem instalar nada",
     "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
     "options": {
-      "mac": { "title": "Apple Silicon", "detail": "Para Macs com chips da série M", "format": "Instalador DMG", "note": "Assinado e notarizado pela Apple. Abra o DMG e arraste o EVB Player para Aplicativos." },
+      "mac": { "title": "Apple Silicon", "detail": "macOS 13.5 ou posterior", "format": "Instalador DMG", "note": "Assinado e notarizado pela Apple. Abra o DMG e arraste o EVB Player para Aplicativos." },
       "win": { "title": "Windows 10 e 11", "detail": "Para PCs de 64 bits (x64)", "format": "Instalador", "note": "O instalador ainda não tem assinatura digital. O Windows SmartScreen pode pedir confirmação: escolha «Mais informações» e depois «Executar assim mesmo»." },
       "linux": { "title": "Ubuntu e Debian", "detail": "Para PCs de 64 bits (x64)", "format": "Pacote .deb", "note": "Instale com sudo apt install ./ seguido do nome do arquivo. Sua senha será solicitada antes de instalar atualizações." }
     }
@@ -91,7 +91,7 @@
     "items": {
       "free": {
         "question": "É grátis?",
-        "answer": "Sim. O EVB Player é grátis e de código aberto, com licença MIT, sem anúncios, contas ou assinaturas."
+        "answer": "Sim. O EVB Player é grátis e de código aberto, sem anúncios, contas ou assinaturas."
       },
       "files": {
         "question": "Meus arquivos são enviados para algum lugar?",
@@ -103,7 +103,7 @@
       },
       "formats": {
         "question": "Quais formatos ele reproduz?",
-        "answer": "Reproduz MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg e Opus. Arquivos que o player integrado não consegue decodificar, como AVI, abrem no seu reprodutor de mídia habitual."
+        "answer": "O aplicativo para computador reproduz MP4, MOV, MKV, WebM, AVI, WMV, MPEG, FLV, MP3, M4A, AAC, FLAC, WAV, Ogg, Opus e muitos outros formatos. A reprodução no navegador depende dos formatos e codecs que ele suporta."
       },
       "windows": {
         "question": "O Windows diz «O Windows protegeu seu computador». É seguro?",
@@ -130,5 +130,5 @@
     "questions": "Dúvidas? {issue}.",
     "issueLink": "Abra uma issue no GitHub"
   },
-  "footer": { "copyright": "Direitos autorais © 2026 {name}", "license": "Licença MIT", "privacy": "Privacidade", "source": "Código-fonte no GitHub", "viewer": "EVB Viewer" }
+  "footer": { "copyright": "Direitos autorais © 2026 {name}", "license": "Licenças", "privacy": "Privacidade", "source": "Código-fonte no GitHub", "viewer": "EVB Viewer" }
 }

@@ -23,7 +23,7 @@
     "version": "Version {version}", "installed": "Installierte Apps aktualisieren sich selbst", "allReleases": "Alle Versionen", "web": "Oder öffnen Sie EVB Player im Browser, ganz ohne Installation",
     "platforms": { "mac": "macOS", "win": "Windows", "linux": "Linux" },
     "options": {
-      "mac": { "title": "Apple Silicon", "detail": "Für Macs mit Chips der M-Serie", "format": "DMG-Installer", "note": "Von Apple signiert und notariell beglaubigt. Öffnen Sie die DMG-Datei und ziehen Sie EVB Player in den Ordner „Programme“." },
+      "mac": { "title": "Apple Silicon", "detail": "macOS 13.5 oder neuer", "format": "DMG-Installer", "note": "Von Apple signiert und notariell beglaubigt. Öffnen Sie die DMG-Datei und ziehen Sie EVB Player in den Ordner „Programme“." },
       "win": { "title": "Windows 10 und 11", "detail": "Für 64-Bit-PCs (x64)", "format": "Installer", "note": "Der Installer ist noch nicht digital signiert. Windows SmartScreen fragt möglicherweise nach einer Bestätigung: Wählen Sie „Weitere Informationen“ und dann „Trotzdem ausführen“." },
       "linux": { "title": "Ubuntu und Debian", "detail": "Für 64-Bit-PCs (x64)", "format": ".deb-Paket", "note": "Installieren Sie mit sudo apt install ./ gefolgt vom Dateinamen. Vor der Installation von Updates werden Sie nach Ihrem Passwort gefragt." }
     }
@@ -91,7 +91,7 @@
     "items": {
       "free": {
         "question": "Ist es kostenlos?",
-        "answer": "Ja. EVB Player ist kostenlos und quelloffen unter der MIT-Lizenz, ohne Werbung, Konten oder Abonnements."
+        "answer": "Ja. EVB Player ist kostenlos und quelloffen, ohne Werbung, Konten oder Abonnements."
       },
       "files": {
         "question": "Werden meine Dateien irgendwo hochgeladen?",
@@ -103,7 +103,7 @@
       },
       "formats": {
         "question": "Welche Formate werden abgespielt?",
-        "answer": "Unterstützt MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg und Opus. Dateien, die der eingebaute Player nicht decodieren kann, etwa AVI, werden im üblichen Mediaplayer geöffnet."
+        "answer": "Die Desktop-App spielt MP4, MOV, MKV, WebM, AVI, WMV, MPEG, FLV, MP3, M4A, AAC, FLAC, WAV, Ogg, Opus und viele weitere Formate ab. Die Wiedergabe im Browser hängt davon ab, welche Formate und Codecs Ihr Browser unterstützt."
       },
       "windows": {
         "question": "Windows meldet „Windows hat Ihren PC geschützt“. Ist die App sicher?",
@@ -130,5 +130,5 @@
     "questions": "Fragen? {issue}.",
     "issueLink": "Eröffnen Sie ein Issue auf GitHub"
   },
-  "footer": { "copyright": "Copyright © 2026 {name}", "license": "MIT-Lizenz", "privacy": "Datenschutz", "source": "Quellcode auf GitHub", "viewer": "EVB Viewer" }
+  "footer": { "copyright": "Copyright © 2026 {name}", "license": "Lizenzen", "privacy": "Datenschutz", "source": "Quellcode auf GitHub", "viewer": "EVB Viewer" }
 }

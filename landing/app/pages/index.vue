@@ -124,7 +124,6 @@ const WEB_APP_URL = 'https://evb-player-web.vercel.app';
 // Bump after re-rendering social cards; Telegram and Facebook cache images by URL.
 const SOCIAL_CARD_VERSION = 3;
 const SOCIAL_CARD_SIZE = { width: 1200, height: 630, type: 'image/jpeg' } as const;
-const MIT_LICENSE_URL = 'https://opensource.org/license/mit/';
 const GITHUB_REPOSITORY_URL = 'https://github.com/evb0110/evb-player';
 
 interface IPlatformOption {
@@ -228,7 +227,7 @@ const schemaGraph = computed(() => {
         softwareVersion: release.value?.version,
         downloadUrl: downloadUrls,
         offers: { '@type': 'Offer', price: 0, priceCurrency: 'USD' },
-        license: MIT_LICENSE_URL,
+        license: `${GITHUB_REPOSITORY_URL}/blob/main/THIRD_PARTY_NOTICES.md`,
         url: pageUrl.value,
         image: socialCardUrl.value,
         screenshot: socialCardUrl.value,

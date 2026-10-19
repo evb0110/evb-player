@@ -33,7 +33,7 @@
     "options": {
       "mac": {
         "title": "Apple Silicon",
-        "detail": "For Macs with M-series chips",
+        "detail": "macOS 13.5 or later",
         "format": "DMG installer",
         "note": "Signed and notarized by Apple. Open the DMG and drag EVB Player to Applications."
       },
@@ -117,7 +117,7 @@
     "items": {
       "free": {
         "question": "Is it free?",
-        "answer": "Yes. EVB Player is free and open source under the MIT license, with no ads, accounts or subscriptions."
+        "answer": "Yes. EVB Player is free and open source, with no ads, accounts or subscriptions."
       },
       "files": {
         "question": "Are my files uploaded anywhere?",
@@ -129,7 +129,7 @@
       },
       "formats": {
         "question": "Which formats does it play?",
-        "answer": "Plays MP4, MOV, MKV, WebM, MP3, M4A, AAC, FLAC, WAV, Ogg, and Opus. Files the built-in player can't decode, such as AVI, open in your usual media player."
+        "answer": "The desktop app plays MP4, MOV, MKV, WebM, AVI, WMV, MPEG, FLV, MP3, M4A, AAC, FLAC, WAV, Ogg, Opus and many more formats. Browser playback depends on the formats and codecs your browser supports."
       },
       "windows": {
         "question": "Windows says “Windows protected your PC”. Is it safe?",
@@ -158,7 +158,7 @@
   },
   "footer": {
     "copyright": "Copyright © 2026 {name}",
-    "license": "MIT License",
+    "license": "Licenses",
     "privacy": "Privacy",
     "source": "Source on GitHub",
     "viewer": "EVB Viewer"

@@ -4,7 +4,7 @@
       <i18n-t keypath="footer.copyright" scope="global">
         <template #name><a href="https://evb-stack.com" title="evb-stack.com" target="_blank" rel="noreferrer">Eugene Barsky</a></template>
       </i18n-t>
-      · {{ t('footer.license') }}
+      · <a href="https://github.com/evb0110/evb-player/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noreferrer">{{ t('footer.license') }}</a>
     </span>
     <span>
       <NuxtLink :to="localePath('/privacy')">{{ t('footer.privacy') }}</NuxtLink> ·
