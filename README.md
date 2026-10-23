@@ -10,7 +10,7 @@ The browser version uses the same player interface for folders, playlists, playb
 
 Chrome and Edge can save folder handles. When access is still granted, the last folder opens on launch; otherwise it stays in the Library and one click can restore permission. Firefox and Safari use a folder file chooser, so a recent folder asks you to choose it again when opened. Progress resumes for a folder with the same name in those browsers.
 
-The browser stores the Library and track progress in local storage under `evb-player-web-state`, language and skipped update version under `evb-player-web-settings`, and edited playlists under `evb-player-web-playlists`. The theme toggle follows the browser's system preference until you choose light or dark. An explicit choice is stored for one year in the `theme` cookie; `CH-prefers-color-scheme` records the current system preference so the server can render the correct theme. Both cookies use `SameSite=Lax`, path `/`, and `Secure` on HTTPS. Media stays in the browser and is not uploaded.
+The browser stores the Library and track progress in local storage under `evb-player-web-state`, language and skipped update version under `evb-player-web-settings`, and edited playlists under `evb-player-web-playlists`. The theme toggle follows the browser's system preference until you choose light or dark. An explicit choice is stored for one year in the `theme` cookie; `CH-prefers-color-scheme` records the current system preference so the server can render the correct theme. Both cookies use `SameSite=Lax`, path `/`, and `Secure` on HTTPS. Playback speed, volume, and the two seek intervals are stored separately in local storage, as they are in the desktop renderer. Media stays in the browser and is not uploaded.
 
 Run the browser version with `pnpm dev:web`. `pnpm build:web` creates a Nitro Vercel Build Output API build in `.vercel/output`; the server renders the HTML shell from those cookies. The desktop `pnpm build` remains a static renderer build for the Electron custom protocol.
 
@@ -21,7 +21,7 @@ Vercel deployments are manual. Git pushes and pull requests deploy neither the b
 - Folders are scanned recursively. Tracks are sorted by numeric filename prefixes such as `0001.` or `12 -`, and subfolders become playlist sections.
 - Durations are read from the files' own headers when a folder is opened, so a folder's total length is known before anything is played.
 - Desktop video and audio play through libmpv, the engine used by IINA. Supported inputs include MP4, MOV, MKV, WebM, AVI, WMV, FLV, MPEG, TS, VOB, MP3, M4A, AAC, FLAC, WAV, Ogg, Opus and other formats supported by the bundled FFmpeg build. Playback includes timestamp recovery for files that stutter in browser or system media engines. Media files are never converted or rewritten.
-- The player has play/pause, ten-second skip, seeking, volume, playback speed, theater mode, full window and fullscreen. Volume and speed are remembered.
+- The player has play/pause, configurable skip, seeking, volume, playback speed, theater mode, full window and fullscreen. Volume and speed are remembered.
 - Playback position is saved as you watch. Ended tracks are marked complete and the next one starts.
 - Mark any track complete without watching it by clicking its number in the playlist; click the check again to undo. Tracks with saved progress show a reset button, and the folder menu resets the whole folder.
 - Several folders can be open in tabs. Recent folders and the last opened folder are restored on launch. The Library tab lists your folders as cards or a sortable table with search; Add folder opens another one.
@@ -33,7 +33,7 @@ Vercel deployments are manual. Git pushes and pull requests deploy neither the b
 
 ### Keyboard shortcuts
 
-- `Space` or `K`: play/pause; `J`/`L`: seek 10 seconds; `←`/`→`: seek 5 seconds.
+- `Space` or `K`: play/pause; `J`/`L`: seek 10 seconds; `←`/`→`: seek 5 seconds by default. Use the gear button in the player to set separate arrow-key and skip-button/J/L intervals to 1, 5, 10, 15, 30, or 60 seconds. The buttons and shortcuts list show the chosen intervals, which are remembered on this device. Seeking shortcuts also work while the seek bar is focused.
 - `↑`/`↓`: volume; `M`: mute; `F`: fullscreen; `T`: theater mode, or the playlist beside the video in full window and fullscreen; `W`: full window (`Esc` also exits).
 - `0`–`9`, `Home`, `End`: seek; `Shift+N`/`Shift+P`: next/previous track.
 - `<`/`>`: playback speed; `,`/`.`: frame step while paused.

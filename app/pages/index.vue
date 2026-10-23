@@ -350,13 +350,13 @@
                       >
                         <UIcon name="i-lucide-skip-forward" />
                       </button>
-                      <button class="player-icon-button" :title="t('player.backTenSecondsTitle')" :aria-label="t('player.backTenSeconds')" type="button" @click="skip(-10)">
+                      <button class="player-icon-button" :title="`${t('player.backSeconds', {seconds: skipSeconds})} (J)`" :aria-label="t('player.backSeconds', {seconds: skipSeconds})" type="button" @click="skip(-skipSeconds)">
                         <UIcon name="i-lucide-rotate-ccw" />
-                        <span class="skip-label">10</span>
+                        <span class="skip-label">{{ skipSeconds }}</span>
                       </button>
-                      <button class="player-icon-button" :title="t('player.forwardTenSecondsTitle')" :aria-label="t('player.forwardTenSeconds')" type="button" @click="skip(10)">
+                      <button class="player-icon-button" :title="`${t('player.forwardSeconds', {seconds: skipSeconds})} (L)`" :aria-label="t('player.forwardSeconds', {seconds: skipSeconds})" type="button" @click="skip(skipSeconds)">
                         <UIcon name="i-lucide-rotate-cw" />
-                        <span class="skip-label">10</span>
+                        <span class="skip-label">{{ skipSeconds }}</span>
                       </button>
                       <span class="player-time">{{ formatDuration(currentTime) }} / {{ formatDuration(mediaDuration) }}</span>
                     </div>
@@ -372,6 +372,9 @@
                         <option :value="1.5">1.5×</option>
                         <option :value="2">2×</option>
                       </select>
+                      <button class="player-icon-button" type="button" :aria-label="t('settings.playback')" :title="t('settings.playback')" @click="isPlaybackSettingsOpen = true">
+                        <UIcon name="i-lucide-settings" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -551,12 +554,32 @@
       </template>
     </UModal>
 
+    <UModal v-model:open="isPlaybackSettingsOpen" :title="t('settings.playback')" :description="t('settings.seekDescription')">
+      <template #body>
+        <div class="playback-settings">
+          <div class="playback-setting">
+            <label for="arrow-seek-seconds">{{ t('settings.arrowSeek') }}</label>
+            <select id="arrow-seek-seconds" v-model.number="arrowSeekSeconds">
+              <option v-for="seconds in seekOptions" :key="seconds" :value="seconds">{{ t('settings.seconds', {seconds}) }}</option>
+            </select>
+          </div>
+          <div class="playback-setting">
+            <label for="skip-seconds">{{ t('settings.skipSeek') }}</label>
+            <select id="skip-seconds" v-model.number="skipSeconds">
+              <option v-for="seconds in seekOptions" :key="seconds" :value="seconds">{{ t('settings.seconds', {seconds}) }}</option>
+            </select>
+          </div>
+          <UButton color="neutral" variant="soft" icon="i-lucide-keyboard" :label="t('shortcuts.title')" @click="isPlaybackSettingsOpen = false; isShortcutsOpen = true" />
+        </div>
+      </template>
+    </UModal>
+
     <UModal v-model:open="isShortcutsOpen" :title="t('shortcuts.title')" :description="t('shortcuts.description')">
       <template #body>
         <dl class="shortcut-list">
           <div><dt>{{ t('shortcuts.playPause') }}</dt><dd>{{ t('shortcuts.keyPlayPause') }}</dd></div>
-          <div><dt>{{ t('shortcuts.seekTen') }}</dt><dd>{{ t('shortcuts.keySeekTen') }}</dd></div>
-          <div><dt>{{ t('shortcuts.seekFive') }}</dt><dd>{{ t('shortcuts.keySeekFive') }}</dd></div>
+          <div><dt>{{ t('shortcuts.seekSeconds', {seconds: skipSeconds}) }}</dt><dd>{{ t('shortcuts.keySeekTen') }}</dd></div>
+          <div><dt>{{ t('shortcuts.seekSeconds', {seconds: arrowSeekSeconds}) }}</dt><dd>{{ t('shortcuts.keySeekFive') }}</dd></div>
           <div><dt>{{ t('shortcuts.volumeMute') }}</dt><dd>{{ t('shortcuts.keyVolumeMute') }}</dd></div>
           <div><dt>{{ t('shortcuts.fullscreenTheater') }}</dt><dd>{{ t('shortcuts.keyFullscreenTheater') }}</dd></div>
           <div><dt>{{ t('shortcuts.fullWindow') }}</dt><dd>{{ t('shortcuts.keyFullWindow') }}</dd></div>
@@ -661,12 +684,18 @@ const loadedDuration = ref(0);
 const volume = useStorage('evb-player-volume', 1);
 const lastVolume = useStorage('evb-player-last-volume', 1);
 const playbackRate = useStorage('evb-player-playback-rate', 1);
+const seekOptions = [1, 5, 10, 15, 30, 60];
+const arrowSeekSeconds = useStorage('evb-player-arrow-seek-seconds', 5);
+const skipSeconds = useStorage('evb-player-skip-seconds', 10);
+arrowSeekSeconds.value = seekOptions.includes(arrowSeekSeconds.value) ? arrowSeekSeconds.value : 5;
+skipSeconds.value = seekOptions.includes(skipSeconds.value) ? skipSeconds.value : 10;
 volume.value = Number.isFinite(volume.value) ? Math.max(0, Math.min(1, volume.value)) : 1;
 lastVolume.value = Number.isFinite(lastVolume.value) && lastVolume.value > 0 ? Math.min(1, lastVolume.value) : 1;
 playbackRate.value = [0.75, 1, 1.25, 1.5, 2].includes(playbackRate.value) ? playbackRate.value : 1;
 const playbackError = ref('');
 const isBuffering = ref(false);
 const isShortcutsOpen = ref(false);
+const isPlaybackSettingsOpen = ref(false);
 const isFullscreen = ref(false);
 const isTheaterMode = ref(false);
 const isFullWindow = ref(false);
@@ -1806,14 +1835,16 @@ function handleKeyboard(event: KeyboardEvent) {
   if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
     return;
   }
-  if (isProgressResetDialogOpen.value || isShortcutsOpen.value || document.querySelector('[role="dialog"]')) {
+  if (isProgressResetDialogOpen.value || isShortcutsOpen.value || isPlaybackSettingsOpen.value || document.querySelector('[role="dialog"], [role="menu"], [role="listbox"]')) {
     return;
   }
   const target = event.target;
   if (target instanceof HTMLElement && target.closest('.playlist-edit-handle')) {
     return;
   }
-  if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable)) {
+  // The seek bar uses the player's jump intervals too. Text fields, volume,
+  // and other form controls retain their native keyboard behavior.
+  if ((target instanceof HTMLInputElement && !target.matches('.seek-range')) || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable)) {
     return;
   }
   if (target instanceof HTMLButtonElement && (event.code === 'Space' || event.key === 'Enter')) {
@@ -1849,13 +1880,13 @@ function handleKeyboard(event: KeyboardEvent) {
   if (isSpace || isKey('k')) {
     togglePlayback();
   } else if (isKey('j')) {
-    skip(-10);
+    skip(-skipSeconds.value);
   } else if (isKey('l')) {
-    skip(10);
+    skip(skipSeconds.value);
   } else if (isArrowLeft) {
-    skip(-5);
+    skip(-arrowSeekSeconds.value);
   } else if (isArrowRight) {
-    skip(5);
+    skip(arrowSeekSeconds.value);
   } else if (isArrowUp) {
     adjustVolume(0.05);
   } else if (isArrowDown) {
