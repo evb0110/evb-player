@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 // Exercise the shared UI against either libmpv or the browser media element.
-// The caller supplies a paused track longer than 60 seconds in an isolated profile.
+// The caller supplies a 2 fps track longer than 60 seconds in an isolated profile.
 export async function testPlayerControls(page, selector = 'evb-media') {
   const media = page.locator(selector);
   const seek = page.getByRole('slider', {name: 'Seek', exact: true});
@@ -73,9 +73,36 @@ export async function testPlayerControls(page, selector = 'evb-media') {
   await expectTime(0);
   await media.evaluate(media => {media.currentTime = media.duration - 5;});
   const duration = await media.evaluate(media => media.duration);
-  await page.keyboard.press('ArrowRight');
-  await expectTime(duration);
-  assert.ok(await media.evaluate(media => media.paused), 'Seeking preserves pause state');
+  await media.evaluate(media => {
+    let prototype = Object.getPrototypeOf(media);
+    while (prototype && !Object.getOwnPropertyDescriptor(prototype, 'currentTime')) prototype = Object.getPrototypeOf(prototype);
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, 'currentTime');
+    window.seekBoundary = {requested: null, settled: false};
+    Object.defineProperty(media, 'currentTime', {
+      configurable: true,
+      get() {return descriptor.get.call(this);},
+      set(value) {
+        window.seekBoundary.requested = value;
+        descriptor.set.call(this, value);
+      },
+    });
+    media.addEventListener('seeked', () => {window.seekBoundary.settled = true;}, {once: true});
+  });
+  try {
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(selector => {
+      const media = document.querySelector(selector);
+      return window.seekBoundary.settled && !media.seeking && (!('pendingSeek' in media) || media.pendingSeek === null);
+    }, selector);
+    assert.equal(await page.evaluate(() => window.seekBoundary.requested), duration, 'The control clamps the requested seek to the exact duration');
+    // The generated fixture is 2 fps. A paused decoder can hold its final
+    // frame at duration - 0.5 rather than report the requested EOF timestamp.
+    const endTime = await media.evaluate(media => media.currentTime);
+    assert.ok(endTime >= duration - 0.5 && endTime <= duration, `Settle within the final frame: ${endTime} / ${duration}`);
+    assert.ok(await media.evaluate(media => media.paused), 'Seeking preserves pause state');
+  } finally {
+    await media.evaluate(media => {delete media.currentTime; delete window.seekBoundary;});
+  }
   console.log('PASS saved seek preferences and track boundaries');
 
   await page.evaluate(() => {
