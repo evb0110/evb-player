@@ -6,6 +6,7 @@ import {chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, w
 import {basename, dirname, join, resolve} from 'node:path';
 import {_electron} from 'playwright-core';
 import {prepareHiddenLaunch} from './hidden-launch.mjs';
+import {testPlayerControls} from './test-player-controls.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const temporary = process.env.TMPDIR || join(root, '.devkit');
@@ -27,8 +28,9 @@ for (const [name, codec] of [['02 AVI.avi', 'mpeg4'], ['03 Windows Media.wmv', '
 }
 encode('07 Audio.flac', ['-f', 'lavfi', '-i', 'sine=frequency=440:duration=6', '-c:a', 'flac']);
 encode('08 Sync check.mp4', ['-f', 'lavfi', '-i', 'testsrc2=s=320x180:r=30:d=6', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=6', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-bf', '2', '-c:a', 'aac', '-shortest']);
+encode('09 Seek controls.mp4', ['-f', 'lavfi', '-i', 'testsrc2=s=320x180:r=2:d=90', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-g', '2']);
 const folderId = createHash('sha256').update(folder).digest('hex').slice(0, 16);
-writeFileSync(join(profile, 'evb-player-state.json'), JSON.stringify({recentFolders: [{id: folderId, name: 'Playback fixtures', rootPath: folder, mediaCount: 8, lastOpenedAt: Date.now()}], progress: {}, lastFolderPath: folder}));
+writeFileSync(join(profile, 'evb-player-state.json'), JSON.stringify({recentFolders: [{id: folderId, name: 'Playback fixtures', rootPath: folder, mediaCount: 9, lastOpenedAt: Date.now()}], progress: {}, lastFolderPath: folder}));
 // Electron 44 lazily installs its executable when this package API is loaded.
 // A guessed dist path bypasses that installer on fresh CI machines.
 const require = createRequire(import.meta.url);
@@ -45,12 +47,21 @@ if (process.platform === 'linux' && process.env.EVB_PLAYER_TEST_BACKTRACE) {
 }
 let application;
 let nativeLogs = '';
+const nativePolicyLines = [];
 let nativeSample;
 const nativeSamplePath = join(work, 'native-playback-sample.txt');
 try {
   application = await _electron.launch({...launch, args: [...(process.env.EVB_PLAYER_TEST_EXECUTABLE ? [] : [root]), `--user-data-dir=${profile}`, ...(process.env.NESTED_RUN ? ['--ozone-platform=wayland'] : [])]});
   for (const stream of [application.process().stdout, application.process().stderr]) {
-    stream.on('data', chunk => {nativeLogs = (nativeLogs + chunk.toString()).slice(-65_536);});
+    let pendingLine = '';
+    stream.on('data', chunk => {
+      const text = chunk.toString();
+      nativeLogs = (nativeLogs + text).slice(-65_536);
+      const lines = (pendingLine + text).split('\n');
+      pendingLine = lines.pop();
+      // Keep lifecycle receipts even when frame diagnostics evict the log tail.
+      nativePolicyLines.push(...lines.filter(line => /Native playback policy|policy restored:/u.test(line)));
+    });
   }
   application.process().on('exit', (code, signal) => {if (signal || code) console.error('Electron exited', {code, signal});});
   const isolation = await application.evaluate(({app, BrowserWindow}) => ({profile: app.getPath('userData'), visible: BrowserWindow.getAllWindows().some(window => window.isVisible())}));
@@ -273,6 +284,9 @@ try {
     await page.waitForFunction(() => document.querySelector('evb-media')?.readyState === 4);
   }
   console.log('PASS native sessions are released across renderer reloads');
+  await page.getByText('Seek controls', {exact: true}).first().click();
+  await page.waitForFunction(() => document.querySelector('evb-media')?.src.includes('Seek%20controls') && document.querySelector('evb-media')?.readyState === 4);
+  await testPlayerControls(page);
   assert.deepEqual(errors, []);
   console.log('PASS source authorization and renderer lifecycle');
   const helperPids = [];
@@ -305,11 +319,12 @@ try {
   const qosStatuses = [...new Set([...nativeLogs.matchAll(/producer QoS status=(\d+)/gu)].map(match => Number(match[1])))];
   const wakeDelays = [...nativeLogs.matchAll(/max-wake-us=(\d+)/gu)].map(match => Number(match[1]));
   if (qosStatuses.length || wakeDelays.length) console.log('Native scheduling diagnostics', {qosStatuses, maxWakeMs: Math.max(0, ...wakeDelays) / 1000});
-  const restoredPolicies = [...nativeLogs.matchAll(/policy restored: expected-background=(\d+) background=(\d+) expected-role=(-?\d+) role=(-?\d+) status=(\d+)/gu)];
+  const nativePolicies = nativePolicyLines.join('\n');
+  const restoredPolicies = [...nativePolicies.matchAll(/policy restored: expected-background=(\d+) background=(\d+) expected-role=(-?\d+) role=(-?\d+) status=(\d+)/gu)];
   if (process.platform === 'darwin') {
-    assert.match(nativeLogs, /Native playback policy: background=[01] role=7 reset=0 foreground=0/u, 'Decoder must start with application scheduling and accept the playback boost');
+    assert.match(nativePolicies, /Native playback policy: background=[01] role=7 reset=0 foreground=0/u, 'Decoder must start with application scheduling and accept the playback boost');
     if (process.env.EVB_PLAYER_TEST_BACKGROUND_DECODER === '1') {
-      assert.match(nativeLogs, /Native playback policy: background=1/u, 'Decoder must inherit the injected background state');
+      assert.match(nativePolicies, /Native playback policy: background=1/u, 'Decoder must inherit the injected background state');
     }
     assert.ok(restoredPolicies.length > 0, 'Playback must restore its OS scheduling policy');
     for (const match of restoredPolicies) {

@@ -1954,6 +1954,29 @@ button:disabled {
   gap: 14px;
 }
 
+.playback-settings {
+  display: grid;
+  gap: 20px;
+}
+
+.playback-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--shell-text);
+  font-weight: 600;
+}
+
+.playback-setting select {
+  padding: 6px 10px;
+  border: 1px solid var(--shell-border-strong);
+  border-radius: 6px;
+  color: var(--shell-text);
+  background: var(--shell-surface);
+  font: inherit;
+}
+
 .shortcut-list > div {
   display: flex;
   justify-content: space-between;
