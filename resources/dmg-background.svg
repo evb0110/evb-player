@@ -6,6 +6,7 @@
     </linearGradient>
   </defs>
   <rect width="600" height="450" fill="url(#background)"/>
+  <text x="300" y="67" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="26" fill="#283430">EVB Player</text>
   <path d="M244 185h78" fill="none" stroke="#f0784e" stroke-width="11" stroke-linecap="round"/>
   <path d="M352 185l-26-17v34z" fill="#f0784e"/>
 </svg>
