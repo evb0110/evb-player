@@ -1807,6 +1807,13 @@ button:disabled {
   color: var(--shell-accent);
 }
 
+.folder-table-name-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .folder-table-location {
   display: block;
   overflow: hidden;

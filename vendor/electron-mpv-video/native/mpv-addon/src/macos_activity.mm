@@ -27,13 +27,14 @@ void begin_playback_policy() {
       reinterpret_cast<task_policy_t>(&previous_role), &count, &defaults);
   policy_saved = background_valid && queried == KERN_SUCCESS;
   if (!policy_saved) return;
-  // CLI helpers may start with TASK_UNSPECIFIED, which the Mach setter rejects.
-  // Establish a restorable idle background role before the first playback boost.
+  // CLI helpers may start with TASK_UNSPECIFIED or TASK_NONUI_APPLICATION,
+  // which the Mach setter rejects. Establish a restorable idle role before
+  // the first playback boost, without registering a UI application.
   const kern_return_t restorable = task_policy_set(mach_task_self(), TASK_CATEGORY_POLICY,
       reinterpret_cast<task_policy_t>(&previous_role), TASK_CATEGORY_POLICY_COUNT);
   if (restorable != KERN_SUCCESS) {
-    if (previous_role.role != TASK_UNSPECIFIED) {policy_saved = false; return;}
-    previous_role.role = TASK_BACKGROUND_APPLICATION;
+    if (previous_role.role != TASK_UNSPECIFIED && previous_role.role != TASK_NONUI_APPLICATION) {policy_saved = false; return;}
+    previous_role.role = previous_role.role == TASK_NONUI_APPLICATION ? TASK_DEFAULT_APPLICATION : TASK_BACKGROUND_APPLICATION;
     const kern_return_t idle = task_policy_set(mach_task_self(), TASK_CATEGORY_POLICY,
         reinterpret_cast<task_policy_t>(&previous_role), TASK_CATEGORY_POLICY_COUNT);
     if (idle != KERN_SUCCESS) {policy_saved = false; return;}

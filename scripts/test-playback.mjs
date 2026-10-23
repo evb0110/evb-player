@@ -7,6 +7,7 @@ import {basename, dirname, join, resolve} from 'node:path';
 import {_electron} from 'playwright-core';
 import {prepareHiddenLaunch} from './hidden-launch.mjs';
 import {testPlayerControls} from './test-player-controls.mjs';
+import {testLibraryLayout} from './test-library-layout.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const temporary = process.env.TMPDIR || join(root, '.devkit');
@@ -30,7 +31,10 @@ encode('07 Audio.flac', ['-f', 'lavfi', '-i', 'sine=frequency=440:duration=6', '
 encode('08 Sync check.mp4', ['-f', 'lavfi', '-i', 'testsrc2=s=320x180:r=30:d=6', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=6', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-bf', '2', '-c:a', 'aac', '-shortest']);
 encode('09 Seek controls.mp4', ['-f', 'lavfi', '-i', 'testsrc2=s=320x180:r=2:d=90', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-g', '2']);
 const folderId = createHash('sha256').update(folder).digest('hex').slice(0, 16);
-writeFileSync(join(profile, 'evb-player-state.json'), JSON.stringify({recentFolders: [{id: folderId, name: 'Playback fixtures', rootPath: folder, mediaCount: 9, lastOpenedAt: Date.now()}], progress: {}, lastFolderPath: folder}));
+const layoutFolders = ['Programming workshops with exercises and bonus projects', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.repeat(5)].map((name, index) => ({
+  id: String(index + 1).padStart(16, '0'), name, rootPath: join(work, name), mediaCount: 24, lastOpenedAt: Date.now() - 86_400_000,
+}));
+writeFileSync(join(profile, 'evb-player-state.json'), JSON.stringify({recentFolders: [{id: folderId, name: 'Playback fixtures', rootPath: folder, mediaCount: 9, lastOpenedAt: Date.now()}, ...layoutFolders], progress: {}, lastFolderPath: folder}));
 // Electron 44 lazily installs its executable when this package API is loaded.
 // A guessed dist path bypasses that installer on fresh CI machines.
 const require = createRequire(import.meta.url);
@@ -287,6 +291,7 @@ try {
   await page.getByText('Seek controls', {exact: true}).first().click();
   await page.waitForFunction(() => document.querySelector('evb-media')?.src.includes('Seek%20controls') && document.querySelector('evb-media')?.readyState === 4);
   await testPlayerControls(page);
+  await testLibraryLayout(application, page);
   assert.deepEqual(errors, []);
   console.log('PASS source authorization and renderer lifecycle');
   const helperPids = [];
