@@ -145,7 +145,7 @@
               {{ t('library.columnLocation') }}
             </template>
             <template #name-cell="{row}">
-              <span class="folder-table-name"><UIcon name="i-lucide-folder" />{{ row.original.name }}</span>
+              <span class="folder-table-name"><UIcon name="i-lucide-folder" /><span class="folder-table-name-label">{{ row.original.name }}</span></span>
             </template>
             <template #rootPath-cell="{row}">
               <UTooltip :text="row.original.rootPath">
