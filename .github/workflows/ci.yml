@@ -27,7 +27,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libmpv-dev patchelf ffmpeg kwin-wayland kwin-wayland-backend-virtual dbus-x11
+      - name: Install Linux playback runtime
+        run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libmpv-dev patchelf ffmpeg kwin-wayland kwin-wayland-backend-virtual dbus-x11
       - run: pnpm typecheck
       - run: pnpm build:web
       # Build the desktop renderer after the web build, so playback tests use it.
